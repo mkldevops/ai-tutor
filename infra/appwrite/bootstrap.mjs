@@ -2,9 +2,7 @@ import { randomBytes } from "node:crypto";
 import { existsSync } from "node:fs";
 import { chmod, copyFile, readFile, writeFile } from "node:fs/promises";
 
-const [credentialsPath, envPath, examplePath, port] = process.argv.slice(2);
-const endpoint = `http://127.0.0.1:${port}/v1`;
-const projectId = "ai-tutor-local";
+const [credentialsPath, envPath, examplePath, endpoint, projectId] = process.argv.slice(2);
 
 const credentials = Object.fromEntries(
 	(await readFile(credentialsPath, "utf8"))
@@ -35,7 +33,7 @@ await request("/account", {
 	userId: "ai-tutor-admin",
 	email: credentials.ADMIN_EMAIL,
 	password: credentials.ADMIN_PASSWORD,
-	name: "AI Tutor local admin",
+	name: "AI Tutor admin",
 });
 const session = await request("/account/sessions/email", {
 	email: credentials.ADMIN_EMAIL,
@@ -45,13 +43,13 @@ const cookie = session.cookie;
 if (!cookie) throw new Error("Console session returned no cookie.");
 
 await request("/teams", { teamId: "ai-tutor-team", name: "AI Tutor" }, cookie);
-await request("/projects", { projectId, name: "AI Tutor (local)", teamId: "ai-tutor-team", region: "default" }, cookie);
+await request("/projects", { projectId, name: `AI Tutor (${projectId})`, teamId: "ai-tutor-team", region: "default" }, cookie);
 
 const key = await request(
 	`/projects/${projectId}/keys`,
 	{
 		keyId: `server-${randomBytes(6).toString("hex")}`,
-		name: "AI Tutor server (local)",
+		name: "AI Tutor server",
 		scopes: [
 			"users.read",
 			"users.write",
@@ -88,4 +86,4 @@ for (const [name, value] of Object.entries(values)) {
 }
 await writeFile(envPath, lines.join("\n"), { mode: 0o600 });
 await chmod(envPath, 0o600);
-console.log(`Project ${projectId} ready at ${endpoint}; .env updated.`);
+console.log(`Project ${projectId} ready at ${endpoint}; ${envPath} updated.`);

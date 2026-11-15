@@ -65,6 +65,23 @@ pnpm dev
 Generated secrets stay in gitignored files with mode 600: `infra/appwrite/appwrite.local` (server secrets),
 `infra/appwrite/console-admin.local` (console login for http://127.0.0.1:18480/console) and `.env`.
 
+### Appwrite on Coolify
+
+`infra/appwrite/coolify.compose.yaml` is the same stack for Coolify: no published ports, the domain is routed to the
+API container, and Coolify generates every secret (`SERVICE_PASSWORD_*`). Console sign-up is limited to the first
+account, which the bootstrap creates.
+
+Live instance: Coolify `coolify.msadawaheri.fr`, project **AI Tutor**, service `appwrite-ai-tutor`,
+https://appwrite.ai-tutor.msadawaheri.fr. `.mcp.json` exposes that Coolify through MCP with
+`COOLIFY_MSADAWAHERI_TOKEN` from your shell.
+
+```bash
+APPWRITE_REMOTE_ENDPOINT=https://appwrite.ai-tutor.msadawaheri.fr/v1 infra/appwrite/bootstrap.sh coolify
+```
+
+This writes `.env.coolify.local` (server key, gitignored) and `infra/appwrite/console-admin.coolify.local`
+(console login), then provisions the schema.
+
 ### Appwrite setup (any instance)
 
 1. Create an Appwrite project and a server API key (users, sessions, databases, tables, rows scopes).

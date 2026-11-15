@@ -1,0 +1,144 @@
+x-appwrite: &appwrite
+  image: appwrite/appwrite:2.7.1
+  environment: &appwrite-env
+    _APP_ENV: production
+    _APP_EDITION: self-hosted
+    _APP_LOCALE: en
+    _APP_OPENSSL_KEY_V1: ${SERVICE_PASSWORD_64_OPENSSL}
+    _APP_JOBS_SECRET: ${SERVICE_PASSWORD_64_JOBS}
+    _APP_EXECUTOR_SECRET: ${SERVICE_PASSWORD_64_EXECUTOR}
+    _APP_GEO_SECRET: ${SERVICE_PASSWORD_64_GEO}
+    _APP_GEO_ENDPOINT: http://geo/v1
+    _APP_DOMAIN: ${SERVICE_FQDN_APPWRITE}
+    _APP_CONSOLE_DOMAIN: ${SERVICE_FQDN_APPWRITE}
+    _APP_CONSOLE_HOSTNAMES: ${SERVICE_FQDN_APPWRITE}
+    _APP_OPTIONS_FORCE_HTTPS: disabled
+    _APP_OPTIONS_ROUTER_FORCE_HTTPS: disabled
+    _APP_OPTIONS_ABUSE: enabled
+    _APP_CONSOLE_WHITELIST_ROOT: enabled
+    _APP_DB_ADAPTER: postgresql
+    _APP_DB_HOST: postgresql
+    _APP_DB_PORT: 5432
+    _APP_DB_SCHEMA: appwrite
+    _APP_DB_USER: ${SERVICE_USER_POSTGRES}
+    _APP_DB_PASS: ${SERVICE_PASSWORD_POSTGRES}
+    _APP_REDIS_HOST: redis
+    _APP_REDIS_PORT: 6379
+    _APP_STORAGE_DEVICE: Local
+    _APP_STORAGE_ANTIVIRUS: disabled
+    _APP_USAGE_STATS: disabled
+    _APP_WORKER_PER_CORE: 1
+    _APP_WORKERS_NUM: 1
+    _APP_WORKER_MAX_COROUTINES: 4
+    _APP_EMBEDDING: disabled
+    _APP_DOCUMENTSDB: disabled
+    _APP_VECTORSDB: disabled
+    _APP_LOGGING_FORMAT: json
+  restart: unless-stopped
+  volumes:
+    - uploads:/storage/uploads:rw
+    - imports:/storage/imports:rw
+    - cache:/storage/cache:rw
+    - config:/storage/config:rw
+    - certificates:/storage/certificates:rw
+    - functions:/storage/functions:rw
+    - sites:/storage/sites:rw
+    - builds:/storage/builds:rw
+  logging:
+    driver: json-file
+    options:
+      max-file: "3"
+      max-size: 10m
+
+services:
+  appwrite:
+    <<: *appwrite
+    environment:
+      <<: *appwrite-env
+      SERVICE_URL_APPWRITE_80: /
+    depends_on:
+      postgresql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      geo:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS -o /dev/null -H 'Host: localhost' http://localhost/v1/health/version"]
+      interval: 5s
+      timeout: 5s
+      retries: 36
+      start_period: 60s
+
+  worker-databases:
+    <<: *appwrite
+    entrypoint: worker-databases
+    depends_on:
+      postgresql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  worker-deletes:
+    <<: *appwrite
+    entrypoint: worker-deletes
+    depends_on:
+      postgresql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  geo:
+    image: appwrite/geo:0.3.2
+    environment:
+      GEO_SECRET: ${SERVICE_PASSWORD_64_GEO}
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "php -r \"exit(json_decode(file_get_contents('http://localhost/v1/health'))->status === 'ok' ? 0 : 1);\""]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 5s
+
+  postgresql:
+    image: appwrite/postgres:0.1.0
+    init: true
+    shm_size: 1g
+    environment:
+      POSTGRES_DB: appwrite
+      POSTGRES_USER: ${SERVICE_USER_POSTGRES}
+      POSTGRES_PASSWORD: ${SERVICE_PASSWORD_POSTGRES}
+    restart: unless-stopped
+    volumes:
+      - postgresql:/var/lib/postgresql:rw
+    command: ["postgres"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+
+  redis:
+    image: redis:7.4.7-alpine
+    command: ["redis-server", "--maxmemory", "256mb", "--maxmemory-policy", "allkeys-lru"]
+    restart: unless-stopped
+    volumes:
+      - redis:/data:rw
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+volumes:
+  postgresql:
+  redis:
+  uploads:
+  imports:
+  cache:
+  config:
+  certificates:
+  functions:
+  sites:
+  builds:
