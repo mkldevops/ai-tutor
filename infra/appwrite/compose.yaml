@@ -1,0 +1,135 @@
+name: ai-tutor-appwrite
+
+x-appwrite: &appwrite
+  image: appwrite/appwrite:2.7.1
+  env_file:
+    - appwrite.local
+  restart: unless-stopped
+  networks:
+    - appwrite
+  volumes:
+    - uploads:/storage/uploads:rw
+    - imports:/storage/imports:rw
+    - cache:/storage/cache:rw
+    - config:/storage/config:rw
+    - certificates:/storage/certificates:rw
+    - functions:/storage/functions:rw
+    - sites:/storage/sites:rw
+    - builds:/storage/builds:rw
+  logging:
+    driver: json-file
+    options:
+      max-file: "3"
+      max-size: 10m
+
+services:
+  appwrite:
+    <<: *appwrite
+    ports:
+      - "127.0.0.1:${AI_TUTOR_APPWRITE_PORT:-18480}:80"
+    depends_on:
+      postgresql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      geo:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS -o /dev/null -H 'Host: localhost' http://localhost/v1/health/version"]
+      interval: 5s
+      timeout: 5s
+      retries: 36
+      start_period: 60s
+
+  worker-databases:
+    <<: *appwrite
+    entrypoint: worker-databases
+    depends_on:
+      postgresql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  worker-deletes:
+    <<: *appwrite
+    entrypoint: worker-deletes
+    depends_on:
+      postgresql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  geo:
+    image: appwrite/geo:0.3.2
+    environment:
+      GEO_SECRET: ${_APP_GEO_SECRET}
+    restart: unless-stopped
+    networks:
+      - appwrite
+    healthcheck:
+      test: ["CMD-SHELL", "php -r \"exit(json_decode(file_get_contents('http://localhost/v1/health'))->status === 'ok' ? 0 : 1);\""]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 5s
+
+  postgresql:
+    image: appwrite/postgres:0.1.0
+    init: true
+    shm_size: 1g
+    environment:
+      POSTGRES_DB: ${_APP_DB_SCHEMA}
+      POSTGRES_USER: ${_APP_DB_USER}
+      POSTGRES_PASSWORD: ${_APP_DB_PASS}
+    restart: unless-stopped
+    networks:
+      - appwrite
+    volumes:
+      - postgresql:/var/lib/postgresql:rw
+    command: ["postgres"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+
+  redis:
+    image: redis:7.4.7-alpine
+    command: ["redis-server", "--maxmemory", "256mb", "--maxmemory-policy", "allkeys-lru"]
+    restart: unless-stopped
+    networks:
+      - appwrite
+    volumes:
+      - redis:/data:rw
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+networks:
+  appwrite:
+    name: ai-tutor-appwrite
+
+volumes:
+  postgresql:
+    name: ai-tutor-appwrite_postgresql
+  redis:
+    name: ai-tutor-appwrite_redis
+  uploads:
+    name: ai-tutor-appwrite_uploads
+  imports:
+    name: ai-tutor-appwrite_imports
+  cache:
+    name: ai-tutor-appwrite_cache
+  config:
+    name: ai-tutor-appwrite_config
+  certificates:
+    name: ai-tutor-appwrite_certificates
+  functions:
+    name: ai-tutor-appwrite_functions
+  sites:
+    name: ai-tutor-appwrite_sites
+  builds:
+    name: ai-tutor-appwrite_builds

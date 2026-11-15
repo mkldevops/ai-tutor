@@ -1,6 +1,9 @@
 import { defineConfig, devices } from "@playwright/test";
 
 const PORT = 3100;
+const DATA_BACKEND = process.env.E2E_DATA_BACKEND ?? "memory";
+
+if (DATA_BACKEND === "appwrite") process.loadEnvFile(".env");
 
 export default defineConfig({
 	testDir: "./e2e",
@@ -18,6 +21,6 @@ export default defineConfig({
 		url: `http://localhost:${PORT}`,
 		reuseExistingServer: false,
 		timeout: 120_000,
-		env: { DATA_BACKEND: "memory", AI_ENABLED: "false" },
+		env: { DATA_BACKEND, AI_ENABLED: "false" },
 	},
 });

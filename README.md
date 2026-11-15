@@ -28,6 +28,9 @@ Create a family account, add a learner, open them and start a lesson.
 | `pnpm typecheck` | `tsc --noEmit` |
 | `pnpm test` | Vitest unit tests (mastery, lesson engine, authorization) |
 | `pnpm test:e2e` | Playwright happy path (starts its own dev server on port 3100, memory backend) |
+| `pnpm test:e2e:appwrite` | Same test against the Appwrite configured in `.env` |
+| `pnpm appwrite:up` / `pnpm appwrite:down` | Start / stop the local self-hosted Appwrite (`down --volumes` wipes it) |
+| `pnpm appwrite:bootstrap` | Create the local console admin, project and server key, write `.env`, run `appwrite:setup` |
 | `pnpm check` | Biome lint + format check |
 | `pnpm appwrite:setup` | Create/upgrade the Appwrite database, tables, indexes and seed the curriculum (idempotent) |
 
@@ -48,7 +51,21 @@ All variables are server-only; nothing is exposed to the browser. See [.env.exam
 | `AI_DAILY_CALLS_PER_FAMILY` | `50` | Per-family daily cap on tutor calls. |
 | `SESSION_COOKIE_SECURE` | prod only | Force the `Secure` cookie flag. |
 
-### Appwrite setup
+### Local self-hosted Appwrite
+
+`infra/appwrite/` runs Appwrite 2.7.1 (Postgres, Redis, geo, database and delete workers) as the Docker Compose
+project `ai-tutor-appwrite` on `http://127.0.0.1:18480` (override with `AI_TUTOR_APPWRITE_PORT`).
+
+```bash
+pnpm appwrite:up          # generates infra/appwrite/appwrite.local secrets on first run
+pnpm appwrite:bootstrap   # console admin, project ai-tutor-local, server key → .env (DATA_BACKEND=appwrite)
+pnpm dev
+```
+
+Generated secrets stay in gitignored files with mode 600: `infra/appwrite/appwrite.local` (server secrets),
+`infra/appwrite/console-admin.local` (console login for http://127.0.0.1:18480/console) and `.env`.
+
+### Appwrite setup (any instance)
 
 1. Create an Appwrite project and a server API key (users, sessions, databases, tables, rows scopes).
 2. Put the values in `.env` and set `DATA_BACKEND=appwrite`.
@@ -101,12 +118,10 @@ study* (DFE-00180-2013, HTML updated 2021-09-28), Open Government Licence v3.0. 
 - Unit: 39 tests (mastery policy, lesson engine, generators self-check, tenant isolation).
 - E2E: one Playwright test — two learners (Y3, Y5) in one family complete lessons, both reach `secure`
   (not `mastered`), each sees only their year's objective, and a second family cannot open the first
-  family's learner.
+  family's learner. It passes on both the memory backend and the local Appwrite 2.7.1.
 
 ## Known limitations
 
-- **Appwrite backend is not yet tested against a live instance.** The store, auth provider and setup
-  script compile against `node-appwrite` 31 but were only exercised through the memory backend.
 - **AI tutor is untested end-to-end** (no API key used during development). It is off by default and the
   lesson works without it.
 - Rate limits are in-process memory; use a shared store before running several instances.
