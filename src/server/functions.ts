@@ -251,7 +251,7 @@ export const askTutorFn = createServerFn({ method: "POST" })
 			const { getSession } = await import("./services/learning");
 			const { rateLimit } = await import("./rate-limit");
 			const { createTutorAgent } = await import("#/ai/tutor-agent");
-			const { finalAnswerText } = await import("#/ai/final-text");
+			const { generateCheckedAnswer } = await import("#/ai/checked-answer");
 			const { AppError } = await import("./services/errors");
 			const { actor } = await requireActor();
 			const { config, store, index, embedder } = getServerContext();
@@ -271,13 +271,21 @@ export const askTutorFn = createServerFn({ method: "POST" })
 			if (!agent) return { available: false as const, text: null };
 			rateLimit(`ai:${actor.familyId}`, config.AI_DAILY_CALLS_PER_FAMILY, 24 * 60 * 60_000);
 			const started = Date.now();
-			const out = await agent.generate(
-				"Explain the current objective to the child in a different way from the standard explanation, " +
-					"using their recent mistakes if any. Maximum 6 short sentences. Do not answer any specific pending question.",
-				{ maxSteps: 4 },
-			);
-			console.info("[ai-tutor] tutor call", { familyId: actor.familyId, ms: Date.now() - started, usage: out.usage });
-			return { available: true as const, text: finalAnswerText(out).slice(0, 2000) };
+			let usage: unknown[] = [];
+			const res = await generateCheckedAnswer(async (prompt) => {
+				const out = await agent.generate(prompt, { maxSteps: 4 });
+				usage = [...usage, out.usage];
+				return out;
+			}, "Explain the current objective to the child in a different way from the standard explanation, " +
+				"using their recent mistakes if any. Maximum 6 short sentences. Do not answer any specific pending question.");
+			console.info("[ai-tutor] tutor call", {
+				familyId: actor.familyId,
+				ms: Date.now() - started,
+				attempts: res.attempts,
+				arithmeticErrors: res.errors.length,
+				usage,
+			});
+			return { available: true as const, text: res.text.slice(0, 2000) };
 		}),
 	);
 
