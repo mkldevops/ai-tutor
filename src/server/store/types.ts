@@ -76,6 +76,61 @@ export type AuditLogRecord = BaseRecord & {
 	detail: Record<string, unknown>;
 };
 
+export type KnowledgeStatus = "staged" | "approved" | "rejected" | "superseded";
+
+export type KnowledgeSourceRecord = BaseRecord & {
+	sourceKey: string;
+	publisher: string;
+	title: string;
+	pageUrl: string;
+	licence: string;
+	redistribution: "allowed" | "link_only";
+	status: "active" | "disabled";
+	checkIntervalDays: number;
+	lastCheckedAt: string | null;
+	lastChangedAt: string | null;
+};
+export type KnowledgeVersionRecord = BaseRecord & {
+	sourceId: string;
+	version: number;
+	checksum: string;
+	title: string;
+	upstreamUpdatedAt: string | null;
+	fetchedAt: string;
+	status: KnowledgeStatus;
+	chunkCount: number;
+	added: number;
+	removed: number;
+	flaggedCount: number;
+	reviewedByUserId: string | null;
+	reviewedAt: string | null;
+	reviewNote: string | null;
+};
+export type LearningResourceRecord = BaseRecord & {
+	sourceId: string;
+	versionId: string;
+	ordinal: number;
+	subject: string;
+	yearGroups: number[];
+	kind: "statutory" | "guidance" | "context";
+	heading: string;
+	text: string;
+	checksum: string;
+	objectiveCodes: string[];
+	flags: string[];
+	status: KnowledgeStatus;
+};
+export type IngestionJobRecord = BaseRecord & {
+	sourceId: string;
+	trigger: "manual" | "scheduled";
+	status: "running" | "staged" | "unchanged" | "failed";
+	actorUserId: string | null;
+	versionId: string | null;
+	finishedAt: string | null;
+	error: string | null;
+	stats: Record<string, number>;
+};
+
 export type TableMap = {
 	families: FamilyRecord;
 	family_members: FamilyMemberRecord;
@@ -86,6 +141,10 @@ export type TableMap = {
 	mastery_events: MasteryEventRecord;
 	revision_schedules: RevisionScheduleRecord;
 	audit_logs: AuditLogRecord;
+	knowledge_sources: KnowledgeSourceRecord;
+	knowledge_versions: KnowledgeVersionRecord;
+	learning_resources: LearningResourceRecord;
+	ingestion_jobs: IngestionJobRecord;
 };
 export type TableName = keyof TableMap;
 
@@ -109,4 +168,6 @@ export const JSON_COLUMNS: { [K in TableName]?: (keyof TableMap[K])[] } = {
 	learning_sessions: ["state"],
 	student_competencies: ["reasons", "override"],
 	audit_logs: ["detail"],
+	learning_resources: ["yearGroups", "objectiveCodes", "flags"],
+	ingestion_jobs: ["stats"],
 };

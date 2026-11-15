@@ -25,13 +25,17 @@ async function guard<T>(fn: () => Promise<T>): Promise<T> {
 }
 
 export const getMe = createServerFn({ method: "GET" }).handler(async () => {
-	const { currentUser } = await import("./session");
+	const { currentUser, isKnowledgeAdmin } = await import("./session");
 	const { getServerContext } = await import("./context");
 	const { resolveActor } = await import("./services/family");
 	const user = await currentUser();
 	if (!user) return null;
 	const actor = await resolveActor(getServerContext().store, user.id);
-	return { user: { id: user.id, email: user.email, name: user.name }, familyId: actor?.familyId ?? null };
+	return {
+		user: { id: user.id, email: user.email, name: user.name },
+		familyId: actor?.familyId ?? null,
+		isKnowledgeAdmin: isKnowledgeAdmin(user),
+	};
 });
 
 const credentialsSchema = z.object({
@@ -249,15 +253,20 @@ export const askTutorFn = createServerFn({ method: "POST" })
 			const { createTutorAgent } = await import("#/ai/tutor-agent");
 			const { AppError } = await import("./services/errors");
 			const { actor } = await requireActor();
-			const { config, store } = getServerContext();
+			const { config, store, index, embedder } = getServerContext();
 			const session = await getSession({ store }, actor, data.sessionId);
 			if (session.view.phase !== "instruction" && session.view.phase !== "guided") {
 				throw new AppError("invalid", "The tutor can only help during teaching and guided practice.");
 			}
-			const agent = createTutorAgent(config, store, {
-				studentId: session.studentId,
-				objectiveCode: session.objective.code,
-			});
+			const agent = createTutorAgent(
+				config,
+				store,
+				{
+					studentId: session.studentId,
+					objectiveCode: session.objective.code,
+				},
+				{ index, embedder },
+			);
 			if (!agent) return { available: false as const, text: null };
 			rateLimit(`ai:${actor.familyId}`, config.AI_DAILY_CALLS_PER_FAMILY, 24 * 60 * 60_000);
 			const started = Date.now();
@@ -268,5 +277,68 @@ export const askTutorFn = createServerFn({ method: "POST" })
 			);
 			console.info("[ai-tutor] tutor call", { familyId: actor.familyId, ms: Date.now() - started, usage: out.usage });
 			return { available: true as const, text: out.text.slice(0, 2000) };
+		}),
+	);
+
+export const getKnowledgeOverviewFn = createServerFn({ method: "GET" }).handler(() =>
+	guard(async () => {
+		const { requireKnowledgeAdmin } = await import("./session");
+		const { getServerContext } = await import("./context");
+		const { getKnowledgeOverview } = await import("#/knowledge/ingestion");
+		await requireKnowledgeAdmin();
+		const { store, index, embedder } = getServerContext();
+		return { sources: await getKnowledgeOverview(store), index: index.kind, embedder: embedder.id };
+	}),
+);
+
+export const getKnowledgeVersionFn = createServerFn({ method: "GET" })
+	.validator(z.object({ versionId: idSchema }))
+	.handler(({ data }) =>
+		guard(async () => {
+			const { requireKnowledgeAdmin } = await import("./session");
+			const { getServerContext } = await import("./context");
+			const { getVersionDetail } = await import("#/knowledge/ingestion");
+			await requireKnowledgeAdmin();
+			return getVersionDetail(getServerContext().store, data.versionId);
+		}),
+	);
+
+export const runIngestionFn = createServerFn({ method: "POST" })
+	.validator(z.object({ sourceKey: z.string().regex(/^[a-z0-9-]{1,60}$/) }))
+	.handler(({ data }) =>
+		guard(async () => {
+			const { requireKnowledgeAdmin } = await import("./session");
+			const { getServerContext } = await import("./context");
+			const { rateLimit } = await import("./rate-limit");
+			const { runIngestion } = await import("#/knowledge/ingestion");
+			const { createSafeJsonFetcher } = await import("#/knowledge/fetcher");
+			const user = await requireKnowledgeAdmin();
+			rateLimit(`ingest:${data.sourceKey}`, 6, 60 * 60_000);
+			const { store, index, embedder } = getServerContext();
+			const job = await runIngestion({ store, index, embedder, fetchJson: createSafeJsonFetcher() }, data.sourceKey, {
+				trigger: "manual",
+				actorUserId: user.id,
+			});
+			return { status: job.status, error: job.error, versionId: job.versionId };
+		}),
+	);
+
+export const reviewKnowledgeVersionFn = createServerFn({ method: "POST" })
+	.validator(
+		z.object({
+			versionId: idSchema,
+			decision: z.enum(["approve", "reject"]),
+			note: z.string().trim().min(3).max(500),
+		}),
+	)
+	.handler(({ data }) =>
+		guard(async () => {
+			const { requireKnowledgeAdmin } = await import("./session");
+			const { getServerContext } = await import("./context");
+			const { reviewVersion } = await import("#/knowledge/ingestion");
+			const user = await requireKnowledgeAdmin();
+			const { store, index, embedder } = getServerContext();
+			const v = await reviewVersion({ store, index, embedder }, user.id, data.versionId, data.decision, data.note);
+			return { status: v.status };
 		}),
 	);

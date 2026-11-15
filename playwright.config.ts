@@ -24,6 +24,6 @@ export default defineConfig({
 				url: `http://localhost:${PORT}`,
 				reuseExistingServer: false,
 				timeout: 120_000,
-				env: { DATA_BACKEND, AI_ENABLED: "false" },
+				env: { DATA_BACKEND, AI_ENABLED: "false", KNOWLEDGE_ADMIN_EMAILS: "knowledge-admin@example.test" },
 			},
 });

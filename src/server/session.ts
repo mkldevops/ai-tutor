@@ -41,3 +41,15 @@ export async function requireActor(): Promise<{ user: AuthUser; actor: Actor }> 
 	if (!actor) throw new AppError("forbidden", "No family is linked to this account.");
 	return { user, actor };
 }
+
+export function isKnowledgeAdmin(user: AuthUser): boolean {
+	return getServerContext().config.KNOWLEDGE_ADMIN_EMAILS.includes(user.email.toLowerCase());
+}
+
+export async function requireKnowledgeAdmin(): Promise<AuthUser> {
+	const user = await currentUser();
+	if (!user) throw new AppError("unauthenticated", "Please sign in.");
+	rateLimit(`user:${user.id}`, 240, 60_000);
+	if (!isKnowledgeAdmin(user)) throw new AppError("not_found", "Page not found");
+	return user;
+}

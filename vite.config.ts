@@ -1,3 +1,4 @@
+import { fileURLToPath } from "node:url";
 import tailwindcss from "@tailwindcss/vite";
 import { devtools } from "@tanstack/devtools-vite";
 
@@ -11,7 +12,16 @@ const config = defineConfig({
 	resolve: { tsconfigPaths: true },
 	plugins: [
 		devtools(),
-		nitro({ rollupConfig: { external: [/^@sentry\//] } }),
+		nitro({
+			rollupConfig: { external: [/^@sentry\//] },
+			experimental: { tasks: true },
+			tasks: {
+				"knowledge:check": {
+					handler: fileURLToPath(new URL("./src/server/tasks/knowledge-check.ts", import.meta.url)),
+				},
+			},
+			scheduledTasks: { "17 3 * * *": ["knowledge:check"] },
+		}),
 		tailwindcss(),
 		tanstackStart(),
 		viteReact(),

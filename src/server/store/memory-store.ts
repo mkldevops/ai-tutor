@@ -48,6 +48,10 @@ const TABLES: TableName[] = [
 	"mastery_events",
 	"revision_schedules",
 	"audit_logs",
+	"knowledge_sources",
+	"knowledge_versions",
+	"learning_resources",
+	"ingestion_jobs",
 ];
 
 export function createMemoryStore(): DataStore {

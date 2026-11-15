@@ -17,6 +17,23 @@ const envSchema = z
 		AI_API_KEY: z.string().optional(),
 		AI_DAILY_CALLS_PER_FAMILY: z.coerce.number().int().min(0).default(50),
 		SESSION_COOKIE_SECURE: z.stringbool().optional(),
+		KNOWLEDGE_INDEX: z.enum(["memory", "qdrant"]).default("memory"),
+		QDRANT_URL: z.url().optional(),
+		QDRANT_API_KEY: z.string().optional(),
+		QDRANT_COLLECTION: z
+			.string()
+			.regex(/^[a-z0-9_]+$/)
+			.default("ai_tutor_knowledge"),
+		KNOWLEDGE_ADMIN_EMAILS: z
+			.string()
+			.default("")
+			.transform((v) =>
+				v
+					.split(",")
+					.map((e) => e.trim().toLowerCase())
+					.filter(Boolean),
+			),
+		KNOWLEDGE_AUTO_CHECK: z.stringbool().default(false),
 	})
 	.superRefine((env, ctx) => {
 		if (env.DATA_BACKEND === "appwrite") {
@@ -26,6 +43,9 @@ const envSchema = z
 		}
 		if (env.DATA_BACKEND === "memory" && env.NODE_ENV === "production" && !env.ALLOW_MEMORY_BACKEND_IN_PRODUCTION) {
 			ctx.addIssue({ code: "custom", path: ["DATA_BACKEND"], message: "memory backend is not allowed in production" });
+		}
+		if (env.KNOWLEDGE_INDEX === "qdrant" && !env.QDRANT_URL) {
+			ctx.addIssue({ code: "custom", path: ["QDRANT_URL"], message: "Required when KNOWLEDGE_INDEX=qdrant" });
 		}
 		if (env.AI_ENABLED && !env.AI_API_KEY) {
 			ctx.addIssue({ code: "custom", path: ["AI_API_KEY"], message: "Required when AI_ENABLED=true" });
