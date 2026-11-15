@@ -12,7 +12,7 @@ const envSchema = z
 		AI_ENABLED: z.stringbool().default(false),
 		AI_MODEL: z
 			.string()
-			.regex(/^[a-z0-9-]+\/[A-Za-z0-9._-]+$/)
+			.regex(/^[a-z0-9-]+(\/[A-Za-z0-9._:-]+)+$/)
 			.default("anthropic/claude-sonnet-5-5"),
 		AI_API_KEY: z.string().optional(),
 		AI_DAILY_CALLS_PER_FAMILY: z.coerce.number().int().min(0).default(50),
