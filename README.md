@@ -76,12 +76,12 @@ Generated secrets stay in gitignored files with mode 600: `infra/appwrite/appwri
 API container, and Coolify generates every secret (`SERVICE_PASSWORD_*`). Console sign-up is limited to the first
 account, which the bootstrap creates.
 
-Live instance: Coolify `coolify.msadawaheri.fr`, project **AI Tutor**, service `appwrite-ai-tutor`,
-https://appwrite.ai-tutor.msadawaheri.fr. `.mcp.json` exposes that Coolify through MCP with
+Live instance: Coolify `coolify.msadawaheri.fr`, project **AI Tutor**, service `appwrite`,
+https://appwrite.ai-tutor.digital. `.mcp.json` exposes that Coolify through MCP with
 `COOLIFY_MSADAWAHERI_TOKEN` from your shell.
 
 ```bash
-APPWRITE_REMOTE_ENDPOINT=https://appwrite.ai-tutor.msadawaheri.fr/v1 infra/appwrite/bootstrap.sh coolify
+APPWRITE_REMOTE_ENDPOINT=https://appwrite.ai-tutor.digital/v1 infra/appwrite/bootstrap.sh coolify
 ```
 
 This writes `.env.coolify.local` (server key, gitignored) and `infra/appwrite/console-admin.coolify.local`
@@ -91,7 +91,8 @@ This writes `.env.coolify.local` (server key, gitignored) and `infra/appwrite/co
 
 Coolify application `ai-tutor-web` (project **AI Tutor**) builds the repository `Dockerfile` through the `mkldevops`
 GitHub app and serves https://ai-tutor.digital (and `www`). Runtime variables live in Coolify, not in the image:
-`DATA_BACKEND=appwrite`, `APPWRITE_*` from `.env.coolify.local`, `AI_ENABLED=false`. It tracks `main`.
+`DATA_BACKEND=appwrite`, `APPWRITE_*`, `AI_*`, `KNOWLEDGE_*` and `QDRANT_*`. It tracks `main`.
+Qdrant runs as the internal Coolify service `qdrant` (no public domain), reached at `http://qdrant-<uuid>:6333`.
 
 `E2E_BASE_URL=<url> pnpm exec playwright test` runs the e2e against any running instance (no local server).
 
@@ -194,7 +195,7 @@ Index backends: `KNOWLEDGE_INDEX=memory` (default, rebuilt only on approval, so 
 - Only Maths, two target objectives. No uploads, PDFs, voice or streaming chat yet (Sprints 3–4).
 - **Embeddings are lexical** (`hash-v1-512`, feature hashing). Retrieval matches words, not meaning.
   A semantic embedding model is a follow-up; vectors are tagged by embedder id so models never mix.
-- Qdrant is tested against a local instance only, not yet deployed on Coolify.
+- Qdrant on Coolify is internal only; the production knowledge flow is not covered by automated tests.
 - The live GOV.UK fetch is not exercised by automated tests (fixture used); run "Check for updates" once
   after deploy to confirm.
 - Only the DfE programme of study is registered. Oak National Academy and other sources are not ingested
