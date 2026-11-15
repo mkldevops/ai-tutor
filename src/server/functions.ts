@@ -251,6 +251,7 @@ export const askTutorFn = createServerFn({ method: "POST" })
 			const { getSession } = await import("./services/learning");
 			const { rateLimit } = await import("./rate-limit");
 			const { createTutorAgent } = await import("#/ai/tutor-agent");
+			const { finalAnswerText } = await import("#/ai/final-text");
 			const { AppError } = await import("./services/errors");
 			const { actor } = await requireActor();
 			const { config, store, index, embedder } = getServerContext();
@@ -276,7 +277,7 @@ export const askTutorFn = createServerFn({ method: "POST" })
 				{ maxSteps: 4 },
 			);
 			console.info("[ai-tutor] tutor call", { familyId: actor.familyId, ms: Date.now() - started, usage: out.usage });
-			return { available: true as const, text: out.text.slice(0, 2000) };
+			return { available: true as const, text: finalAnswerText(out).slice(0, 2000) };
 		}),
 	);
 
