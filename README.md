@@ -49,6 +49,9 @@ All variables are server-only; nothing is exposed to the browser. See [.env.exam
 | `AI_MODEL` | `anthropic/claude-sonnet-5-5` | Mastra model-router id (`provider/model`). |
 | `AI_API_KEY` | — | Required when `AI_ENABLED=true`. |
 | `AI_DAILY_CALLS_PER_FAMILY` | `50` | Per-family daily cap on tutor calls. |
+| `VISION_ENABLED` | `false` | Turns on worksheet photo checks (Sprint 3). Uses `AI_API_KEY`. **Untested on real children's handwriting.** |
+| `VISION_MODEL` | `openrouter/deepseek/deepseek-v4.1-flash` | Vision model that only transcribes the page; the app grades the arithmetic. |
+| `VISION_DAILY_CHECKS_PER_FAMILY` | `20` | Per-family daily cap on photo checks (cost cap). |
 | `SESSION_COOKIE_SECURE` | prod only | Force the `Secure` cookie flag. |
 | `KNOWLEDGE_INDEX` | `memory` | `memory` or `qdrant` vector index for approved knowledge. |
 | `QDRANT_URL` / `QDRANT_API_KEY` | — | Required when `KNOWLEDGE_INDEX=qdrant`. Server-only. |

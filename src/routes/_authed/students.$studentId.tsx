@@ -2,6 +2,7 @@ import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
 import { useState } from "react";
 import { ErrorBox, useAction } from "#/components/form";
 import { formatDate, StatusBadge } from "#/components/status";
+import { WorksheetChecks } from "#/components/worksheet-checks";
 import type { CompetencyStatus } from "#/domain/types";
 import {
 	deleteStudentFn,
@@ -139,6 +140,11 @@ function StudentPage() {
 					</details>
 				</section>
 			))}
+
+			<WorksheetChecks
+				studentId={student.id}
+				objectives={progress.objectives.map((o) => ({ code: o.code, statement: o.statement }))}
+			/>
 
 			{progress.events.length > 0 && (
 				<section className="card">

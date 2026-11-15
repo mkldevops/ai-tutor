@@ -131,6 +131,32 @@ export type IngestionJobRecord = BaseRecord & {
 	stats: Record<string, number>;
 };
 
+export type WorksheetItem = {
+	question: string;
+	childAnswer: string;
+	legibility: "clear" | "unsure" | "illegible";
+	verdict: "correct" | "incorrect" | "unchecked";
+	expected: string | null;
+	editedByParent: boolean;
+};
+export type WorksheetCheckRecord = BaseRecord & {
+	familyId: string;
+	studentId: string;
+	objectiveCode: string;
+	imageSha256: string;
+	mimeType: string;
+	bytes: number;
+	model: string;
+	imageQuality: "good" | "poor" | "unreadable";
+	items: WorksheetItem[];
+	handwriting: { note: string; confidence: "low" | "medium" | "high" };
+	flags: string[];
+	status: "pending_review" | "reviewed";
+	reviewedByUserId: string | null;
+	reviewedAt: string | null;
+	parentNote: string | null;
+};
+
 export type TableMap = {
 	families: FamilyRecord;
 	family_members: FamilyMemberRecord;
@@ -145,6 +171,7 @@ export type TableMap = {
 	knowledge_versions: KnowledgeVersionRecord;
 	learning_resources: LearningResourceRecord;
 	ingestion_jobs: IngestionJobRecord;
+	worksheet_checks: WorksheetCheckRecord;
 };
 export type TableName = keyof TableMap;
 
@@ -170,4 +197,5 @@ export const JSON_COLUMNS: { [K in TableName]?: (keyof TableMap[K])[] } = {
 	audit_logs: ["detail"],
 	learning_resources: ["yearGroups", "objectiveCodes", "flags"],
 	ingestion_jobs: ["stats"],
+	worksheet_checks: ["items", "handwriting", "flags"],
 };

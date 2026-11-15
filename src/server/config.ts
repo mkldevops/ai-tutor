@@ -16,6 +16,12 @@ const envSchema = z
 			.default("anthropic/claude-sonnet-5-5"),
 		AI_API_KEY: z.string().optional(),
 		AI_DAILY_CALLS_PER_FAMILY: z.coerce.number().int().min(0).default(50),
+		VISION_ENABLED: z.stringbool().default(false),
+		VISION_MODEL: z
+			.string()
+			.regex(/^[a-z0-9-]+(\/[A-Za-z0-9._:-]+)+$/)
+			.default("openrouter/deepseek/deepseek-v4.1-flash"),
+		VISION_DAILY_CHECKS_PER_FAMILY: z.coerce.number().int().min(0).default(20),
 		SESSION_COOKIE_SECURE: z.stringbool().optional(),
 		KNOWLEDGE_INDEX: z.enum(["memory", "qdrant"]).default("memory"),
 		QDRANT_URL: z.url().optional(),
@@ -47,8 +53,8 @@ const envSchema = z
 		if (env.KNOWLEDGE_INDEX === "qdrant" && !env.QDRANT_URL) {
 			ctx.addIssue({ code: "custom", path: ["QDRANT_URL"], message: "Required when KNOWLEDGE_INDEX=qdrant" });
 		}
-		if (env.AI_ENABLED && !env.AI_API_KEY) {
-			ctx.addIssue({ code: "custom", path: ["AI_API_KEY"], message: "Required when AI_ENABLED=true" });
+		if ((env.AI_ENABLED || env.VISION_ENABLED) && !env.AI_API_KEY) {
+			ctx.addIssue({ code: "custom", path: ["AI_API_KEY"], message: "Required when AI_ENABLED or VISION_ENABLED" });
 		}
 	});
 

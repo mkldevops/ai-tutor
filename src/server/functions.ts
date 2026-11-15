@@ -289,6 +289,87 @@ export const askTutorFn = createServerFn({ method: "POST" })
 		}),
 	);
 
+export const listWorksheetChecksFn = createServerFn({ method: "GET" })
+	.validator(z.object({ studentId: idSchema }))
+	.handler(({ data }) =>
+		guard(async () => {
+			const { requireActor } = await import("./session");
+			const { getServerContext } = await import("./context");
+			const { listWorksheetChecks } = await import("./services/worksheets");
+			const { actor } = await requireActor();
+			const { config, store } = getServerContext();
+			return {
+				enabled: config.VISION_ENABLED && !!config.AI_API_KEY,
+				checks: await listWorksheetChecks(store, actor, data.studentId),
+			};
+		}),
+	);
+
+export const checkWorksheetPhotoFn = createServerFn({ method: "POST" })
+	.validator(
+		z.object({
+			studentId: idSchema,
+			objectiveCode: z.string().max(40),
+			mimeType: z.enum(["image/jpeg", "image/png", "image/webp"]),
+			imageBase64: z.string().min(1).max(4_194_304),
+		}),
+	)
+	.handler(({ data }) =>
+		guard(async () => {
+			const { requireActor } = await import("./session");
+			const { getServerContext } = await import("./context");
+			const { rateLimit } = await import("./rate-limit");
+			const { createWorksheetReader } = await import("#/ai/vision-agent");
+			const { checkWorksheetPhoto } = await import("./services/worksheets");
+			const { AppError } = await import("./services/errors");
+			const { actor } = await requireActor();
+			const { config, store } = getServerContext();
+			const reader = createWorksheetReader(config);
+			if (!reader) throw new AppError("invalid", "Worksheet photo checks are turned off.");
+			rateLimit(`vision:${actor.familyId}`, config.VISION_DAILY_CHECKS_PER_FAMILY, 24 * 60 * 60_000);
+			const started = Date.now();
+			const check = await checkWorksheetPhoto({ store, reader }, actor, data);
+			console.info("[ai-tutor] worksheet check", { familyId: actor.familyId, ms: Date.now() - started });
+			return check;
+		}),
+	);
+
+export const reviewWorksheetCheckFn = createServerFn({ method: "POST" })
+	.validator(
+		z.object({
+			checkId: idSchema,
+			corrections: z
+				.array(z.object({ index: z.number().int().min(0).max(29), childAnswer: z.string().max(60) }))
+				.max(30),
+			parentNote: z.string().trim().max(500).nullable(),
+		}),
+	)
+	.handler(({ data }) =>
+		guard(async () => {
+			const { requireActor } = await import("./session");
+			const { getServerContext } = await import("./context");
+			const { reviewWorksheetCheck } = await import("./services/worksheets");
+			const { actor } = await requireActor();
+			return reviewWorksheetCheck(getServerContext().store, actor, data.checkId, {
+				corrections: data.corrections,
+				parentNote: data.parentNote || null,
+			});
+		}),
+	);
+
+export const deleteWorksheetCheckFn = createServerFn({ method: "POST" })
+	.validator(z.object({ checkId: idSchema }))
+	.handler(({ data }) =>
+		guard(async () => {
+			const { requireActor } = await import("./session");
+			const { getServerContext } = await import("./context");
+			const { deleteWorksheetCheck } = await import("./services/worksheets");
+			const { actor } = await requireActor();
+			await deleteWorksheetCheck(getServerContext().store, actor, data.checkId);
+			return { ok: true };
+		}),
+	);
+
 export const getKnowledgeOverviewFn = createServerFn({ method: "GET" }).handler(() =>
 	guard(async () => {
 		const { requireKnowledgeAdmin } = await import("./session");
