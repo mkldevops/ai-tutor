@@ -56,6 +56,12 @@ export function decodeEntities(text: string): string {
 	});
 }
 
+export function expandFractions(text: string): string {
+	return text.replace(/(\d?)\[Fraction:(\d+)\/(\d+)\]/g, (_m, whole: string, n: string, d: string) =>
+		whole ? `${whole} ${n}/${d}` : `${n}/${d}`,
+	);
+}
+
 const INVISIBLE = new RegExp(
 	`[${[
 		[0x00, 0x08],
@@ -120,7 +126,7 @@ export function htmlToBlocks(html: string): Block[] {
 	let skip = 0;
 
 	const flushLine = () => {
-		const body = normalizeText(decodeEntities(line)).replace(/\n+/g, " ");
+		const body = normalizeText(expandFractions(decodeEntities(line))).replace(/\n+/g, " ");
 		const text = body ? `${indent}${body}` : "";
 		line = "";
 		indent = "";
@@ -156,7 +162,7 @@ export function htmlToBlocks(html: string): Block[] {
 				heading = { level: Number(level[1]), text: "" };
 				continue;
 			}
-			const text = normalizeText(decodeEntities(heading?.text ?? "")).replace(/\n/g, " ");
+			const text = normalizeText(expandFractions(decodeEntities(heading?.text ?? ""))).replace(/\n/g, " ");
 			const lvl = heading?.level ?? 2;
 			heading = null;
 			if (lvl <= 2) {

@@ -1,6 +1,13 @@
 import { describe, expect, it } from "vitest";
 import fixture from "./fixtures/govuk-maths-pos.json";
-import { detectInjection, diffChunks, normalizeText, parseGovukContent, sectionYearGroups } from "./pipeline";
+import {
+	detectInjection,
+	diffChunks,
+	expandFractions,
+	normalizeText,
+	parseGovukContent,
+	sectionYearGroups,
+} from "./pipeline";
 import { getSourceDefinition, licenceClearance } from "./sources";
 
 const def = getSourceDefinition("dfe-nc-maths-pos");
@@ -56,5 +63,19 @@ describe("GOV.UK programme of study parser", () => {
 	it("only clears sources with a verified redistribution licence", () => {
 		expect(licenceClearance(def)).toEqual({ ok: true });
 		expect(licenceClearance({ ...def, licence: "All rights reserved" }).ok).toBe(false);
+	});
+});
+
+describe("expandFractions", () => {
+	it("turns GOV.UK fraction markup into plain fractions", () => {
+		expect(expandFractions("[Fraction:5/7]+[Fraction:1/7] = [Fraction:6/7]")).toBe("5/7+1/7 = 6/7");
+	});
+
+	it("leaves no fraction markup in parsed chunks", () => {
+		expect(doc.chunks.filter((c) => c.text.includes("[Fraction"))).toEqual([]);
+	});
+
+	it("keeps mixed numbers readable", () => {
+		expect(expandFractions("= 24[Fraction:1/2] = 24.5")).toBe("= 24 1/2 = 24.5");
 	});
 });
