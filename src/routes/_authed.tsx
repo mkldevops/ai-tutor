@@ -21,6 +21,11 @@ function AuthedLayout() {
 						AI Tutor
 					</Link>
 					<div className="flex items-center gap-3 text-sm">
+						{me.isKnowledgeAdmin ? (
+							<Link to="/knowledge" className="text-slate-700 underline">
+								Knowledge
+							</Link>
+						) : null}
 						<span className="hidden text-slate-600 sm:inline">{me.user.name}</span>
 						<button
 							type="button"
