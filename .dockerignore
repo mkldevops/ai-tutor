@@ -1,0 +1,15 @@
+.git
+.env
+.env.*
+!.env.example
+node_modules
+.output
+.nitro
+.tanstack
+.vitest
+.agents
+.claude
+infra
+e2e
+test-results
+playwright-report
