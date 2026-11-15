@@ -82,6 +82,15 @@ APPWRITE_REMOTE_ENDPOINT=https://appwrite.ai-tutor.msadawaheri.fr/v1 infra/appwr
 This writes `.env.coolify.local` (server key, gitignored) and `infra/appwrite/console-admin.coolify.local`
 (console login), then provisions the schema.
 
+### Web app on Coolify
+
+Coolify application `ai-tutor-web` (project **AI Tutor**) builds the repository `Dockerfile` through the `mkldevops`
+GitHub app and serves https://ai-tutor.msadawaheri.fr. Runtime variables live in Coolify, not in the image:
+`DATA_BACKEND=appwrite`, `APPWRITE_*` from `.env.coolify.local`, `AI_ENABLED=false`. It tracks
+`feat/sprint-1-foundation` until that branch is merged; then switch it to `main`.
+
+`E2E_BASE_URL=<url> pnpm exec playwright test` runs the e2e against any running instance (no local server).
+
 ### Appwrite setup (any instance)
 
 1. Create an Appwrite project and a server API key (users, sessions, databases, tables, rows scopes).
