@@ -90,7 +90,7 @@ This writes `.env.coolify.local` (server key, gitignored) and `infra/appwrite/co
 ### Web app on Coolify
 
 Coolify application `ai-tutor-web` (project **AI Tutor**) builds the repository `Dockerfile` through the `mkldevops`
-GitHub app and serves https://ai-tutor.msadawaheri.fr. Runtime variables live in Coolify, not in the image:
+GitHub app and serves https://ai-tutor.digital (and `www`). Runtime variables live in Coolify, not in the image:
 `DATA_BACKEND=appwrite`, `APPWRITE_*` from `.env.coolify.local`, `AI_ENABLED=false`. It tracks `main`.
 
 `E2E_BASE_URL=<url> pnpm exec playwright test` runs the e2e against any running instance (no local server).
