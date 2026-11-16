@@ -1,7 +1,7 @@
 export type ArithmeticError = { claim: string; correct: string };
 
-const NUM = String.raw`\d{1,3}(?:,\d{3})+(?:\.\d+)?|\d+(?:\.\d+)?`;
-const OP = String.raw`[+\-−×÷*]|\bx\b`;
+export const NUM = String.raw`\d{1,3}(?:,\d{3})+(?:\.\d+)?|\d+(?:\.\d+)?`;
+export const OP = String.raw`[+\-−×÷*]|\bx\b`;
 const CLAIM = new RegExp(
 	String.raw`(?<![\d,/]|\d\.|(?:${OP})\s*)((?:${NUM})(?:\s*(?:${OP})\s*(?:${NUM}))+)\s*=\s*(${NUM})(?![\d/]|\s*r\b|\s*remainder\b)`,
 	"g",
@@ -10,7 +10,7 @@ const TOKEN = new RegExp(String.raw`(${NUM})|(${OP})`, "g");
 
 const toNumber = (s: string) => Number(s.replace(/,/g, ""));
 
-function evaluate(expr: string): number | null {
+export function evaluate(expr: string): number | null {
 	const tokens = [...expr.matchAll(TOKEN)].map((m) => m[0]);
 	const values: number[] = [toNumber(tokens[0] ?? "")];
 	const ops: string[] = [];

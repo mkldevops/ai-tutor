@@ -75,6 +75,7 @@ const STUDENT_OWNED: TableName[] = [
 	"student_competencies",
 	"mastery_events",
 	"revision_schedules",
+	"worksheet_checks",
 ];
 
 export async function exportStudentData(store: DataStore, actor: Actor, studentId: string) {

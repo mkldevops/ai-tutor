@@ -209,6 +209,30 @@ export const SCHEMA: TableSpec[] = [
 		indexes: [{ key: "by_source", columns: ["sourceId"] }],
 	},
 	{
+		id: "worksheet_checks",
+		columns: [
+			id("familyId"),
+			id("studentId"),
+			{ kind: "string", key: "objectiveCode", size: 40, required: true },
+			{ kind: "string", key: "imageSha256", size: 64, required: true },
+			{ kind: "string", key: "mimeType", size: 20, required: true },
+			{ kind: "integer", key: "bytes", required: true, min: 0, max: 10_000_000 },
+			{ kind: "string", key: "model", size: 120, required: true },
+			{ kind: "enum", key: "imageQuality", elements: ["good", "poor", "unreadable"], required: true },
+			{ kind: "longtext", key: "items", required: true },
+			{ kind: "string", key: "handwriting", size: 1000, required: true },
+			{ kind: "string", key: "flags", size: 1000, required: true },
+			{ kind: "enum", key: "status", elements: ["pending_review", "reviewed"], required: true },
+			{ kind: "string", key: "reviewedByUserId", size: 36 },
+			{ kind: "datetime", key: "reviewedAt" },
+			{ kind: "string", key: "parentNote", size: 1000 },
+		],
+		indexes: [
+			{ key: "by_student", columns: ["studentId"] },
+			{ key: "by_family", columns: ["familyId"] },
+		],
+	},
+	{
 		id: "curricula",
 		columns: [
 			{ kind: "string", key: "code", size: 40, required: true },
