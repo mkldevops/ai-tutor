@@ -207,7 +207,9 @@ function VersionReview({
 							className={`group py-2 ${r.flags.length > 0 ? "my-2 rounded-lg border border-focus/60 bg-focus/5 px-3" : ""}`}
 						>
 							<summary className="flex cursor-pointer list-none items-baseline gap-2 text-sm">
-								<span className="inline-block font-mono text-xs text-muted transition-transform group-open:rotate-90">›</span>
+								<span className="inline-block font-mono text-xs text-muted transition-transform group-open:rotate-90">
+									›
+								</span>
 								<span className="font-semibold">{r.heading}</span>
 								<span className="text-muted">({r.kind})</span>
 							</summary>
