@@ -31,6 +31,11 @@ export type LessonPhase = z.infer<typeof lessonPhaseSchema>;
 export const sessionKindSchema = z.enum(["lesson", "review"]);
 export type SessionKind = z.infer<typeof sessionKindSchema>;
 
+export const confidenceValueSchema = z.number().int().min(1).max(5);
+export const confidenceMomentSchema = z.enum(["before", "after"]);
+export type ConfidenceMoment = z.infer<typeof confidenceMomentSchema>;
+export type Confidence = { before?: number; after?: number };
+
 export const studentPreferencesSchema = z.object({
 	readingSupport: z.boolean().default(false),
 	theme: z.enum(["calm", "bright"]).default("calm"),

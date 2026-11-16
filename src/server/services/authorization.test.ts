@@ -20,6 +20,7 @@ import {
 	getStudentProgress,
 	hintSession,
 	overrideCompetency,
+	rateConfidence,
 	startSession,
 } from "./learning";
 
@@ -121,8 +122,8 @@ describe("tenant isolation", () => {
 
 		const pa = await getStudentProgress({ store }, alice, aliceY3);
 		const pb = await getStudentProgress({ store }, bob, bobY5);
-		expect(pa.objectives.map((o) => o.code)).toEqual(["MA-Y3-AS-MENTAL"]);
-		expect(pb.objectives.map((o) => o.code)).toEqual(["MA-Y5-MD-POWERS10"]);
+		expect(pa.objectives.map((o) => o.code)).toEqual(["MA-Y3-AS-MENTAL", "MA-Y3-PV-MORE-LESS", "MA-Y3-MD-TABLES-348"]);
+		expect(pb.objectives.map((o) => o.code)).toEqual(["MA-Y5-MD-POWERS10", "MA-Y5-PV-ROUND", "MA-Y5-MD-FACTORS"]);
 		expect(pa.objectives[0]?.review).not.toBeNull();
 
 		const aAttempts = await store.assessment_attempts.list({ studentId: aliceY3 });
@@ -156,5 +157,46 @@ describe("tenant isolation", () => {
 		expect(await store.students.get(aliceY3)).toBeNull();
 		expect(await store.assessment_attempts.list({ studentId: aliceY3 })).toHaveLength(0);
 		expect(await store.learning_sessions.list({ studentId: aliceY3 })).toHaveLength(0);
+	});
+});
+
+describe("confidence check-in", () => {
+	let store: DataStore;
+	let alice: Actor;
+	let bob: Actor;
+	let studentId: string;
+
+	beforeEach(async () => {
+		store = createMemoryStore();
+		alice = await createFamilyForUser(store, "user-alice", "Alice family");
+		bob = await createFamilyForUser(store, "user-bob", "Bob family");
+		studentId = (await createStudent(store, alice, { displayName: "Sam", yearGroup: 3, preferences: prefs })).id;
+	});
+
+	it("stores before and after on the session and reports them in progress", async () => {
+		const start = await startSession({ store }, alice, { studentId, objectiveCode: "MA-Y3-AS-MENTAL", kind: "lesson" });
+		expect(start.confidence).toEqual({});
+		const rated = await rateConfidence({ store }, alice, { sessionId: start.sessionId, moment: "before", value: 2 });
+		expect(rated.confidence).toEqual({ before: 2 });
+		await expect(
+			rateConfidence({ store }, alice, { sessionId: start.sessionId, moment: "after", value: 4 }),
+		).rejects.toMatchObject({ code: "invalid" });
+
+		const done = await completeLesson(store, alice, studentId, "MA-Y3-AS-MENTAL");
+		expect(done.sessionId).toBe(start.sessionId);
+		expect(done.confidence).toEqual({ before: 2 });
+		const after = await rateConfidence({ store }, alice, { sessionId: start.sessionId, moment: "after", value: 4 });
+		expect(after.confidence).toEqual({ before: 2, after: 4 });
+		await expect(
+			rateConfidence({ store }, alice, { sessionId: start.sessionId, moment: "before", value: 5 }),
+		).rejects.toMatchObject({ code: "invalid" });
+
+		const progress = await getStudentProgress({ store }, alice, studentId);
+		expect(progress.recentSessions[0]?.confidence).toEqual({ before: 2, after: 4 });
+	});
+
+	it("refuses another family's session", async () => {
+		const start = await startSession({ store }, alice, { studentId, objectiveCode: "MA-Y3-AS-MENTAL", kind: "lesson" });
+		await expectNotFound(rateConfidence({ store }, bob, { sessionId: start.sessionId, moment: "before", value: 3 }));
 	});
 });

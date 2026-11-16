@@ -15,18 +15,18 @@ function AuthedLayout() {
 	const router = useRouter();
 	return (
 		<div className="min-h-screen">
-			<header className="border-b border-slate-200 bg-white print:hidden">
+			<header className="surface-space border-b border-white/10 bg-space-800 bg-none print:hidden">
 				<div className="mx-auto flex max-w-4xl items-center justify-between px-4 py-3">
-					<Link to="/dashboard" className="font-bold text-brand">
-						AI Tutor
+					<Link to="/dashboard" className="text-lg font-bold text-star" aria-label="AI Tutor home">
+						ai tutor<span className="text-accent">.</span>
 					</Link>
 					<div className="flex items-center gap-3 text-sm">
 						{me.isKnowledgeAdmin ? (
-							<Link to="/knowledge" className="text-slate-700 underline">
+							<Link to="/knowledge" className="link">
 								Knowledge
 							</Link>
 						) : null}
-						<span className="hidden text-slate-600 sm:inline">{me.user.name}</span>
+						<span className="hidden text-dust sm:inline">{me.user.name}</span>
 						<button
 							type="button"
 							className="btn-secondary py-1"

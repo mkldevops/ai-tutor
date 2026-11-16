@@ -13,7 +13,10 @@ function Login() {
 	});
 	return (
 		<main className="page max-w-md">
-			<h1 className="h1 mb-6">Parent sign in</h1>
+			<p className="meta mb-2">Parents</p>
+			<h1 className="h1 mb-6">
+				Welcome <i>back</i>
+			</h1>
 			<form
 				className="card space-y-4"
 				onSubmit={(e) => {

@@ -33,8 +33,18 @@ describe("printable sheets", () => {
 		});
 
 	it("offers year objectives plus prerequisites", () => {
-		expect(printableObjectives(3)).toEqual(["MA-Y3-AS-MENTAL", "MA-Y2-AS-MENTAL"]);
-		expect(printableObjectives(5)).toEqual(["MA-Y5-MD-POWERS10", "MA-Y4-FR-DIV10-100"]);
+		expect(printableObjectives(3)).toEqual([
+			"MA-Y3-AS-MENTAL",
+			"MA-Y2-AS-MENTAL",
+			"MA-Y3-PV-MORE-LESS",
+			"MA-Y3-MD-TABLES-348",
+		]);
+		expect(printableObjectives(5)).toEqual([
+			"MA-Y5-MD-POWERS10",
+			"MA-Y4-FR-DIV10-100",
+			"MA-Y5-PV-ROUND",
+			"MA-Y5-MD-FACTORS",
+		]);
 	});
 
 	it("never sends answers with the worksheet, only with the key", async () => {
