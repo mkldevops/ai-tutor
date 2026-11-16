@@ -95,6 +95,11 @@ test("two learners complete separate lessons with isolated progress", async ({ p
 	await expect(page.getByTestId("objective-MA-Y3-MD-TABLES-348")).toBeVisible();
 
 	await page.getByRole("link", { name: "← All learners" }).click();
+	const avaCard = page.getByTestId("learner-Ava");
+	await expect(avaCard.getByTestId("overview-secure")).toContainText(/^1/);
+	await expect(avaCard.getByTestId("overview-week")).not.toContainText(/^0 /);
+	await expect(avaCard.getByTestId("overview-review")).toContainText("Next review");
+	await expect(page.getByTestId("learner-Ben")).toContainText("No missions yet");
 	await page.getByRole("link", { name: "Open Ben" }).click();
 	await expect(page.getByTestId("student-name")).toContainText("Year 5");
 	await expect(page.getByTestId("objective-MA-Y3-AS-MENTAL")).toHaveCount(0);

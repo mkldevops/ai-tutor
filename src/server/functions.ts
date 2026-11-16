@@ -103,6 +103,16 @@ export const listStudentsFn = createServerFn({ method: "GET" }).handler(() =>
 	}),
 );
 
+export const getFamilyOverviewFn = createServerFn({ method: "GET" }).handler(() =>
+	guard(async () => {
+		const { requireActor } = await import("./session");
+		const { getServerContext } = await import("./context");
+		const { getFamilyOverview } = await import("./services/overview");
+		const { actor } = await requireActor();
+		return getFamilyOverview({ store: getServerContext().store }, actor);
+	}),
+);
+
 export const createStudentFn = createServerFn({ method: "POST" })
 	.validator(
 		z.object({

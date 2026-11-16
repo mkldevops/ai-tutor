@@ -1,10 +1,12 @@
 import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
 import { ErrorBox, Field, useAction } from "#/components/form";
 import { Orbi } from "#/components/orbi";
-import { createStudentFn, listStudentsFn } from "#/server/functions";
+import { formatDate } from "#/components/status";
+import { createStudentFn, getFamilyOverviewFn } from "#/server/functions";
+import type { LearnerOverview } from "#/server/services/overview";
 
 export const Route = createFileRoute("/_authed/dashboard")({
-	loader: () => listStudentsFn(),
+	loader: () => getFamilyOverviewFn(),
 	component: Dashboard,
 });
 
@@ -47,25 +49,28 @@ function Dashboard() {
 				) : (
 					<ul className="grid gap-4 sm:grid-cols-2">
 						{students.map((s) => (
-							<li key={s.id} className="card flex items-center gap-4">
-								<span
-									aria-hidden="true"
-									className="grid size-12 shrink-0 place-items-center rounded-full bg-space-800 font-display text-2xl text-star"
-								>
-									{s.displayName.slice(0, 1).toUpperCase()}
-								</span>
-								<div className="min-w-0 flex-1">
-									<p className="truncate font-display text-2xl leading-tight">{s.displayName}</p>
-									<p className="meta mt-1">Year {s.yearGroup}</p>
+							<li key={s.id} className="card space-y-4" data-testid={`learner-${s.displayName}`}>
+								<div className="flex items-center gap-4">
+									<span
+										aria-hidden="true"
+										className="grid size-12 shrink-0 place-items-center rounded-full bg-space-800 font-display text-2xl text-star"
+									>
+										{s.displayName.slice(0, 1).toUpperCase()}
+									</span>
+									<div className="min-w-0 flex-1">
+										<p className="truncate font-display text-2xl leading-tight">{s.displayName}</p>
+										<p className="meta mt-1">Year {s.yearGroup}</p>
+									</div>
+									<Link
+										to="/students/$studentId"
+										params={{ studentId: s.id }}
+										className="btn"
+										aria-label={`Open ${s.displayName}`}
+									>
+										Open
+									</Link>
 								</div>
-								<Link
-									to="/students/$studentId"
-									params={{ studentId: s.id }}
-									className="btn"
-									aria-label={`Open ${s.displayName}`}
-								>
-									Open
-								</Link>
+								<LearnerStats learner={s} />
 							</li>
 						))}
 					</ul>
@@ -99,5 +104,45 @@ function Dashboard() {
 				</form>
 			</section>
 		</main>
+	);
+}
+
+function LearnerStats({ learner: s }: { learner: LearnerOverview }) {
+	const pct = s.week.answers > 0 ? Math.round((s.week.correct / s.week.answers) * 100) : null;
+	return (
+		<div className="space-y-3 border-t border-line pt-3 text-sm">
+			<dl className="grid grid-cols-3 gap-2">
+				<div>
+					<dt className="text-xs text-ink-mute">Secure</dt>
+					<dd className="font-display text-xl" data-testid="overview-secure">
+						{s.secure}
+						<span className="text-sm text-ink-mute"> / {s.objectives}</span>
+					</dd>
+				</div>
+				<div>
+					<dt className="text-xs text-ink-mute">This week</dt>
+					<dd className="font-display text-xl" data-testid="overview-week">
+						{s.week.answers}
+						<span className="text-sm text-ink-mute"> {s.week.answers === 1 ? "answer" : "answers"}</span>
+					</dd>
+				</div>
+				<div>
+					<dt className="text-xs text-ink-mute">Correct this week</dt>
+					<dd className="font-display text-xl">{pct === null ? "—" : `${pct}%`}</dd>
+				</div>
+			</dl>
+			<p className="flex flex-wrap items-center gap-2 text-ink-soft">
+				{s.reviewsDue > 0 ? (
+					<span className="badge" data-tone="watch" data-testid="overview-review">
+						{s.reviewsDue} {s.reviewsDue === 1 ? "review" : "reviews"} due
+					</span>
+				) : s.nextReviewAt ? (
+					<span className="badge" data-testid="overview-review">
+						Next review {formatDate(s.nextReviewAt)}
+					</span>
+				) : null}
+				<span className="meta">{s.lastActiveAt ? `Last active ${formatDate(s.lastActiveAt)}` : "No missions yet"}</span>
+			</p>
+		</div>
 	);
 }
