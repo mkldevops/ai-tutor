@@ -74,8 +74,9 @@ export function WorksheetChecks({
 				<h2 className="mt-1 font-display text-xl">Worksheet photos</h2>
 				<p className="mt-1 max-w-2xl text-sm text-soft">
 					Take a photo of one page of written sums. The AI only reads the page; the app checks the arithmetic. Reading
-					handwriting from a photo is approximate, so please review each result. Nothing here changes progress. The
-					photo itself is not stored.
+					handwriting from a photo is approximate, so please review each result. Once you mark a photo as reviewed, its
+					checked answers count as guided practice; a photo alone never secures an objective. The photo itself is not
+					stored.
 				</p>
 			</div>
 			{enabled && (
@@ -148,7 +149,9 @@ function CheckCard({
 		<article className="space-y-3 border-t border-line pt-4 text-sm" data-testid="worksheet-check">
 			<p className="meta">
 				{formatDate(check.createdAt)} · {check.objectiveCode} ·{" "}
-				{check.status === "reviewed" ? "Reviewed by a parent" : "Waiting for parent review"}
+				{check.status === "reviewed"
+					? "Reviewed by a parent · counted as guided practice"
+					: "Waiting for parent review · not counted yet"}
 			</p>
 			{check.imageQuality !== "good" && (
 				<p className="notice">
