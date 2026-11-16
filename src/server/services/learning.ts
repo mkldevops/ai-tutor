@@ -29,6 +29,7 @@ export type SessionResponse = {
 	hint: string | null;
 	result: { status: CompetencyStatus; reasons: string[]; nextReviewAt: string | null } | null;
 	confidence: Confidence;
+	voice: boolean;
 };
 
 type Deps = { store: DataStore; now?: () => Date; policy?: MasteryPolicy };
@@ -65,6 +66,7 @@ async function respond(
 		});
 		result = comp ? { status: comp.status, reasons: comp.reasons, nextReviewAt: review?.dueAt ?? null } : null;
 	}
+	const student = await store.students.get(session.studentId);
 	return {
 		sessionId: session.id,
 		studentId: session.studentId,
@@ -74,6 +76,7 @@ async function respond(
 		hint: extra.hint ?? null,
 		result,
 		confidence: session.confidence ?? {},
+		voice: student?.preferences?.voice === true,
 	};
 }
 

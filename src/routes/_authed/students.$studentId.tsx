@@ -5,6 +5,7 @@ import { Orbi } from "#/components/orbi";
 import { OrbitMap } from "#/components/orbit-map";
 import { PrintableWorksheets } from "#/components/printable-worksheets";
 import { formatDate, StatusBadge } from "#/components/status";
+import { VoiceSettings } from "#/components/voice-settings";
 import { WorksheetChecks } from "#/components/worksheet-checks";
 import type { CompetencyStatus } from "#/domain/types";
 import {
@@ -227,6 +228,12 @@ function StudentPage() {
 					</details>
 				</section>
 			))}
+
+			<VoiceSettings
+				studentId={student.id}
+				displayName={student.displayName}
+				enabled={student.preferences?.voice === true}
+			/>
 
 			<PrintableWorksheets studentId={student.id} objectives={progress.printables} />
 

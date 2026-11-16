@@ -8,6 +8,8 @@ import { Orbi } from "#/components/orbi";
 import { orbiStateForLesson } from "#/components/orbi-state";
 import { formatDate, formatWeekday, StatusBadge } from "#/components/status";
 import { askTutorFn, getSessionFn, sessionActionFn } from "#/server/functions";
+import { firstSpokenNumber, questionSpeech } from "#/voice/spoken";
+import { useListener, useSpeaker } from "#/voice/use-voice";
 
 export const Route = createFileRoute("/_authed/learn/$sessionId")({
 	loader: ({ params }) => getSessionFn({ data: { sessionId: params.sessionId } }),
@@ -39,16 +41,47 @@ function LessonPage() {
 	const { confidence } = session;
 	const step = flightStep(view.phase);
 	const askCheckIn = confidence.before === undefined && (view.phase === "diagnostic" || view.phase === "review");
+	const [heard, setHeard] = useState<{ said: string; number: string | null } | null>(null);
+	const speaker = useSpeaker(session.voice);
+	const listener = useListener(session.voice, (alternatives) => {
+		const number = firstSpokenNumber(alternatives);
+		setHeard({ said: alternatives[0] ?? "", number });
+		if (number) {
+			setAnswer(number);
+			inputRef.current?.focus();
+		}
+	});
+	const spokenKey = view.item ? `${view.item.id}:${view.position}` : view.phase;
+	const lastSpoken = useRef<string | null>(null);
+	const lastHint = useRef<string | null>(null);
 
 	useEffect(() => setSession(initial), [initial]);
 	useEffect(() => {
 		if (view.item) inputRef.current?.focus();
 	}, [view.item]);
+	useEffect(() => {
+		if (!speaker.supported || lastSpoken.current === spokenKey) return;
+		lastSpoken.current = spokenKey;
+		const parts = [session.feedback?.message];
+		if (view.item) parts.push(questionSpeech(view.item));
+		else if (view.explanation) parts.push(...view.explanation);
+		else if (view.phase === "complete") parts.push("Mission complete. Well done for finishing!");
+		speaker.speak(parts.filter(Boolean).join(" "));
+	}, [speaker, spokenKey, session.feedback, view.item, view.explanation, view.phase]);
+	useEffect(() => {
+		if (!speaker.supported || !session.hint || lastHint.current === session.hint) return;
+		lastHint.current = session.hint;
+		speaker.speak(`Hint: ${session.hint}`);
+	}, [speaker, session.hint]);
 
 	const act = useAction(async (data: SessionAction) => {
+		listener.stop();
 		const next = await sessionActionFn({ data: { ...data, sessionId: session.sessionId } });
 		setSession(next);
-		if (data.action === "answer") setAnswer("");
+		if (data.action === "answer") {
+			setAnswer("");
+			setHeard(null);
+		}
 		if (data.action === "continue") setTutorText(null);
 	});
 
@@ -141,6 +174,16 @@ function LessonPage() {
 							<button type="button" className="btn-secondary" disabled={tutor.pending} onClick={() => void tutor.run()}>
 								{tutor.pending ? "Thinking…" : "Explain it another way"}
 							</button>
+							{speaker.supported && (
+								<button
+									type="button"
+									className="btn-secondary"
+									data-testid="hear-again"
+									onClick={() => speaker.speak([...(view.explanation ?? []), tutorText ?? ""].join(" "))}
+								>
+									Hear it again
+								</button>
+							)}
 						</div>
 						<ErrorBox error={tutor.error} />
 					</section>
@@ -188,6 +231,15 @@ function LessonPage() {
 									Check
 								</button>
 							</form>
+						)}
+						{session.voice && (
+							<VoiceControls
+								item={view.item}
+								speaker={speaker}
+								listener={listener}
+								heard={heard}
+								typed={!view.item.choices}
+							/>
 						)}
 						{view.canHint && (
 							<button
@@ -281,6 +333,76 @@ function LessonPage() {
 
 				<ErrorBox error={act.error} />
 			</main>
+		</div>
+	);
+}
+
+function VoiceControls({
+	item,
+	speaker,
+	listener,
+	heard,
+	typed,
+}: {
+	item: { prompt: string; choices?: string[] | null };
+	speaker: ReturnType<typeof useSpeaker>;
+	listener: ReturnType<typeof useListener>;
+	heard: { said: string; number: string | null } | null;
+	typed: boolean;
+}) {
+	const { status } = listener;
+	return (
+		<div className="space-y-2" data-testid="voice-controls">
+			<div className="flex flex-wrap items-center gap-2">
+				{speaker.supported && (
+					<button
+						type="button"
+						className="btn-secondary"
+						data-testid="hear-again"
+						onClick={() => speaker.speak(questionSpeech(item))}
+					>
+						Hear it again
+					</button>
+				)}
+				{typed && status === "ready" && (
+					<button
+						type="button"
+						className="btn-secondary"
+						data-testid="say-it"
+						onClick={() => {
+							speaker.stop();
+							listener.listen();
+						}}
+					>
+						Say my answer
+					</button>
+				)}
+				{typed && status === "listening" && (
+					<button type="button" className="btn" data-testid="listening" onClick={listener.stop}>
+						Listening… tap to stop
+					</button>
+				)}
+				{typed && status === "downloadable" && (
+					<button type="button" className="btn-secondary" onClick={() => void listener.install()}>
+						Download the speech pack once
+					</button>
+				)}
+				{typed && status === "downloading" && <span className="meta">Downloading the speech pack…</span>}
+			</div>
+			{typed && status === "unavailable" && (
+				<p className="meta" data-testid="voice-unavailable">
+					Speaking answers does not work on this device yet. Type your answer instead.
+				</p>
+			)}
+			{heard && (
+				<p className="text-sm text-soft" data-testid="heard" aria-live="polite">
+					I heard “{heard.said}”.{" "}
+					{heard.number
+						? `That is ${heard.number}. Press Check if it is right.`
+						: "I could not find a number in that. Try again or type it."}
+				</p>
+			)}
+			{listener.error && <p className="text-sm text-soft">{listener.error}</p>}
 		</div>
 	);
 }

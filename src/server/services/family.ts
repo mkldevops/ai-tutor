@@ -69,6 +69,14 @@ export async function updateStudent(
 	return student;
 }
 
+export async function setStudentVoice(store: DataStore, actor: Actor, studentId: string, enabled: boolean) {
+	const student = await requireStudent(store, actor, studentId);
+	const preferences = { ...student.preferences, voice: enabled };
+	await store.students.update(studentId, { preferences });
+	await audit(store, actor, "student.voice", `students/${studentId}`, { enabled });
+	return preferences;
+}
+
 const STUDENT_OWNED: TableName[] = [
 	"learning_sessions",
 	"assessment_attempts",

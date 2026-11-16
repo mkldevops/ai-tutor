@@ -210,7 +210,12 @@ Index backends: `KNOWLEDGE_INDEX=memory` (default, rebuilt only on approval, so 
 - **AI tutor is untested end-to-end** (no API key used during development). It is off by default and the
   lesson works without it.
 - Rate limits are in-process memory; use a shared store before running several instances.
-- Only Maths, two target objectives. No uploads, PDFs, voice or streaming chat yet (Sprints 3–4).
+- Only Maths. No streaming chat yet.
+- **Voice is a pilot**, off by default and switched on per learner by the parent. Orbi reads aloud with the
+  browser's speech synthesis. Spoken answers use the Web Speech API with `processLocally = true` only
+  (on-device recognition, en-GB), so no audio leaves the device and nothing is recorded or stored.
+  Where on-device recognition is missing (most browsers outside recent Chrome), the learner types.
+  Automated tests use a fake speech engine; real recognition with a child's voice is untested.
 - **Embeddings are lexical** (`hash-v1-512`, feature hashing). Retrieval matches words, not meaning.
   A semantic embedding model is a follow-up; vectors are tagged by embedder id so models never mix.
 - Qdrant on Coolify is internal only; the production knowledge flow is not covered by automated tests.
