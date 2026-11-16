@@ -288,6 +288,22 @@
 	.surface-space .badge[data-status="needs_review"] {
 		--tone: var(--color-focus);
 	}
+	.tabs {
+		@apply -mx-4 flex gap-1 overflow-x-auto border-b px-4 sm:mx-0 sm:px-0;
+		border-color: var(--ui-card-line);
+	}
+	.tab {
+		@apply -mb-px inline-flex min-h-11 shrink-0 items-center border-b-2 border-transparent px-3 text-sm font-medium whitespace-nowrap transition-colors;
+		color: var(--ui-muted);
+	}
+	.tab:hover {
+		color: var(--ui-fg);
+	}
+	.tab[aria-current="page"] {
+		color: var(--ui-fg);
+		border-color: var(--color-accent);
+		@apply font-bold;
+	}
 	.stat {
 		@apply rounded-[10px] border p-3;
 		background: var(--ui-card);

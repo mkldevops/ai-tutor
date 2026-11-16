@@ -38,7 +38,7 @@ function PrintPage() {
 	return (
 		<main className="mx-auto w-full max-w-3xl px-4 py-6 print:max-w-none print:p-0">
 			<div className="mb-6 flex flex-wrap items-center gap-2 print:hidden">
-				<Link to="/students/$studentId" params={{ studentId: sheet.student.id }} className="link text-sm">
+				<Link to="/students/$studentId/worksheets" params={{ studentId: sheet.student.id }} className="link text-sm">
 					← {sheet.student.displayName}
 				</Link>
 				<span className="flex-1" />

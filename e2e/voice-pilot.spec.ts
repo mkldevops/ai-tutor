@@ -65,6 +65,7 @@ async function startVoiceLesson(page: Page, family: string) {
 	await page.getByLabel("Year group").selectOption("3");
 	await page.getByRole("button", { name: "Add learner" }).click();
 	await page.getByRole("link", { name: "Open Mia" }).click();
+	await page.getByRole("link", { name: "Settings" }).click();
 
 	const settings = page.getByTestId("voice-settings");
 	await expect(settings.getByLabel("Use voice in lessons")).not.toBeChecked();
@@ -72,6 +73,7 @@ async function startVoiceLesson(page: Page, family: string) {
 	await expect(settings.getByLabel("Use voice in lessons")).toBeChecked();
 	await page.reload({ waitUntil: "networkidle" });
 	await expect(page.getByTestId("voice-settings").getByLabel("Use voice in lessons")).toBeChecked();
+	await page.getByRole("link", { name: "Missions" }).click();
 
 	await page.getByTestId("objective-MA-Y3-AS-MENTAL").getByRole("button", { name: "Start lesson" }).click();
 	await expect(page.getByTestId("phase")).toHaveAttribute("data-phase", "diagnostic");

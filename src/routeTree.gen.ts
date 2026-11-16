@@ -18,6 +18,10 @@ import { Route as AuthedKnowledgeRouteImport } from './routes/_authed/knowledge'
 import { Route as AuthedLearnSessionIdRouteImport } from './routes/_authed/learn.$sessionId'
 import { Route as AuthedPrintStudentIdRouteImport } from './routes/_authed/print.$studentId'
 import { Route as AuthedStudentsStudentIdRouteImport } from './routes/_authed/students.$studentId'
+import { Route as AuthedStudentsStudentIdIndexRouteImport } from './routes/_authed/students.$studentId.index'
+import { Route as AuthedStudentsStudentIdProgressRouteImport } from './routes/_authed/students.$studentId.progress'
+import { Route as AuthedStudentsStudentIdSettingsRouteImport } from './routes/_authed/students.$studentId.settings'
+import { Route as AuthedStudentsStudentIdWorksheetsRouteImport } from './routes/_authed/students.$studentId.worksheets'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -63,6 +67,30 @@ const AuthedStudentsStudentIdRoute = AuthedStudentsStudentIdRouteImport.update({
   path: '/students/$studentId',
   getParentRoute: () => AuthedRoute,
 } as any)
+const AuthedStudentsStudentIdIndexRoute =
+  AuthedStudentsStudentIdIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthedStudentsStudentIdRoute,
+  } as any)
+const AuthedStudentsStudentIdProgressRoute =
+  AuthedStudentsStudentIdProgressRouteImport.update({
+    id: '/progress',
+    path: '/progress',
+    getParentRoute: () => AuthedStudentsStudentIdRoute,
+  } as any)
+const AuthedStudentsStudentIdSettingsRoute =
+  AuthedStudentsStudentIdSettingsRouteImport.update({
+    id: '/settings',
+    path: '/settings',
+    getParentRoute: () => AuthedStudentsStudentIdRoute,
+  } as any)
+const AuthedStudentsStudentIdWorksheetsRoute =
+  AuthedStudentsStudentIdWorksheetsRouteImport.update({
+    id: '/worksheets',
+    path: '/worksheets',
+    getParentRoute: () => AuthedStudentsStudentIdRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -72,7 +100,11 @@ export interface FileRoutesByFullPath {
   '/knowledge': typeof AuthedKnowledgeRoute
   '/learn/$sessionId': typeof AuthedLearnSessionIdRoute
   '/print/$studentId': typeof AuthedPrintStudentIdRoute
-  '/students/$studentId': typeof AuthedStudentsStudentIdRoute
+  '/students/$studentId': typeof AuthedStudentsStudentIdRouteWithChildren
+  '/students/$studentId/progress': typeof AuthedStudentsStudentIdProgressRoute
+  '/students/$studentId/settings': typeof AuthedStudentsStudentIdSettingsRoute
+  '/students/$studentId/worksheets': typeof AuthedStudentsStudentIdWorksheetsRoute
+  '/students/$studentId/': typeof AuthedStudentsStudentIdIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -82,7 +114,10 @@ export interface FileRoutesByTo {
   '/knowledge': typeof AuthedKnowledgeRoute
   '/learn/$sessionId': typeof AuthedLearnSessionIdRoute
   '/print/$studentId': typeof AuthedPrintStudentIdRoute
-  '/students/$studentId': typeof AuthedStudentsStudentIdRoute
+  '/students/$studentId/progress': typeof AuthedStudentsStudentIdProgressRoute
+  '/students/$studentId/settings': typeof AuthedStudentsStudentIdSettingsRoute
+  '/students/$studentId/worksheets': typeof AuthedStudentsStudentIdWorksheetsRoute
+  '/students/$studentId': typeof AuthedStudentsStudentIdIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -94,7 +129,11 @@ export interface FileRoutesById {
   '/_authed/knowledge': typeof AuthedKnowledgeRoute
   '/_authed/learn/$sessionId': typeof AuthedLearnSessionIdRoute
   '/_authed/print/$studentId': typeof AuthedPrintStudentIdRoute
-  '/_authed/students/$studentId': typeof AuthedStudentsStudentIdRoute
+  '/_authed/students/$studentId': typeof AuthedStudentsStudentIdRouteWithChildren
+  '/_authed/students/$studentId/progress': typeof AuthedStudentsStudentIdProgressRoute
+  '/_authed/students/$studentId/settings': typeof AuthedStudentsStudentIdSettingsRoute
+  '/_authed/students/$studentId/worksheets': typeof AuthedStudentsStudentIdWorksheetsRoute
+  '/_authed/students/$studentId/': typeof AuthedStudentsStudentIdIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -107,6 +146,10 @@ export interface FileRouteTypes {
     | '/learn/$sessionId'
     | '/print/$studentId'
     | '/students/$studentId'
+    | '/students/$studentId/progress'
+    | '/students/$studentId/settings'
+    | '/students/$studentId/worksheets'
+    | '/students/$studentId/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -116,6 +159,9 @@ export interface FileRouteTypes {
     | '/knowledge'
     | '/learn/$sessionId'
     | '/print/$studentId'
+    | '/students/$studentId/progress'
+    | '/students/$studentId/settings'
+    | '/students/$studentId/worksheets'
     | '/students/$studentId'
   id:
     | '__root__'
@@ -128,6 +174,10 @@ export interface FileRouteTypes {
     | '/_authed/learn/$sessionId'
     | '/_authed/print/$studentId'
     | '/_authed/students/$studentId'
+    | '/_authed/students/$studentId/progress'
+    | '/_authed/students/$studentId/settings'
+    | '/_authed/students/$studentId/worksheets'
+    | '/_authed/students/$studentId/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -202,15 +252,64 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthedStudentsStudentIdRouteImport
       parentRoute: typeof AuthedRoute
     }
+    '/_authed/students/$studentId/': {
+      id: '/_authed/students/$studentId/'
+      path: '/'
+      fullPath: '/students/$studentId/'
+      preLoaderRoute: typeof AuthedStudentsStudentIdIndexRouteImport
+      parentRoute: typeof AuthedStudentsStudentIdRoute
+    }
+    '/_authed/students/$studentId/progress': {
+      id: '/_authed/students/$studentId/progress'
+      path: '/progress'
+      fullPath: '/students/$studentId/progress'
+      preLoaderRoute: typeof AuthedStudentsStudentIdProgressRouteImport
+      parentRoute: typeof AuthedStudentsStudentIdRoute
+    }
+    '/_authed/students/$studentId/settings': {
+      id: '/_authed/students/$studentId/settings'
+      path: '/settings'
+      fullPath: '/students/$studentId/settings'
+      preLoaderRoute: typeof AuthedStudentsStudentIdSettingsRouteImport
+      parentRoute: typeof AuthedStudentsStudentIdRoute
+    }
+    '/_authed/students/$studentId/worksheets': {
+      id: '/_authed/students/$studentId/worksheets'
+      path: '/worksheets'
+      fullPath: '/students/$studentId/worksheets'
+      preLoaderRoute: typeof AuthedStudentsStudentIdWorksheetsRouteImport
+      parentRoute: typeof AuthedStudentsStudentIdRoute
+    }
   }
 }
+
+interface AuthedStudentsStudentIdRouteChildren {
+  AuthedStudentsStudentIdProgressRoute: typeof AuthedStudentsStudentIdProgressRoute
+  AuthedStudentsStudentIdSettingsRoute: typeof AuthedStudentsStudentIdSettingsRoute
+  AuthedStudentsStudentIdWorksheetsRoute: typeof AuthedStudentsStudentIdWorksheetsRoute
+  AuthedStudentsStudentIdIndexRoute: typeof AuthedStudentsStudentIdIndexRoute
+}
+
+const AuthedStudentsStudentIdRouteChildren: AuthedStudentsStudentIdRouteChildren =
+  {
+    AuthedStudentsStudentIdProgressRoute: AuthedStudentsStudentIdProgressRoute,
+    AuthedStudentsStudentIdSettingsRoute: AuthedStudentsStudentIdSettingsRoute,
+    AuthedStudentsStudentIdWorksheetsRoute:
+      AuthedStudentsStudentIdWorksheetsRoute,
+    AuthedStudentsStudentIdIndexRoute: AuthedStudentsStudentIdIndexRoute,
+  }
+
+const AuthedStudentsStudentIdRouteWithChildren =
+  AuthedStudentsStudentIdRoute._addFileChildren(
+    AuthedStudentsStudentIdRouteChildren,
+  )
 
 interface AuthedRouteChildren {
   AuthedDashboardRoute: typeof AuthedDashboardRoute
   AuthedKnowledgeRoute: typeof AuthedKnowledgeRoute
   AuthedLearnSessionIdRoute: typeof AuthedLearnSessionIdRoute
   AuthedPrintStudentIdRoute: typeof AuthedPrintStudentIdRoute
-  AuthedStudentsStudentIdRoute: typeof AuthedStudentsStudentIdRoute
+  AuthedStudentsStudentIdRoute: typeof AuthedStudentsStudentIdRouteWithChildren
 }
 
 const AuthedRouteChildren: AuthedRouteChildren = {
@@ -218,7 +317,7 @@ const AuthedRouteChildren: AuthedRouteChildren = {
   AuthedKnowledgeRoute: AuthedKnowledgeRoute,
   AuthedLearnSessionIdRoute: AuthedLearnSessionIdRoute,
   AuthedPrintStudentIdRoute: AuthedPrintStudentIdRoute,
-  AuthedStudentsStudentIdRoute: AuthedStudentsStudentIdRoute,
+  AuthedStudentsStudentIdRoute: AuthedStudentsStudentIdRouteWithChildren,
 }
 
 const AuthedRouteWithChildren =
