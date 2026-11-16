@@ -14,7 +14,9 @@ test.skip(!!process.env.E2E_BASE_URL, "Admin allowlist is only configured for th
 
 test("non-admin parents cannot see the knowledge admin", async ({ page }) => {
 	await signUp(page, `parent-${Date.now()}@example.test`);
-	await expect(page.getByRole("link", { name: "Knowledge" })).toHaveCount(0);
+	await page.getByRole("button", { name: "Account menu" }).click();
+	await expect(page.getByRole("menuitem", { name: "Sign out" })).toBeVisible();
+	await expect(page.getByRole("menuitem", { name: "Knowledge" })).toHaveCount(0);
 	await page.goto("/knowledge");
 	await expect(page.getByRole("heading", { name: "Knowledge sources" })).toHaveCount(0);
 });
@@ -46,7 +48,8 @@ async function signUpOrIn(page: Page, email: string) {
 
 test("knowledge admin sees the source registry with licence details", async ({ page }) => {
 	await signUpOrIn(page, "knowledge-admin@example.test");
-	await page.getByRole("link", { name: "Knowledge" }).click();
+	await page.getByRole("button", { name: "Account menu" }).click();
+	await page.getByRole("menuitem", { name: "Knowledge" }).click();
 	await expect(page.getByRole("heading", { name: "Knowledge sources" })).toBeVisible();
 	await expect(page.getByText("National curriculum in England: mathematics programmes of study")).toBeVisible();
 	await expect(page.getByText(/Open Government Licence v3\.0/).first()).toBeVisible();
