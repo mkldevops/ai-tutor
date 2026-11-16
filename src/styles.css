@@ -239,6 +239,37 @@
 		--tone: var(--color-focus);
 		--tone-fg: #b8432a;
 	}
+	.badge[data-tone="good"] {
+		--tone: var(--color-good);
+	}
+	.badge[data-tone="watch"] {
+		--tone: var(--color-watch);
+		--tone-fg: #8a4a0a;
+	}
+	.badge[data-tone="focus"] {
+		--tone: var(--color-focus);
+		--tone-fg: #b8432a;
+	}
+	.badge[data-tone="link"] {
+		--tone: var(--color-link);
+	}
+	.notice {
+		@apply rounded-lg border-l-4 px-3 py-2 text-sm;
+		border-color: var(--color-watch);
+		background: color-mix(in oklab, var(--color-watch) 10%, transparent);
+		color: var(--ui-fg);
+	}
+	.data-table {
+		@apply w-full text-left text-sm;
+	}
+	.data-table th {
+		@apply py-2 pr-3 font-mono text-[11px] font-medium tracking-wide uppercase;
+		color: var(--ui-muted);
+	}
+	.data-table td {
+		@apply py-2 pr-3 align-top;
+		border-top: 1px solid var(--ui-card-line);
+	}
 	.surface-space .badge {
 		--tone-fg: var(--tone);
 	}

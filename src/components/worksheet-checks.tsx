@@ -27,10 +27,10 @@ async function downscale(file: File): Promise<{ base64: string; mimeType: "image
 	return { base64: btoa(binary), mimeType: "image/jpeg" };
 }
 
-const VERDICT: Record<string, { label: string; className: string }> = {
-	correct: { label: "Looks right", className: "bg-emerald-50 text-emerald-800" },
-	incorrect: { label: "Check this", className: "bg-amber-50 text-amber-900" },
-	unchecked: { label: "Not checked", className: "bg-slate-100 text-slate-700" },
+const VERDICT: Record<string, { label: string; tone?: string }> = {
+	correct: { label: "Looks right", tone: "good" },
+	incorrect: { label: "Check this", tone: "watch" },
+	unchecked: { label: "Not checked" },
 };
 
 export function WorksheetChecks({
@@ -70,8 +70,9 @@ export function WorksheetChecks({
 	return (
 		<section className="card space-y-4" data-testid="worksheet-checks">
 			<div>
-				<h2 className="h2">Worksheet photos</h2>
-				<p className="mt-1 text-sm text-slate-600">
+				<p className="meta">Paper to progress</p>
+				<h2 className="mt-1 font-display text-xl">Worksheet photos</h2>
+				<p className="mt-1 max-w-2xl text-sm text-soft">
 					Take a photo of one page of written sums. The AI only reads the page; the app checks the arithmetic. Reading
 					handwriting from a photo is approximate, so please review each result. Nothing here changes progress. The
 					photo itself is not stored.
@@ -144,63 +145,65 @@ function CheckCard({
 	});
 
 	return (
-		<article className="space-y-3 border-t border-slate-100 pt-4 text-sm" data-testid="worksheet-check">
-			<p className="text-slate-500">
+		<article className="space-y-3 border-t border-line pt-4 text-sm" data-testid="worksheet-check">
+			<p className="meta">
 				{formatDate(check.createdAt)} · {check.objectiveCode} ·{" "}
 				{check.status === "reviewed" ? "Reviewed by a parent" : "Waiting for parent review"}
 			</p>
 			{check.imageQuality !== "good" && (
-				<p className="rounded-lg bg-amber-50 p-2 text-amber-900">
+				<p className="notice">
 					The photo was {check.imageQuality}. Results are less reliable; try a sharper, well-lit photo.
 				</p>
 			)}
 			{check.flags.length > 0 && (
-				<p className="rounded-lg bg-amber-50 p-2 text-amber-900">
+				<p className="notice">
 					The page contained text that looked like instructions to the AI. It was ignored and the handwriting note was
 					hidden.
 				</p>
 			)}
 			{check.items.length === 0 ? (
-				<p className="text-slate-600">No questions could be read on this photo.</p>
+				<p className="text-soft">No questions could be read on this photo.</p>
 			) : (
-				<table className="w-full text-left">
-					<thead className="text-slate-500">
-						<tr>
-							<th className="py-1">Question (as read)</th>
-							<th>Answer (as read)</th>
-							<th>Result</th>
-						</tr>
-					</thead>
-					<tbody>
-						{check.items.map((item, i) => (
-							// biome-ignore lint/suspicious/noArrayIndexKey: items are a fixed, ordered transcription without ids
-							<tr key={`${check.id}-${i}`} className="border-t border-slate-100 align-top">
-								<td className="py-1 pr-2 font-mono">{item.question}</td>
-								<td className="pr-2">
-									<input
-										className="input w-24 py-1"
-										aria-label={`Answer ${i + 1}`}
-										value={answers[i] ?? ""}
-										maxLength={60}
-										onChange={(e) => setAnswers((a) => a.map((v, j) => (j === i ? e.target.value : v)))}
-									/>
-									{item.legibility !== "clear" && !item.editedByParent && (
-										<span className="ml-1 text-xs text-amber-700">{item.legibility}</span>
-									)}
-								</td>
-								<td>
-									<span className={`rounded px-2 py-0.5 text-xs ${VERDICT[item.verdict]?.className ?? ""}`}>
-										{VERDICT[item.verdict]?.label}
-									</span>
-									{item.expected && <span className="ml-1 text-xs text-slate-500">({item.expected})</span>}
-								</td>
+				<div className="overflow-x-auto">
+					<table className="data-table">
+						<thead>
+							<tr>
+								<th>Question (as read)</th>
+								<th>Answer (as read)</th>
+								<th>Result</th>
 							</tr>
-						))}
-					</tbody>
-				</table>
+						</thead>
+						<tbody>
+							{check.items.map((item, i) => (
+								// biome-ignore lint/suspicious/noArrayIndexKey: items are a fixed, ordered transcription without ids
+								<tr key={`${check.id}-${i}`}>
+									<td className="font-mono">{item.question}</td>
+									<td>
+										<input
+											className="input w-24 py-1"
+											aria-label={`Answer ${i + 1}`}
+											value={answers[i] ?? ""}
+											maxLength={60}
+											onChange={(e) => setAnswers((a) => a.map((v, j) => (j === i ? e.target.value : v)))}
+										/>
+										{item.legibility !== "clear" && !item.editedByParent && (
+											<span className="ml-1 font-mono text-[11px] text-[#8a4a0a]">{item.legibility}</span>
+										)}
+									</td>
+									<td>
+										<span className="badge" data-tone={VERDICT[item.verdict]?.tone}>
+											{VERDICT[item.verdict]?.label}
+										</span>
+										{item.expected && <span className="ml-1 font-mono text-xs text-muted">({item.expected})</span>}
+									</td>
+								</tr>
+							))}
+						</tbody>
+					</table>
+				</div>
 			)}
 			{check.handwriting.note && (
-				<p className="text-slate-700">
+				<p className="text-soft">
 					Handwriting (approximate, {check.handwriting.confidence} confidence): {check.handwriting.note}
 				</p>
 			)}

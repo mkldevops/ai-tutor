@@ -63,20 +63,25 @@ function PrintPage() {
 				</Link>
 			</div>
 			{isKey && (
-				<p className="mb-4 rounded-lg bg-amber-50 p-3 text-sm text-amber-900 print:hidden">
+				<p className="notice mb-4 print:hidden">
 					This is the answer key. Print it separately and keep it for the adult.
 				</p>
 			)}
 
-			<article className="rounded-2xl border border-slate-200 bg-white p-8 text-ink print:rounded-none print:border-0 print:p-0">
-				<header className="border-b-2 border-slate-800 pb-4">
+			<article className="rounded-[10px] border border-line bg-white p-8 text-ink shadow-sm print:rounded-none print:border-0 print:p-0 print:shadow-none">
+				<header className="border-b-2 border-ink pb-4">
 					<div className="flex items-baseline justify-between gap-4">
-						<h1 className="text-xl font-bold">{isKey ? "Answer key" : "Maths practice"}</h1>
-						<p className="text-xs text-slate-500">Sheet {reference}</p>
+						<p className="font-mono text-[11px] tracking-wide text-ink-mute uppercase">
+							AI Tutor · Year {sheet.student.yearGroup}
+						</p>
+						<p className="font-mono text-[11px] text-ink-mute">Sheet {reference}</p>
 					</div>
-					<p className="mt-1 text-sm">{sheet.objective.statement}</p>
+					<h1 className="mt-2 font-display text-3xl font-bold tracking-tight">
+						{isKey ? "Answer key" : "Maths practice"}
+					</h1>
+					<p className="mt-2 text-sm text-ink-soft">{sheet.objective.statement}</p>
 					{isKey ? (
-						<p className="mt-3 text-sm text-slate-600">
+						<p className="mt-3 text-sm text-ink-mute">
 							For {sheet.student.displayName} · Level {sheet.difficulty}
 							{sheet.autoDifficulty ? " (chosen from current progress)" : ""}
 						</p>
@@ -93,20 +98,20 @@ function PrintPage() {
 				{isKey ? (
 					<ol className="mt-6 space-y-3 text-sm">
 						{sheet.items.map((item) => (
-							<li key={item.number} className="break-inside-avoid border-b border-slate-100 pb-2">
+							<li key={item.number} className="break-inside-avoid border-b border-line pb-3">
 								<p>
-									<span className="font-semibold">{item.number}.</span> {item.prompt}
+									<span className="font-mono font-semibold">{item.number}.</span> {item.prompt}
 								</p>
 								<p className="mt-1">
 									Answer: <strong>{item.answer}</strong>
 								</p>
-								<p className="text-slate-600">{item.workedSolution}</p>
+								<p className="text-ink-mute">{item.workedSolution}</p>
 							</li>
 						))}
 					</ol>
 				) : (
 					<>
-						<p className="mt-4 text-sm text-slate-600">
+						<p className="mt-4 text-sm text-ink-mute">
 							Write each answer clearly. Show your working in the space if it helps.
 						</p>
 						<ol className="mt-6 grid grid-cols-1 gap-x-10 gap-y-8 sm:grid-cols-2 print:grid-cols-2">
@@ -126,7 +131,7 @@ function WorksheetItem({ item }: { item: PrintableItem }) {
 	return (
 		<li className={`break-inside-avoid text-lg ${wide ? "sm:col-span-2 print:col-span-2" : ""}`}>
 			<p>
-				<span className="mr-2 font-semibold">{item.number}.</span>
+				<span className="mr-2 font-mono text-base font-semibold text-ink-mute">{item.number}.</span>
 				<span className={wide ? "" : "font-mono"}>{item.prompt}</span>
 			</p>
 			{item.choices && (

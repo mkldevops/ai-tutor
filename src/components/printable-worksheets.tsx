@@ -18,8 +18,9 @@ export function PrintableWorksheets({
 	return (
 		<section className="card space-y-4" data-testid="printable-worksheets">
 			<div>
-				<h2 className="h2">Printable worksheets</h2>
-				<p className="mt-1 text-sm text-slate-600">
+				<p className="meta">Off-screen practice</p>
+				<h2 className="mt-1 font-display text-xl">Printable worksheets</h2>
+				<p className="mt-1 max-w-2xl text-sm text-soft">
 					Make a paper sheet of practice questions and a separate answer key. "Auto" picks the level from current
 					progress. Earlier-year objectives are included for warm-up.
 				</p>
