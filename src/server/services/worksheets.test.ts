@@ -72,7 +72,7 @@ describe("worksheet photo checks", () => {
 		expect(logs[0]?.detail).toMatchObject({ correct: 1, incorrect: 1, unchecked: 1, model: "test/vision" });
 	});
 
-	it("does not touch attempts or mastery", async () => {
+	it("does not touch attempts or mastery before a parent review", async () => {
 		await check(readerOf(reading([{ question: "2 + 2 =", childAnswer: "5" }])));
 		expect(await store.assessment_attempts.list({ studentId: sam })).toHaveLength(0);
 		expect(await store.mastery_events.list({ studentId: sam })).toHaveLength(0);
@@ -136,6 +136,34 @@ describe("worksheet photo checks", () => {
 		await expect(
 			reviewWorksheetCheck(store, alice, res.id, { corrections: [{ index: 5, childAnswer: "1" }], parentNote: null }),
 		).rejects.toMatchObject({ code: "invalid" });
+	});
+
+	it("links reviewed answers to guided attempts that never secure the objective", async () => {
+		const items = Array.from({ length: 6 }, (_, n) => ({ question: `${n} + 1 =`, childAnswer: String(n + 1) }));
+		const res = await check(readerOf(reading([...items, { question: "9 + 9 =", childAnswer: "?" }])));
+		await reviewWorksheetCheck(store, alice, res.id, { corrections: [], parentNote: null });
+		const attempts = await store.assessment_attempts.list({ studentId: sam });
+		expect(attempts).toHaveLength(6);
+		expect(attempts.every((a) => a.sessionId === res.id && a.mode === "guided" && a.correct)).toBe(true);
+		const [comp] = await store.student_competencies.list({ studentId: sam, objectiveCode });
+		expect(comp?.status).toBe("developing");
+		const logs = await store.audit_logs.list({ action: "worksheet.review" });
+		expect(logs[0]?.detail).toMatchObject({ attempts: 6 });
+	});
+
+	it("replaces linked attempts on re-review and removes them on delete", async () => {
+		const res = await check(readerOf(reading([{ question: "6 × 7 =", childAnswer: "47" }])));
+		await reviewWorksheetCheck(store, alice, res.id, { corrections: [], parentNote: null });
+		await reviewWorksheetCheck(store, alice, res.id, {
+			corrections: [{ index: 0, childAnswer: "42" }],
+			parentNote: null,
+		});
+		const attempts = await store.assessment_attempts.list({ sessionId: res.id });
+		expect(attempts.map((a) => [a.response, a.correct])).toEqual([["42", true]]);
+		await deleteWorksheetCheck(store, alice, res.id);
+		expect(await store.assessment_attempts.list({ studentId: sam })).toHaveLength(0);
+		const [comp] = await store.student_competencies.list({ studentId: sam, objectiveCode });
+		expect(comp?.status).toBe("not_started");
 	});
 
 	it("keeps another family out", async () => {

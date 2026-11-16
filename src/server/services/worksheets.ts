@@ -5,7 +5,7 @@ import { ImageRejected, validateImage } from "#/worksheets/image";
 import type { DataStore, WorksheetCheckRecord, WorksheetItem } from "../store/types";
 import { AppError, notFound } from "./errors";
 import { type Actor, audit, requireStudent } from "./family";
-import { allowedObjectives } from "./learning";
+import { allowedObjectives, recomputeCompetency } from "./learning";
 
 export type WorksheetReader = { model: string; generate: VisionGenerate };
 
@@ -115,6 +115,31 @@ export async function listWorksheetChecks(store: DataStore, actor: Actor, studen
 	return rows.slice(-10).reverse();
 }
 
+async function replaceEvidence(store: DataStore, check: WorksheetCheckRecord, items: WorksheetItem[]) {
+	const previous = await store.assessment_attempts.list({ sessionId: check.id }, { limit: 100 });
+	for (const a of previous) await store.assessment_attempts.delete(a.id);
+	const checked = items.filter((i) => i.verdict !== "unchecked");
+	for (const item of checked) {
+		await store.assessment_attempts.create({
+			familyId: check.familyId,
+			studentId: check.studentId,
+			objectiveCode: check.objectiveCode,
+			sessionId: check.id,
+			mode: "guided",
+			itemType: "numeric",
+			prompt: item.question.slice(0, 500),
+			expected: (item.expected ?? item.childAnswer).slice(0, 64),
+			response: item.childAnswer.slice(0, 64),
+			correct: item.verdict === "correct",
+			hintsUsed: 0,
+		});
+	}
+	if (previous.length > 0 || checked.length > 0) {
+		await recomputeCompetency({ store }, check.familyId, check.studentId, check.objectiveCode, new Date());
+	}
+	return checked.length;
+}
+
 async function requireCheck(store: DataStore, actor: Actor, checkId: string) {
 	const check = await store.worksheet_checks.get(checkId);
 	if (!check || check.familyId !== actor.familyId) throw notFound("Worksheet check");
@@ -150,9 +175,11 @@ export async function reviewWorksheetCheck(
 		reviewedAt: new Date().toISOString(),
 		parentNote: input.parentNote ? sanitize(input.parentNote) : null,
 	});
+	const attempts = await replaceEvidence(store, updated, items);
 	await audit(store, actor, "worksheet.review", `students/${check.studentId}`, {
 		checkId: check.id,
 		corrected: items.filter((i) => i.editedByParent).length,
+		attempts,
 		...summarize(items),
 	});
 	return updated;
@@ -161,5 +188,6 @@ export async function reviewWorksheetCheck(
 export async function deleteWorksheetCheck(store: DataStore, actor: Actor, checkId: string) {
 	const check = await requireCheck(store, actor, checkId);
 	await store.worksheet_checks.delete(check.id);
+	await replaceEvidence(store, check, []);
 	await audit(store, actor, "worksheet.delete", `students/${check.studentId}`, { checkId: check.id });
 }
