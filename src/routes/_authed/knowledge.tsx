@@ -15,6 +15,14 @@ export const Route = createFileRoute("/_authed/knowledge")({
 
 type VersionDetail = Awaited<ReturnType<typeof getKnowledgeVersionFn>>;
 
+const VERSION_TONE: Record<string, string | undefined> = {
+	staged: "watch",
+	approved: "good",
+	active: "good",
+	rejected: "focus",
+	failed: "focus",
+};
+
 const fmt = (iso: string | null) => (iso ? new Date(iso).toLocaleString("en-GB") : "never");
 
 function KnowledgePage() {
@@ -41,25 +49,36 @@ function KnowledgePage() {
 	return (
 		<main className="page space-y-8">
 			<header>
-				<h1 className="h1 mb-1">Knowledge sources</h1>
-				<p className="text-sm text-slate-600">
+				<p className="meta">Knowledge admin</p>
+				<h1 className="h1 mt-2">
+					Knowledge <i>sources</i>
+				</h1>
+				<p className="mt-3 max-w-2xl text-sm text-soft">
 					Index: {data.index} · Embedder: {data.embedder}. New content is staged and only used by the tutor after
 					approval.
 				</p>
 			</header>
-			{message ? <p className="text-sm text-slate-700">{message}</p> : null}
+			{message ? <output className="notice block">{message}</output> : null}
 			<ErrorBox error={ingest.error ?? open.error ?? review.error} />
 
 			{data.sources.map((s) => (
 				<section key={s.id} className="card space-y-4">
 					<div className="flex flex-wrap items-start justify-between gap-2">
 						<div>
-							<h2 className="h2">{s.title}</h2>
-							<p className="text-sm text-slate-600">
-								{s.publisher} · {s.licence} · last checked {fmt(s.lastCheckedAt)}
-								{s.due ? " · check due" : ""}
+							<p className="meta">{s.publisher}</p>
+							<h2 className="mt-1 font-display text-xl">{s.title}</h2>
+							<p className="mt-1 text-sm text-soft">
+								{s.licence} · last checked {fmt(s.lastCheckedAt)}
+								{s.due ? (
+									<>
+										{" "}
+										<span className="badge" data-tone="watch">
+											check due
+										</span>
+									</>
+								) : null}
 							</p>
-							<p className="text-xs text-slate-500">
+							<p className="mt-1 text-xs text-muted">
 								Rights verified {s.rightsVerifiedAt}: {s.rightsNote}
 							</p>
 						</div>
@@ -73,41 +92,47 @@ function KnowledgePage() {
 						</button>
 					</div>
 
-					<table className="w-full text-left text-sm">
-						<thead>
-							<tr className="text-slate-500">
-								<th className="py-1">Version</th>
-								<th>Status</th>
-								<th>Fetched</th>
-								<th>Chunks</th>
-								<th>Changes</th>
-								<th>Flagged</th>
-								<th />
-							</tr>
-						</thead>
-						<tbody>
-							{s.versions.map((v) => (
-								<tr key={v.id} className="border-t border-slate-100">
-									<td className="py-1">v{v.version}</td>
-									<td>{v.status}</td>
-									<td>{fmt(v.fetchedAt)}</td>
-									<td>{v.chunkCount}</td>
-									<td>
-										+{v.added} / −{v.removed}
-									</td>
-									<td>{v.flaggedCount}</td>
-									<td>
-										<button type="button" className="underline" onClick={() => void open.run(v.id)}>
-											Review
-										</button>
-									</td>
+					<div className="overflow-x-auto">
+						<table className="data-table">
+							<thead>
+								<tr>
+									<th>Version</th>
+									<th>Status</th>
+									<th>Fetched</th>
+									<th>Chunks</th>
+									<th>Changes</th>
+									<th>Flagged</th>
+									<th />
 								</tr>
-							))}
-						</tbody>
-					</table>
+							</thead>
+							<tbody>
+								{s.versions.map((v) => (
+									<tr key={v.id}>
+										<td className="font-mono">v{v.version}</td>
+										<td>
+											<span className="badge" data-tone={VERSION_TONE[v.status]}>
+												{v.status}
+											</span>
+										</td>
+										<td>{fmt(v.fetchedAt)}</td>
+										<td>{v.chunkCount}</td>
+										<td>
+											+{v.added} / −{v.removed}
+										</td>
+										<td>{v.flaggedCount}</td>
+										<td>
+											<button type="button" className="link" onClick={() => void open.run(v.id)}>
+												Review
+											</button>
+										</td>
+									</tr>
+								))}
+							</tbody>
+						</table>
+					</div>
 
 					{s.jobs.length > 0 ? (
-						<p className="text-xs text-slate-500">
+						<p className="text-xs text-muted">
 							Recent checks:{" "}
 							{s.jobs
 								.map((j) => `${fmt(j.createdAt)} ${j.trigger} ${j.status}${j.error ? ` (${j.error})` : ""}`)
@@ -132,11 +157,15 @@ function VersionReview({
 	onReview: (versionId: string, decision: "approve" | "reject", note: string) => Promise<unknown>;
 }) {
 	const [note, setNote] = useState("");
+	const flaggedCount = detail.resources.filter((r) => r.flags.length > 0).length;
 	return (
 		<section className="card space-y-4" aria-label={`Version ${detail.version}`}>
-			<h2 className="h2">
-				v{detail.version} · {detail.status}
-			</h2>
+			<div className="flex flex-wrap items-center gap-3">
+				<h2 className="font-display text-xl">Version {detail.version}</h2>
+				<span className="badge" data-tone={VERSION_TONE[detail.status]}>
+					{detail.status}
+				</span>
+			</div>
 			{detail.status === "staged" ? (
 				<div className="space-y-2">
 					<label className="block">
@@ -161,20 +190,33 @@ function VersionReview({
 							Reject
 						</button>
 					</div>
-					<p className="text-xs text-slate-500">Flagged passages are never indexed, even after approval.</p>
+					<p className="text-xs text-muted">Flagged passages are never indexed, even after approval.</p>
 				</div>
 			) : null}
-			<ol className="space-y-3">
+			<div className="flex flex-wrap items-baseline justify-between gap-2 border-t border-line pt-3">
+				<p className="meta">
+					{detail.resources.length} passages · {flaggedCount} flagged
+				</p>
+				<p className="text-xs text-muted">Flagged passages are open; tap any other to read it.</p>
+			</div>
+			<ol className="divide-y divide-line">
 				{detail.resources.map((r) => (
-					<li key={r.id} className={r.flags.length > 0 ? "rounded border border-red-300 p-2" : "border-t pt-2"}>
-						<p className="text-sm font-semibold">
-							{r.heading} <span className="font-normal text-slate-500">({r.kind})</span>
-						</p>
-						<p className="text-xs text-slate-500">
-							Years {r.yearGroups.join(", ") || "—"} · {r.objectiveCodes.join(", ") || "no objective"} · {r.status}
-							{r.flags.length > 0 ? ` · flags: ${r.flags.join(", ")}` : ""}
-						</p>
-						<p className="whitespace-pre-line text-sm">{r.text}</p>
+					<li key={r.id} data-testid="knowledge-passage">
+						<details
+							open={r.flags.length > 0}
+							className={`group py-2 ${r.flags.length > 0 ? "my-2 rounded-lg border border-focus/60 bg-focus/5 px-3" : ""}`}
+						>
+							<summary className="flex cursor-pointer list-none items-baseline gap-2 text-sm">
+								<span className="inline-block font-mono text-xs text-muted transition-transform group-open:rotate-90">›</span>
+								<span className="font-semibold">{r.heading}</span>
+								<span className="text-muted">({r.kind})</span>
+							</summary>
+							<p className="mt-1 pl-5 font-mono text-[11px] text-muted">
+								Years {r.yearGroups.join(", ") || "—"} · {r.objectiveCodes.join(", ") || "no objective"} · {r.status}
+								{r.flags.length > 0 ? ` · flags: ${r.flags.join(", ")}` : ""}
+							</p>
+							<p className="mt-2 whitespace-pre-line pl-5 text-sm text-soft">{r.text}</p>
+						</details>
 					</li>
 				))}
 			</ol>
