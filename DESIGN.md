@@ -1,4 +1,4 @@
-# AI Tutor — Design system "Orbi in orbit"
+# AI Tutor — Design system "Nova in orbit"
 
 Reference for every new page. The V3 boards on the design canvas are the source of truth:
 https://claude.ai/artifact/8gTR3keLUXEd1W4YjbH9rg (`V3-OrbiHome`, `V3-OrbiQuestion`, `V3-OrbiError`,
@@ -8,7 +8,7 @@ https://claude.ai/artifact/8gTR3keLUXEd1W4YjbH9rg (`V3-OrbiHome`, `V3-OrbiQuesti
 
 1. **Mature, never babyish.** Learners are 7–11, but the product must feel like a premium tool, not a toy.
    No blush cheeks, cartoon stars, bouncy confetti, pastel notebooks or toddler props.
-2. **The tutor is a person-like presence, the learner does the thinking.** Orbi asks, never gives answers.
+2. **The tutor is a person-like presence, the learner does the thinking.** Nova asks, never gives answers.
 3. **One focus per screen.** One question, one decision, one primary button.
 4. **Show the learning, not the points.** Mastery, recall dates and confidence are the rewards. Ranks exist
    but stay secondary.
@@ -22,7 +22,7 @@ https://claude.ai/artifact/8gTR3keLUXEd1W4YjbH9rg (`V3-OrbiHome`, `V3-OrbiQuesti
 | **Learner** | Child | Dark "deep space" | Immersive, focused, glowing accents |
 | **Parent** | Adult | Light "paper" + navy rail | Editorial, factual, calm |
 
-The parent surface reuses the same fonts, Orbi and the orbit skill map (on a navy card), so both feel like
+The parent surface reuses the same fonts, Nova and the orbit skill map (on a navy card), so both feel like
 one product.
 
 ## 3. Colour tokens
@@ -73,7 +73,7 @@ Each tutoring state owns one colour. Do not reuse a signal colour for decoration
 background: radial-gradient(circle at 30% 50%, #1C2550 0%, #0D1330 48%, #070A1C 100%);
 ```
 
-Move the gradient centre towards Orbi on each screen. Add 1–2 orbit ellipses (`stroke #FFF`, opacity
+Move the gradient centre towards Nova on each screen. Add 1–2 orbit ellipses (`stroke #FFF`, opacity
 0.05–0.07) and at most 5 single-pixel stars (opacity 0.4–0.6). Nothing more.
 
 ## 4. Typography
@@ -111,37 +111,40 @@ Rules:
 
 - Radii stay tight: panels `12px`, cards and stat tiles `10px`, buttons, inputs and answers `8px`, chips `6px`.
   Only avatars and status dots are round.
-- Speech bubble: one squared corner pointing at Orbi (`2 10 10 10`).
+- Speech bubble: one squared corner pointing at Nova (`2 10 10 10`).
 - Spacing base 4px; common gaps 8 / 12 / 16 / 20 / 24. Card padding 16px, panel 20–24px. Page gutter 44px desktop, 16px mobile.
 - No drop shadows on the dark surface: depth comes from glass fills, glow and halo gradients.
 - Parent surface: flat white cards, 1px border, no shadow.
 
-## 6. Orbi, the mascot
+## 6. Nova, the mascot
 
-Glossy white robot head with a black glass face. Expression lives only in the eye light.
+Full-body white robot: cat-ear head fins, navy screen face, teal eyes and cuffs, small orange chest badge.
+Expression lives in the eye light and the pose. Rendered by `Nova` (`src/components/nova.tsx`) from
+pre-rendered transparent WebP poses in `public/mascot/nova-<state>.webp` (480px, ~20 KB each).
+Source PNGs (1024px) were generated with ChatGPT; regenerate a pose with the same character sheet,
+then `sips -Z 480` + `cwebp -q 82 -alpha_q 90`. `Nova` floats gently (`animate-nova-float`), which
+`prefers-reduced-motion` turns off.
 
-Anatomy (SVG, 420×400 viewBox):
+### Poses
 
-- Head `rect 200×170 rx80`, shell = radial gradient `#FFF → #E6E8EF → #9DA3B8`.
-- Face `rect 160×112 rx52`, gradient `#23263A → #04050B`, one white reflection stroke at 22% opacity.
-- Side "ear" pods `#C9CDD9`; small body with a glowing core dot; two floating arm pods.
-- Tilted orbit ring around the body: back arc drawn **before** the robot (35% opacity), front arc **after**,
-  a small moon on the ring. Ring and halo take the current state colour.
-- Glow: `feGaussianBlur stdDeviation 3` merged over the source.
-- Prefix every gradient / filter id per file (`hShell`, `qShell`…) to avoid collisions.
-
-### Expression states
-
-| State | When | Eyes | Colour |
+| State | When | Pose | Eye colour |
 |---|---|---|---|
-| `ready` | Home, waiting | Two vertical pills | teal |
-| `thinking` | AI replying (replaces spinners) | Pills glance up + 3 fading dots | teal |
-| `hint` | Hint given | One pill, one raised "brow" arc + short pill | amber |
-| `correct` / `proud` | Right answer, mission complete | Upward arcs; one arm raised on results | teal |
-| `notQuite` | Wrong answer | Flat narrowed bars + angled brows | coral |
-| `solo` | Independent test | Dim thin white lines, chat closed | white 70% |
+| `ready` | Learner page, lesson idle | Open hand, welcoming | teal |
+| `wave` | Landing hero | Waving hello | teal |
+| `thinking` | AI replying (replaces spinners) | Hand on chin, glancing up | teal |
+| `hint` | Hint given | Finger raised | amber |
+| `correct` | Right answer in guided practice | Thumbs up, wink | teal |
+| `proud` | Mission complete, all secured | Fists up, sparkles | teal |
+| `notQuite` | Wrong answer | Calm open hand, level eyes | coral |
+| `solo` | Independent check, review | Dim line eyes, hands on hips | white 70% |
+| `speaking` | Read-aloud playing | Sound waves from face | teal |
+| `listening` | Microphone on | Hand to ear | teal |
+| `empty` | Empty states (no learners yet) | Sitting cross-legged | teal |
+| `oops` | Error and not-found pages | Scratching head | teal |
+| `avatar` | Favicon, small identity spots | Head only | teal |
 
-Orbi never cries, frowns or looks disappointed. "Not quite" reads as *focused*.
+In a lesson the pose follows `novaStateForLesson`: thinking > listening > complete > solo > feedback >
+hint > speaking > ready. Nova never cries, frowns or looks disappointed. "Not quite" reads as *focused*.
 
 ## 7. Core components
 
@@ -151,7 +154,7 @@ Orbi never cries, frowns or looks disappointed. "Not quite" reads as *focused*.
 | `GhostButton` | Pill, 1px `rgba(255,255,255,.2)`, text `--star`, 500. |
 | `AnswerChoice` | h 60–66, radius 8, display 600, 26–28. Selected: 2px `--accent` + 10% accent fill. Eliminated: dashed coral border, strike-through, disabled. |
 | `ConfidenceScale` | 5 square-ish buttons (54×46, radius 8). Selected = accent fill. On check-out, show the check-in value dashed. `fieldset` with legend. |
-| `SpeechBubble` | Glass strong, radius with squared corner toward Orbi. Bold + state colour on the key word. |
+| `SpeechBubble` | Glass strong, radius with squared corner toward Nova. Bold + state colour on the key word. |
 | `StatusChip` | Mono 11–12, radius 6, 1px `rgba(255,255,255,.14)` or tinted fill for state (`HINT 1 OF 2`). |
 | `FlightPlan` | Lesson steps: Recall → Explain → Practise → Solo flight. Vertical timeline on home, horizontal progress rail in-lesson. Solo flight is a square marker. |
 | `OrbitMap` | Skills as planets on concentric ellipses around a core topic. Filled `--star` = Lasting, ring = Secure, accent = today/new, dashed `--rim` = not reached. Always with a legend. |
@@ -168,13 +171,13 @@ Orbi never cries, frowns or looks disappointed. "Not quite" reads as *focused*.
 ## 8. Layouts
 
 - **Learner, desktop 1280×800:** header (logo, step rail or pill nav, rank/streak chips, avatar);
-  content left (~520–760px); Orbi + tutor panel right (~300–360px) or Orbi as hero centre-left.
-- **In-lesson:** Orbi lives in a right glass panel (avatar, state chip, bubble, 2 follow-up chips, "Ask Orbi"
-  input at the bottom). In `solo`, the panel collapses to the dimmed Orbi only.
-- **Results:** huge display score left, Orbi centre, progress cards stacked right, primary action last.
+  content left (~520–760px); Nova + tutor panel right (~300–360px) or Nova as hero centre-left.
+- **In-lesson:** Nova lives in a right glass panel (avatar, state chip, bubble, 2 follow-up chips, "Ask Nova"
+  input at the bottom). In `solo`, the panel collapses to the dimmed Nova only.
+- **Results:** huge display score left, Nova centre, progress cards stacked right, primary action last.
 - **Parent:** 240px navy rail (sections + child switcher), editorial headline, 4 stat tiles, then
-  OrbitMap (navy card) + "One thing to practise together", recall, Orbi settings.
-- **Mobile:** single column, Orbi shrinks to 96–120px above the bubble, primary button sticky bottom,
+  OrbitMap (navy card) + "One thing to practise together", recall, Nova settings.
+- **Mobile:** single column, Nova shrinks to 96–120px above the bubble, primary button sticky bottom,
   16px gutter, no horizontal scroll.
 
 ## 9. Pedagogy patterns to repeat
@@ -189,13 +192,13 @@ Orbi never cries, frowns or looks disappointed. "Not quite" reads as *focused*.
 ## 10. Voice
 
 - Short, direct, warm-cool. British English (`practise` verb, `colour`).
-- Orbi speaks in one or two sentences and ends on a question when tutoring.
+- Nova speaks in one or two sentences and ends on a question when tutoring.
 - Space vocabulary is light seasoning: mission, flight plan, solo flight, landing, orbit. Do not overdo it.
 - Avoid: "Awesome!!", "Oops!", emoji, exclamation chains, baby talk.
 
 ## 11. Motion
 
-- Orbi: slow float (4–6px, 4s ease-in-out loop), blink every ~6s, eye-shape morph 180ms between states.
+- Nova: slow float (4–6px, 4s ease-in-out loop), blink every ~6s, eye-shape morph 180ms between states.
 - Ring: very slow rotation of the moon along the orbit (20s+).
 - Feedback: answer border colour transition 150ms; result score counts up once.
 - One orchestrated entrance per screen (stagger 60–80ms). No confetti, no shaking.
@@ -251,7 +254,7 @@ Target `src/styles.css` `@theme` (replaces the current indigo/rounded placeholde
 - [ ] Right surface (learner dark / parent light)?
 - [ ] One primary button, radius 8, `--star` fill?
 - [ ] Headline in Bricolage Grotesque with one accent-coloured phrase?
-- [ ] Orbi present in the correct state colour (or deliberately absent on parent pages)?
+- [ ] Nova present in the correct state colour (or deliberately absent on parent pages)?
 - [ ] Signal colours used only for their meaning?
 - [ ] Background: gradient + ≤ 2 orbits + ≤ 5 stars, no illustrations beyond `LessonArt`?
 - [ ] Confidence, recall date or mastery shown where learning happened?

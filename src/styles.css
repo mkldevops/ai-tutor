@@ -33,26 +33,15 @@
 	--radius-card: 10px;
 	--radius-answer: 8px;
 
-	--animate-orbi-float: orbi-float 4.5s ease-in-out infinite;
-	--animate-orbi-blink: orbi-blink 6s ease-in-out infinite;
+	--animate-nova-float: nova-float 4.5s ease-in-out infinite;
 
-	@keyframes orbi-float {
+	@keyframes nova-float {
 		0%,
 		100% {
 			transform: translateY(0);
 		}
 		50% {
 			transform: translateY(-5px);
-		}
-	}
-	@keyframes orbi-blink {
-		0%,
-		94%,
-		100% {
-			transform: scaleY(1);
-		}
-		97% {
-			transform: scaleY(0.1);
 		}
 	}
 }
@@ -471,5 +460,9 @@
 	}
 	.lesson-art img {
 		@apply size-full object-cover;
+	}
+	.nova {
+		@apply block max-w-full select-none object-contain;
+		height: auto;
 	}
 }

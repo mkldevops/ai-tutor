@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
 import { ErrorBox, useAction } from "#/components/form";
 import { LessonArt, SubjectTag } from "#/components/lesson-visual";
-import { Orbi } from "#/components/orbi";
+import { Nova } from "#/components/nova";
 import { OrbitMap } from "#/components/orbit-map";
 import { formatDate, StatusBadge } from "#/components/status";
 import { DONE, type Objective, useProgress } from "#/components/student-progress";
@@ -34,7 +34,7 @@ function MissionsTab() {
 	return (
 		<div className="space-y-6">
 			<section className="panel-space surface-space grid items-center gap-5 sm:grid-cols-[auto_1fr]">
-				<Orbi state={mission ? "ready" : "proud"} size={150} className="mx-auto shrink-0" />
+				<Nova state={mission ? "ready" : "proud"} size={150} priority className="mx-auto shrink-0" />
 				<div className="space-y-4">
 					<p className="meta">
 						{mission ? (mission.kind === "review" ? "Review check due" : "Next mission") : "All missions secure"}
@@ -49,7 +49,7 @@ function MissionsTab() {
 						</div>
 					) : (
 						<p className="bubble text-lg">
-							{`${student.displayName} has secured every objective here. Orbi will call them back for review checks.`}
+							{`${student.displayName} has secured every objective here. Nova will call them back for review checks.`}
 						</p>
 					)}
 					{mission &&

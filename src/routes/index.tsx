@@ -1,5 +1,5 @@
 import { createFileRoute, Link, redirect } from "@tanstack/react-router";
-import { Orbi } from "#/components/orbi";
+import { Nova } from "#/components/nova";
 import { getMe } from "#/server/functions";
 
 export const Route = createFileRoute("/")({
@@ -11,7 +11,7 @@ export const Route = createFileRoute("/")({
 
 const FLIGHT_PLAN = [
 	{ step: "Recall", text: "A quick warm-up finds what your child already knows." },
-	{ step: "Explain", text: "Orbi teaches the idea in short, clear steps." },
+	{ step: "Explain", text: "Nova teaches the idea in short, clear steps." },
 	{ step: "Practise", text: "Guided questions with hints. Mistakes here never count." },
 	{ step: "Solo flight", text: "An independent check, then a review a few days later." },
 ];
@@ -30,7 +30,7 @@ function Home() {
 							Maths that <i className="text-accent">stays</i> learnt.
 						</h1>
 						<p className="max-w-xl text-lg text-soft">
-							A private family tutor. Orbi diagnoses, teaches, lets your child practise, checks them solo and calls them
+							A private family tutor. Nova diagnoses, teaches, lets your child practise, checks them solo and calls them
 							back before they forget.
 						</p>
 						<div className="flex flex-wrap gap-3">
@@ -42,7 +42,7 @@ function Home() {
 							</Link>
 						</div>
 					</div>
-					<Orbi state="ready" size={300} className="mx-auto max-w-full" />
+					<Nova state="wave" size={300} priority className="mx-auto" />
 				</div>
 				<ol className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
 					{FLIGHT_PLAN.map((p, i) => (

@@ -211,7 +211,7 @@ Index backends: `KNOWLEDGE_INDEX=memory` (default, rebuilt only on approval, so 
   lesson works without it.
 - Rate limits are in-process memory; use a shared store before running several instances.
 - Only Maths. No streaming chat yet.
-- **Voice is a pilot**, off by default and switched on per learner by the parent. Orbi reads aloud with the
+- **Voice is a pilot**, off by default and switched on per learner by the parent. Nova reads aloud with the
   browser's speech synthesis. Spoken answers use the Web Speech API with `processLocally = true` only
   (on-device recognition, en-GB), so no audio leaves the device and nothing is recorded or stored.
   Where on-device recognition is missing (most browsers outside recent Chrome), the learner types.

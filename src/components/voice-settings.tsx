@@ -28,7 +28,7 @@ export function VoiceSettings({
 			<div>
 				<h2 className="h2">Voice (pilot)</h2>
 				<p className="mt-1 text-sm text-soft">
-					Orbi reads questions and feedback aloud, and {displayName} can say an answer instead of typing it. Speech is
+					Nova reads questions and feedback aloud, and {displayName} can say an answer instead of typing it. Speech is
 					handled by this browser. Nothing is recorded, uploaded or stored. Speaking an answer only appears on devices
 					that can recognise speech on the device itself; typing always works.
 				</p>
