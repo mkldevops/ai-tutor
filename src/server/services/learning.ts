@@ -357,6 +357,8 @@ export async function getStudentProgress(deps: Deps, actor: Actor, studentId: st
 			};
 			return {
 				code: o.code,
+				subject: o.subject,
+				title: o.title,
 				statement: o.statement,
 				strand: o.strand,
 				source: o.source,

@@ -13,7 +13,7 @@ https://claude.ai/artifact/8gTR3keLUXEd1W4YjbH9rg (`V3-OrbiHome`, `V3-OrbiQuesti
 4. **Show the learning, not the points.** Mastery, recall dates and confidence are the rewards. Ranks exist
    but stay secondary.
 5. **Calm space.** Space is the metaphor (missions, flight plan, orbits), expressed with thin lines and
-   light, not illustrations.
+   light. The only illustrations are the topic art on lesson cards (see `LessonArt`).
 
 ## 2. Two surfaces
 
@@ -160,6 +160,9 @@ Orbi never cries, frowns or looks disappointed. "Not quite" reads as *focused*.
 | `PlaceValueTiles` | One tile per digit, display 44 + mono place label; the deciding digit gets accent border, others fade to 45%. |
 | `RankBar` | Mono labels (`NAVIGATOR` → `COMMANDER`), 6px track, accent fill. Secondary placement only. |
 | `RecallCard` | Display day name (`Sun`) + one sentence on what passing unlocks. |
+| `SubjectTag` | Two-part tag: subject (`MATHS`) on a solid fill, then the short topic (`Place value`) on a 10% tint. Brand navy on paper, `--accent` on space. Always first on a lesson card. |
+| `LessonArt` | One square image per topic (`public/lessons/*.webp`, 320px, ≤ 10 KB). Same set style: deep-space gradient, one glossy 3D object, teal rim light, rare amber, no text. 88px on cards, 72px in the mission panel. Decorative (`alt=""`). |
+| `LessonCard` | `LessonArt` · `SubjectTag` + status · learner title (display 20, 600) · official DfE statement below (14, soft). |
 | `StatTile` (parent) | Label 13 mute, display 42 value, unit 20 mute, trend line 13 in `--good`. |
 
 ## 8. Layouts
@@ -250,7 +253,7 @@ Target `src/styles.css` `@theme` (replaces the current indigo/rounded placeholde
 - [ ] Headline in Bricolage Grotesque with one accent-coloured phrase?
 - [ ] Orbi present in the correct state colour (or deliberately absent on parent pages)?
 - [ ] Signal colours used only for their meaning?
-- [ ] Background: gradient + ≤ 2 orbits + ≤ 5 stars, no illustrations?
+- [ ] Background: gradient + ≤ 2 orbits + ≤ 5 stars, no illustrations beyond `LessonArt`?
 - [ ] Confidence, recall date or mastery shown where learning happened?
 - [ ] Copy: short, British English, no emoji, tutor asks rather than tells?
 - [ ] Accessible: labels, contrast, focus, 44px targets, reduced motion?
