@@ -21,7 +21,7 @@ async function addLearner(page: Page, name: string, year: "3" | "5") {
 async function answerCurrent(page: Page, wrong = false) {
 	const prompt = (await page.getByTestId("prompt").innerText()).trim();
 	const answer = wrong ? "999999" : solve(prompt);
-	const choices = page.getByTestId("question").locator("button.btn-secondary");
+	const choices = page.getByTestId("question").getByTestId("choice");
 	if ((await choices.count()) > 0) {
 		const texts = await choices.allInnerTexts();
 		const idx = wrong
@@ -46,7 +46,7 @@ async function completeLesson(page: Page, { wrongInGuided = 0 } = {}) {
 			await expect(page.getByTestId("phase")).not.toHaveAttribute("data-phase", "instruction");
 			continue;
 		}
-		const position = await page.getByTestId("phase").innerText();
+		const position = (await page.getByTestId("phase").textContent()) ?? "";
 		const wrong = phase === "guided" && wrongLeft > 0;
 		if (wrong) wrongLeft--;
 		await answerCurrent(page, wrong);
@@ -68,14 +68,31 @@ test("two learners complete separate lessons with isolated progress", async ({ p
 	await expect(avaObjective.getByTestId("status-badge")).toHaveAttribute("data-status", "not_started");
 	await avaObjective.getByRole("button", { name: "Start lesson" }).click();
 	await expect(page.getByTestId("phase")).toHaveAttribute("data-phase", "diagnostic");
+	await expect(page.getByTestId("flight-plan").locator('[aria-current="step"]')).toContainText("Recall");
+	await page
+		.getByTestId("confidence")
+		.getByRole("button", { name: /^2 of 5/ })
+		.click();
+	await expect(page.getByTestId("confidence")).toHaveCount(0);
 	await completeLesson(page, { wrongInGuided: 1 });
 
 	const result = page.getByTestId("result");
+	await result
+		.getByTestId("confidence")
+		.getByRole("button", { name: /^4 of 5/ })
+		.click();
+	await expect(result.getByTestId("confidence-change")).toContainText("Before: 2 of 5 · Now: 4 of 5");
+	await page.evaluate(() => localStorage.clear());
+	await page.reload();
+	await expect(page.getByTestId("result").getByTestId("confidence-change")).toContainText(
+		"Before: 2 of 5 · Now: 4 of 5",
+	);
 	await expect(result.getByTestId("status-badge")).toHaveAttribute("data-status", "secure");
 	await expect(result).toContainText(/review/i);
 	await result.getByRole("link", { name: "Back to progress" }).click();
 	await expect(avaObjective.getByTestId("status-badge")).toHaveAttribute("data-status", "secure");
 	await expect(avaObjective.getByRole("button", { name: /Review due/ })).toBeDisabled();
+	await expect(page.getByTestId("objective-MA-Y3-MD-TABLES-348")).toBeVisible();
 
 	await page.getByRole("link", { name: "← All learners" }).click();
 	await page.getByRole("link", { name: "Open Ben" }).click();

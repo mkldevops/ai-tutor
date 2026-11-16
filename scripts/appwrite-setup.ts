@@ -52,6 +52,7 @@ export const SCHEMA: TableSpec[] = [
 			{ kind: "string", key: "phase", size: 20, required: true },
 			{ kind: "longtext", key: "state", required: true },
 			{ kind: "datetime", key: "completedAt" },
+			{ kind: "string", key: "confidence", size: 200 },
 		],
 		indexes: [
 			{ key: "by_student", columns: ["studentId"] },

@@ -3,6 +3,8 @@ import { z } from "zod";
 import {
 	answerInputSchema,
 	competencyStatusSchema,
+	confidenceMomentSchema,
+	confidenceValueSchema,
 	displayNameSchema,
 	sessionKindSchema,
 	studentPreferencesSchema,
@@ -223,6 +225,12 @@ export const sessionActionFn = createServerFn({ method: "POST" })
 			z.object({ action: z.literal("answer"), sessionId: idSchema, response: answerInputSchema }),
 			z.object({ action: z.literal("hint"), sessionId: idSchema }),
 			z.object({ action: z.literal("continue"), sessionId: idSchema }),
+			z.object({
+				action: z.literal("confidence"),
+				sessionId: idSchema,
+				moment: confidenceMomentSchema,
+				value: confidenceValueSchema,
+			}),
 		]),
 	)
 	.handler(({ data }) =>
@@ -234,6 +242,7 @@ export const sessionActionFn = createServerFn({ method: "POST" })
 			const deps = { store: getServerContext().store };
 			if (data.action === "answer") return learning.answerSession(deps, actor, data.sessionId, data.response);
 			if (data.action === "hint") return learning.hintSession(deps, actor, data.sessionId);
+			if (data.action === "confidence") return learning.rateConfidence(deps, actor, data);
 			return learning.continueSession(deps, actor, data.sessionId);
 		}),
 	);

@@ -1,5 +1,6 @@
 import type {
 	CompetencyStatus,
+	Confidence,
 	EvidenceMode,
 	FamilyRole,
 	ItemType,
@@ -27,6 +28,7 @@ export type LearningSessionRecord = BaseRecord & {
 	phase: string;
 	state: LessonState;
 	completedAt: string | null;
+	confidence?: Confidence | null;
 };
 export type AttemptRecord = BaseRecord & {
 	familyId: string;
@@ -106,7 +108,7 @@ export type DataStore = { [K in TableName]: Table<TableMap[K]> };
 
 export const JSON_COLUMNS: { [K in TableName]?: (keyof TableMap[K])[] } = {
 	students: ["preferences"],
-	learning_sessions: ["state"],
+	learning_sessions: ["state", "confidence"],
 	student_competencies: ["reasons", "override"],
 	audit_logs: ["detail"],
 };

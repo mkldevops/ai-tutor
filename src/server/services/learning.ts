@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { getObjective, getPrerequisiteCodes, LESSON_OBJECTIVES_BY_YEAR } from "#/curriculum/england-nc-maths";
-import type { CompetencyStatus, SessionKind } from "#/domain/types";
+import type { CompetencyStatus, Confidence, ConfidenceMoment, SessionKind } from "#/domain/types";
 import {
 	continueToPractice,
 	currentItem,
@@ -27,6 +27,7 @@ export type SessionResponse = {
 	feedback: Feedback | null;
 	hint: string | null;
 	result: { status: CompetencyStatus; reasons: string[]; nextReviewAt: string | null } | null;
+	confidence: Confidence;
 };
 
 type Deps = { store: DataStore; now?: () => Date; policy?: MasteryPolicy };
@@ -66,6 +67,7 @@ async function respond(
 		feedback: extra.feedback ?? null,
 		hint: extra.hint ?? null,
 		result,
+		confidence: session.confidence ?? {},
 	};
 }
 
@@ -183,6 +185,24 @@ export async function answerSession(deps: Deps, actor: Actor, sessionId: string,
 		await recomputeCompetency(deps, session.familyId, session.studentId, session.objectiveCode, now);
 	}
 	return respond(store, saved, { feedback });
+}
+
+const CONFIDENCE_PHASES: Record<ConfidenceMoment, string[]> = {
+	before: ["diagnostic", "review"],
+	after: ["complete"],
+};
+
+export async function rateConfidence(
+	deps: Deps,
+	actor: Actor,
+	input: { sessionId: string; moment: ConfidenceMoment; value: number },
+) {
+	const session = await requireSession(deps.store, actor, input.sessionId);
+	if (!CONFIDENCE_PHASES[input.moment].includes(session.phase)) {
+		throw new AppError("invalid", `Confidence "${input.moment}" cannot be recorded at this point of the mission.`);
+	}
+	const confidence = { ...session.confidence, [input.moment]: input.value };
+	return respond(deps.store, await deps.store.learning_sessions.update(session.id, { confidence }));
 }
 
 export async function recomputeCompetency(
@@ -354,6 +374,7 @@ export async function getStudentProgress(deps: Deps, actor: Actor, studentId: st
 				kind: s.kind,
 				phase: s.phase,
 				completedAt: s.completedAt,
+				confidence: s.confidence ?? {},
 				createdAt: s.createdAt,
 			})),
 		events: events.slice(-20).reverse(),

@@ -1,5 +1,6 @@
 import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
 import { ErrorBox, Field, useAction } from "#/components/form";
+import { Orbi } from "#/components/orbi";
 import { createStudentFn, listStudentsFn } from "#/server/functions";
 
 export const Route = createFileRoute("/_authed/dashboard")({
@@ -24,17 +25,38 @@ function Dashboard() {
 
 	return (
 		<main className="page space-y-8">
-			<section>
-				<h1 className="h1 mb-4">Your learners</h1>
+			<header className="space-y-3">
+				<p className="meta">Family dashboard · Key Stage 2 maths</p>
+				<h1 className="h1">
+					Your <i>learners</i>
+				</h1>
+				<p className="max-w-xl text-ink-soft">
+					Each learner has their own missions, progress and review dates. Open one to see what to practise next.
+				</p>
+			</header>
+
+			<section aria-label="Learners">
 				{students.length === 0 ? (
-					<p className="text-slate-600">No learners yet. Add one below.</p>
+					<div className="panel-space surface-space flex flex-col items-center gap-4 text-center sm:flex-row sm:text-left">
+						<Orbi state="ready" size={120} className="shrink-0" />
+						<div className="space-y-1">
+							<p className="font-display text-2xl">No learners yet.</p>
+							<p className="text-soft">Add one below and Orbi will plan their first mission.</p>
+						</div>
+					</div>
 				) : (
 					<ul className="grid gap-4 sm:grid-cols-2">
 						{students.map((s) => (
-							<li key={s.id} className="card flex items-center justify-between">
-								<div>
-									<p className="text-lg font-semibold">{s.displayName}</p>
-									<p className="text-sm text-slate-600">Year {s.yearGroup}</p>
+							<li key={s.id} className="card flex items-center gap-4">
+								<span
+									aria-hidden="true"
+									className="grid size-12 shrink-0 place-items-center rounded-full bg-space-800 font-display text-2xl text-star"
+								>
+									{s.displayName.slice(0, 1).toUpperCase()}
+								</span>
+								<div className="min-w-0 flex-1">
+									<p className="truncate font-display text-2xl leading-tight">{s.displayName}</p>
+									<p className="meta mt-1">Year {s.yearGroup}</p>
 								</div>
 								<Link
 									to="/students/$studentId"
@@ -52,7 +74,7 @@ function Dashboard() {
 
 			<section className="card max-w-md">
 				<h2 className="h2 mb-1">Add a learner</h2>
-				<p className="mb-4 text-sm text-slate-600">
+				<p className="mb-4 text-sm text-ink-soft">
 					Use a first name or nickname only. No full names or school details are needed.
 				</p>
 				<form

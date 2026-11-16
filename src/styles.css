@@ -1,57 +1,385 @@
 @import "tailwindcss";
 
 @theme {
-  --font-sans: ui-rounded, "SF Pro Rounded", system-ui, -apple-system, "Segoe UI", sans-serif;
-  --color-ink: #1f2937;
-  --color-brand: #4f46e5;
-  --color-brand-soft: #eef2ff;
+	--font-display: "Bricolage Grotesque", system-ui, -apple-system, "Segoe UI", sans-serif;
+	--font-sans: "Lexend", system-ui, -apple-system, "Segoe UI", sans-serif;
+	--font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", monospace;
+
+	--color-space-900: #070a1c;
+	--color-space-800: #0d1330;
+	--color-space-700: #1c2550;
+	--color-star: #eef0f7;
+	--color-mist: #b7bcd3;
+	--color-dust: #8e94b0;
+	--color-void: #6a708c;
+	--color-rim: #4a5070;
+
+	--color-accent: #5ee3d8;
+	--color-hint: #ffb547;
+	--color-focus: #ff7a5c;
+
+	--color-paper: #f4f2ee;
+	--color-line: #e4e1da;
+	--color-ink: #0d1330;
+	--color-ink-soft: #3a3f5c;
+	--color-ink-mute: #6a708c;
+	--color-link: #2a3c8f;
+	--color-good: #1e7a55;
+	--color-watch: #e0832a;
+
+	--color-brand: #2a3c8f;
+	--color-brand-soft: #e8ebf6;
+
+	--radius-card: 10px;
+	--radius-answer: 8px;
+
+	--animate-orbi-float: orbi-float 4.5s ease-in-out infinite;
+	--animate-orbi-blink: orbi-blink 6s ease-in-out infinite;
+
+	@keyframes orbi-float {
+		0%,
+		100% {
+			transform: translateY(0);
+		}
+		50% {
+			transform: translateY(-5px);
+		}
+	}
+	@keyframes orbi-blink {
+		0%,
+		94%,
+		100% {
+			transform: scaleY(1);
+		}
+		97% {
+			transform: scaleY(0.1);
+		}
+	}
 }
 
 @layer base {
-  html,
-  body {
-    min-height: 100%;
-  }
-  body {
-    @apply bg-slate-50 text-ink antialiased;
-  }
+	:root {
+		--ui-bg: var(--color-paper);
+		--ui-fg: var(--color-ink);
+		--ui-soft: var(--color-ink-soft);
+		--ui-muted: var(--color-ink-mute);
+		--ui-card: #ffffff;
+		--ui-card-line: var(--color-line);
+		--ui-primary-bg: var(--color-ink);
+		--ui-primary-fg: var(--color-paper);
+		--ui-ghost-line: #c9c6bf;
+		--ui-ghost-hover: #ebe8e1;
+		--ui-input-bg: #ffffff;
+		--ui-link: var(--color-link);
+		--ui-focus-ring: var(--color-ink);
+		--ui-chip-bg: var(--color-brand-soft);
+		--ui-chip-fg: var(--color-link);
+	}
+
+	.surface-space {
+		--ui-bg: var(--color-space-800);
+		--ui-fg: var(--color-star);
+		--ui-soft: var(--color-mist);
+		--ui-muted: var(--color-dust);
+		--ui-card: rgb(255 255 255 / 0.05);
+		--ui-card-line: rgb(255 255 255 / 0.1);
+		--ui-primary-bg: var(--color-star);
+		--ui-primary-fg: var(--color-space-800);
+		--ui-ghost-line: rgb(255 255 255 / 0.2);
+		--ui-ghost-hover: rgb(255 255 255 / 0.06);
+		--ui-input-bg: rgb(7 10 28 / 0.6);
+		--ui-link: var(--color-accent);
+		--ui-focus-ring: var(--color-accent);
+		--ui-chip-bg: rgb(255 255 255 / 0.06);
+		--ui-chip-fg: var(--color-star);
+		color: var(--ui-fg);
+		background: radial-gradient(circle at 30% 40%, #1c2550 0%, #0d1330 48%, #070a1c 100%);
+	}
+
+	html,
+	body {
+		min-height: 100%;
+	}
+	body {
+		background: var(--ui-bg);
+		color: var(--ui-fg);
+		font-family: var(--font-sans);
+		-webkit-font-smoothing: antialiased;
+	}
+	.font-display {
+		font-weight: 700;
+		letter-spacing: -0.02em;
+	}
+	:where(h1, h2, h3, legend, .font-display) :is(i, em) {
+		font-style: normal;
+	}
+	:focus-visible {
+		outline: 2px solid var(--ui-focus-ring);
+		outline-offset: 2px;
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		*,
+		*::before,
+		*::after {
+			animation: none !important;
+			transition: none !important;
+		}
+	}
 }
 
 @layer components {
-  .page {
-    @apply mx-auto w-full max-w-4xl px-4 py-8;
-  }
-  .h1 {
-    @apply text-2xl font-bold tracking-tight sm:text-3xl;
-  }
-  .h2 {
-    @apply text-lg font-semibold;
-  }
-  .card {
-    @apply rounded-2xl border border-slate-200 bg-white p-5 shadow-sm;
-  }
-  .btn {
-    @apply inline-flex items-center justify-center gap-2 rounded-xl bg-brand px-4 py-2 font-semibold text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50;
-  }
-  .btn-secondary {
-    @apply inline-flex items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-2 font-semibold text-ink transition hover:bg-slate-100 disabled:opacity-50;
-  }
-  .btn-danger {
-    @apply inline-flex items-center justify-center rounded-xl border border-red-300 bg-white px-4 py-2 font-semibold text-red-700 hover:bg-red-50;
-  }
-  .input {
-    @apply w-full rounded-xl border border-slate-300 bg-white px-3 py-2 outline-none focus:border-brand focus:ring-2 focus:ring-indigo-200;
-  }
-  .label {
-    @apply mb-1 block text-sm font-medium text-slate-700;
-  }
-  .link {
-    @apply font-medium text-brand underline-offset-2 hover:underline;
-  }
-  .badge {
-    @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold;
-  }
-  .error {
-    @apply rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800;
-  }
+	.page {
+		@apply mx-auto w-full max-w-4xl px-4 py-6;
+	}
+	.h1 {
+		@apply font-display text-4xl leading-none font-bold tracking-tight sm:text-5xl;
+	}
+	.h1 i,
+	.h1 em {
+		color: var(--ui-link);
+	}
+	.h2 {
+		@apply text-lg font-bold;
+	}
+	.meta {
+		@apply font-mono text-xs tracking-wide uppercase;
+		color: var(--ui-muted);
+	}
+	.text-soft {
+		color: var(--ui-soft);
+	}
+	.text-muted {
+		color: var(--ui-muted);
+	}
+	.card {
+		@apply rounded-[10px] border p-4;
+		background: var(--ui-card);
+		border-color: var(--ui-card-line);
+	}
+	.btn {
+		@apply inline-flex min-h-11 items-center justify-center gap-2 rounded-lg px-5 py-2 font-bold transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50;
+		background: var(--ui-primary-bg);
+		color: var(--ui-primary-fg);
+	}
+	.btn-secondary {
+		@apply inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border px-4 py-2 font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50;
+		border-color: var(--ui-ghost-line);
+		color: var(--ui-fg);
+	}
+	.btn-secondary:not(:disabled):hover {
+		background: var(--ui-ghost-hover);
+	}
+	.btn-danger {
+		@apply inline-flex min-h-11 items-center justify-center rounded-lg border border-focus/60 px-4 py-2 font-semibold text-[#b8432a] hover:bg-focus/10;
+	}
+	.answer {
+		@apply inline-flex min-h-15 items-center justify-center rounded-lg border px-4 font-display text-2xl font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50;
+		border-color: var(--ui-ghost-line);
+		background: var(--ui-card);
+		color: var(--ui-fg);
+	}
+	.answer:not(:disabled):hover {
+		border-color: var(--color-accent);
+	}
+	.input {
+		@apply w-full rounded-lg border px-3 py-2 outline-none;
+		background: var(--ui-input-bg);
+		border-color: var(--ui-ghost-line);
+		color: var(--ui-fg);
+	}
+	.input:focus {
+		border-color: var(--ui-focus-ring);
+	}
+	.label {
+		@apply mb-1 block text-sm font-medium;
+		color: var(--ui-soft);
+	}
+	.link {
+		@apply font-semibold underline-offset-2 hover:underline;
+		color: var(--ui-link);
+	}
+	.badge {
+		@apply inline-flex items-center gap-1.5 rounded-[6px] border px-2 py-0.5 font-mono text-[11px] font-medium tracking-wide uppercase;
+		--tone: var(--ui-muted);
+		color: var(--tone-fg, var(--tone));
+		border-color: color-mix(in oklab, var(--tone) 40%, transparent);
+		background: color-mix(in oklab, var(--tone) 12%, transparent);
+	}
+	.badge::before {
+		@apply size-1.5 rounded-full;
+		content: "";
+		background: var(--tone);
+	}
+	.badge[data-status="emerging"] {
+		--tone: var(--color-watch);
+		--tone-fg: #8a4a0a;
+	}
+	.badge[data-status="developing"] {
+		--tone: var(--color-link);
+	}
+	.badge[data-status="secure"] {
+		--tone: var(--color-good);
+	}
+	.badge[data-status="mastered"] {
+		--tone: var(--color-ink);
+	}
+	.badge[data-status="needs_review"] {
+		--tone: var(--color-focus);
+		--tone-fg: #b8432a;
+	}
+	.surface-space .badge {
+		--tone-fg: var(--tone);
+	}
+	.surface-space .badge[data-status="emerging"] {
+		--tone: var(--color-hint);
+	}
+	.surface-space .badge[data-status="developing"] {
+		--tone: #9fb0ff;
+	}
+	.surface-space .badge[data-status="secure"] {
+		--tone: var(--color-accent);
+	}
+	.surface-space .badge[data-status="mastered"] {
+		--tone: var(--color-star);
+	}
+	.surface-space .badge[data-status="needs_review"] {
+		--tone: var(--color-focus);
+	}
+	.stat {
+		@apply rounded-[10px] border p-3;
+		background: var(--ui-card);
+		border-color: var(--ui-card-line);
+	}
+	.stat-value {
+		@apply mt-1 font-display text-4xl leading-none font-bold tracking-tight;
+	}
+	.panel-space {
+		@apply overflow-hidden rounded-xl p-5 sm:p-6;
+	}
+	.flight-plan {
+		@apply grid grid-cols-4;
+	}
+	.flight-step {
+		@apply relative flex flex-col items-center gap-2 text-center;
+	}
+	.flight-step + .flight-step::before {
+		content: "";
+		@apply absolute top-[7px] right-1/2 h-px w-full;
+		background: var(--color-rim);
+	}
+	.flight-step[data-state="done"]::before,
+	.flight-step[data-state="current"]::before {
+		background: var(--color-accent);
+	}
+	.flight-marker {
+		@apply relative z-10 size-4 rounded-full border-2 border-dashed;
+		border-color: var(--color-rim);
+		background: var(--color-space-800);
+	}
+	.flight-step[data-solo] .flight-marker {
+		@apply rounded-[4px];
+	}
+	.flight-step[data-state="done"] .flight-marker {
+		@apply border-solid;
+		border-color: var(--color-accent);
+		background: var(--color-accent);
+	}
+	.flight-step[data-state="current"] .flight-marker {
+		@apply border-solid;
+		border-color: var(--color-accent);
+		box-shadow: 0 0 0 5px color-mix(in oklab, var(--color-accent) 22%, transparent);
+	}
+	.flight-label {
+		@apply font-mono text-[11px] tracking-wider uppercase;
+		color: var(--color-dust);
+	}
+	.flight-step[data-state="current"] .flight-label {
+		color: var(--color-star);
+	}
+	.confidence-step {
+		@apply grid h-[46px] w-[54px] place-items-center rounded-lg border font-display text-2xl font-semibold transition-colors;
+		border-color: var(--ui-ghost-line);
+	}
+	.confidence-step:hover {
+		background: rgb(255 255 255 / 0.06);
+	}
+	.confidence-step[data-before] {
+		@apply border-dashed;
+		border-color: var(--color-dust);
+	}
+	.confidence-step[aria-pressed="true"] {
+		@apply border-solid;
+		border-color: var(--color-accent);
+		background: var(--color-accent);
+		color: var(--color-space-900);
+	}
+	.orbit-path {
+		fill: none;
+		stroke: rgb(255 255 255 / 0.14);
+		stroke-width: 1;
+	}
+	.orbit-core {
+		fill: var(--color-space-700);
+		stroke: rgb(255 255 255 / 0.2);
+	}
+	.orbit-core-label {
+		@apply font-mono text-[15px] tracking-wider uppercase;
+		fill: var(--color-star);
+	}
+	.planet circle {
+		stroke-width: 2;
+	}
+	.planet[data-kind="lasting"] circle {
+		fill: var(--color-star);
+		stroke: var(--color-star);
+	}
+	.planet[data-kind="secure"] circle {
+		fill: var(--color-space-800);
+		stroke: var(--color-star);
+	}
+	.planet[data-kind="active"] circle {
+		fill: var(--color-accent);
+		stroke: var(--color-accent);
+	}
+	.planet[data-kind="review"] circle {
+		fill: var(--color-hint);
+		stroke: var(--color-hint);
+	}
+	.planet[data-kind="unreached"] circle {
+		fill: none;
+		stroke: var(--color-rim);
+		stroke-dasharray: 3 3;
+	}
+	.chip {
+		@apply inline-flex items-center gap-1.5 rounded-[6px] px-2.5 py-1 font-mono text-xs tracking-wide uppercase;
+		background: var(--ui-chip-bg);
+		color: var(--ui-chip-fg);
+	}
+	.bubble {
+		@apply rounded-[2px_10px_10px_10px] border px-3.5 py-3 leading-relaxed;
+		background: rgb(255 255 255 / 0.08);
+		border-color: rgb(255 255 255 / 0.14);
+	}
+	.note-correct {
+		@apply rounded-[10px] border p-4;
+		border-color: color-mix(in oklab, var(--color-accent) 55%, transparent);
+		background: color-mix(in oklab, var(--color-accent) 10%, transparent);
+	}
+	.note-focus {
+		@apply rounded-[10px] border p-4;
+		border-color: color-mix(in oklab, var(--color-focus) 55%, transparent);
+		background: color-mix(in oklab, var(--color-focus) 10%, transparent);
+	}
+	.note-hint {
+		@apply rounded-lg border p-3 text-sm;
+		border-color: color-mix(in oklab, var(--color-hint) 45%, transparent);
+		background: color-mix(in oklab, var(--color-hint) 10%, transparent);
+	}
+	.error {
+		@apply rounded-lg border px-3 py-2 text-sm;
+		border-color: color-mix(in oklab, var(--color-focus) 50%, transparent);
+		background: color-mix(in oklab, var(--color-focus) 10%, var(--ui-bg));
+		color: var(--ui-fg);
+	}
 }
