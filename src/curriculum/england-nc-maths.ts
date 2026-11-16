@@ -81,6 +81,43 @@ export const OBJECTIVES: CurriculumObjective[] = [
 		status: "approved",
 	},
 	{
+		code: "MA-Y3-PV-MORE-LESS",
+		curriculumCode: ENGLAND_NC_CODE,
+		subject: "maths",
+		yearGroup: 3,
+		strand: "Number – number and place value",
+		statement: "count from 0 in multiples of 4, 8, 50 and 100; find 10 or 100 more or less than a given number",
+		assessmentCriteria: [
+			"Finds 10 or 100 more or less than a three-digit number",
+			"Continues a count in multiples of 4, 8, 50 and 100",
+		],
+		explanation: [
+			"10 more changes the tens digit by one. 100 more changes the hundreds digit by one.",
+			"If the tens digit is 9, 10 more makes it 0 and the hundreds go up: 395 + 10 = 405.",
+			"Counting in 4s, 8s, 50s or 100s means adding the same amount each step.",
+		],
+		source,
+		status: "approved",
+	},
+	{
+		code: "MA-Y3-MD-TABLES-348",
+		curriculumCode: ENGLAND_NC_CODE,
+		subject: "maths",
+		yearGroup: 3,
+		strand: "Number – multiplication and division",
+		statement: "recall and use multiplication and division facts for the 3, 4 and 8 multiplication tables",
+		assessmentCriteria: [
+			"Recalls multiplication facts for the 3, 4 and 8 tables",
+			"Uses the inverse to find division facts",
+		],
+		explanation: [
+			"The 8 times table is double the 4 times table: 4 × 6 = 24, so 8 × 6 = 48.",
+			"Division undoes multiplication. If 3 × 7 = 21, then 21 ÷ 3 = 7.",
+		],
+		source,
+		status: "approved",
+	},
+	{
 		code: "MA-Y4-FR-DIV10-100",
 		curriculumCode: ENGLAND_NC_CODE,
 		subject: "maths",
@@ -120,6 +157,44 @@ export const OBJECTIVES: CurriculumObjective[] = [
 		source,
 		status: "approved",
 	},
+	{
+		code: "MA-Y5-PV-ROUND",
+		curriculumCode: ENGLAND_NC_CODE,
+		subject: "maths",
+		yearGroup: 5,
+		strand: "Number – number and place value",
+		statement: "round any number up to 1,000,000 to the nearest 10, 100, 1,000, 10,000 and 100,000",
+		assessmentCriteria: [
+			"Rounds numbers up to 1,000,000 to the nearest 10, 100 and 1,000",
+			"Rounds numbers up to 1,000,000 to the nearest 10,000 and 100,000",
+		],
+		explanation: [
+			"Find the digit in the place you round to, then look at the digit just to its right.",
+			"If that digit is 5 or more, round up. If it is 4 or less, round down: 347,812 → 348,000 to the nearest 1,000.",
+		],
+		source,
+		status: "approved",
+	},
+	{
+		code: "MA-Y5-MD-FACTORS",
+		curriculumCode: ENGLAND_NC_CODE,
+		subject: "maths",
+		yearGroup: 5,
+		strand: "Number – multiplication and division",
+		statement:
+			"identify multiples and factors, including finding all factor pairs of a number, and common factors of 2 numbers",
+		assessmentCriteria: [
+			"Finds the partner in a factor pair",
+			"Identifies factors and multiples of a number",
+			"Finds common factors of 2 numbers",
+		],
+		explanation: [
+			"A factor divides a number exactly. 6 is a factor of 42 because 6 × 7 = 42.",
+			"Factors come in pairs: 1 × 24, 2 × 12, 3 × 8, 4 × 6. A common factor divides both numbers.",
+		],
+		source,
+		status: "approved",
+	},
 ];
 
 export const PREREQUISITES: PrerequisiteEdge[] = [
@@ -128,8 +203,8 @@ export const PREREQUISITES: PrerequisiteEdge[] = [
 ];
 
 export const LESSON_OBJECTIVES_BY_YEAR: Record<3 | 5, string[]> = {
-	3: ["MA-Y3-AS-MENTAL"],
-	5: ["MA-Y5-MD-POWERS10"],
+	3: ["MA-Y3-AS-MENTAL", "MA-Y3-PV-MORE-LESS", "MA-Y3-MD-TABLES-348"],
+	5: ["MA-Y5-MD-POWERS10", "MA-Y5-PV-ROUND", "MA-Y5-MD-FACTORS"],
 };
 
 export function getObjective(code: string): CurriculumObjective | undefined {

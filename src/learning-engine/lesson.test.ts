@@ -54,6 +54,48 @@ describe("generators", () => {
 		const b = generateItem("MA-Y5-MD-POWERS10", { rng: createRng(42), difficulty: 2, id: "a" });
 		expect(a).toEqual(b);
 	});
+
+	const sample = (code: string, type: "numeric" | "multiple_choice" | "missing_number" | "word_problem") =>
+		Array.from({ length: 100 }, (_, seed) =>
+			([1, 2, 3] as const).map((difficulty) => generateItem(code, { rng: createRng(seed), difficulty, type, id: "x" })),
+		).flat();
+
+	it("MA-Y3-PV-MORE-LESS: answers are 10 or 100 away and stay three-digit", () => {
+		for (const item of sample("MA-Y3-PV-MORE-LESS", "numeric")) {
+			const [, step, word, a] = item.prompt.match(/^What is (\d+) (more|less) than (\d+)\?$/) ?? [];
+			expect(Number(item.answer)).toBe(Number(a) + (word === "more" ? 1 : -1) * Number(step));
+			expect(Number(item.answer)).toBeGreaterThanOrEqual(0);
+			expect(Number(item.answer)).toBeLessThanOrEqual(999);
+		}
+	});
+
+	it("MA-Y3-MD-TABLES-348: only uses the 3, 4 and 8 tables", () => {
+		for (const item of sample("MA-Y3-MD-TABLES-348", "missing_number")) {
+			const [, t, p] = item.prompt.match(/^(\d+) × ☐ = (\d+)$/) ?? [];
+			expect([3, 4, 8]).toContain(Number(t));
+			expect(Number(t) * Number(item.answer)).toBe(Number(p));
+		}
+	});
+
+	it("MA-Y5-PV-ROUND: rounds to the requested place", () => {
+		for (const item of sample("MA-Y5-PV-ROUND", "numeric")) {
+			const [, n, to] = item.prompt.match(/^Round ([\d,]+) to the nearest ([\d,]+)\.$/) ?? [];
+			const num = normaliseNumeric(n ?? "") ?? Number.NaN;
+			const place = normaliseNumeric(to ?? "") ?? Number.NaN;
+			const answer = normaliseNumeric(item.answer) ?? Number.NaN;
+			expect(answer % place).toBe(0);
+			expect(Math.abs(answer - num)).toBeLessThanOrEqual(place / 2);
+			expect(answer).toBeLessThanOrEqual(1_000_000);
+		}
+	});
+
+	it("MA-Y5-MD-FACTORS: only one choice divides the number", () => {
+		for (const item of sample("MA-Y5-MD-FACTORS", "multiple_choice")) {
+			const n = Number(item.prompt.match(/factor of (\d+)/)?.[1]);
+			const dividing = (item.choices ?? []).filter((c) => n % Number(c) === 0);
+			expect(dividing).toEqual([item.answer]);
+		}
+	});
 });
 
 describe("grading", () => {
