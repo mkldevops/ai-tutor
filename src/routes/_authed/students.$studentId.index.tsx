@@ -1,5 +1,6 @@
 import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
 import { ErrorBox, useAction } from "#/components/form";
+import { LessonArt, SubjectTag } from "#/components/lesson-visual";
 import { Orbi } from "#/components/orbi";
 import { OrbitMap } from "#/components/orbit-map";
 import { formatDate, StatusBadge } from "#/components/status";
@@ -38,11 +39,19 @@ function MissionsTab() {
 					<p className="meta">
 						{mission ? (mission.kind === "review" ? "Review check due" : "Next mission") : "All missions secure"}
 					</p>
-					<p className="bubble text-lg">
-						{mission
-							? mission.objective.statement
-							: `${student.displayName} has secured every objective here. Orbi will call them back for review checks.`}
-					</p>
+					{mission ? (
+						<div className="bubble flex items-center gap-4">
+							<LessonArt strand={mission.objective.strand} size={72} />
+							<div className="min-w-0 space-y-1.5">
+								<SubjectTag subject={mission.objective.subject} strand={mission.objective.strand} />
+								<p className="font-display text-xl leading-snug font-semibold">{mission.objective.title}</p>
+							</div>
+						</div>
+					) : (
+						<p className="bubble text-lg">
+							{`${student.displayName} has secured every objective here. Orbi will call them back for review checks.`}
+						</p>
+					)}
 					{mission &&
 						(mission.kind === "continue" && mission.objective.openSessionId ? (
 							<Link to="/learn/$sessionId" params={{ sessionId: mission.objective.openSessionId }} className="btn">
@@ -71,17 +80,19 @@ function MissionsTab() {
 					{objectives.map((o) => (
 						<li
 							key={o.code}
-							className="card grid gap-3 sm:grid-cols-[1fr_auto] sm:items-center"
+							className="card grid grid-cols-[auto_1fr] gap-4 sm:grid-cols-[auto_1fr_auto] sm:items-center"
 							data-testid={`objective-${o.code}`}
 						>
-							<div className="min-w-0 space-y-2">
+							<LessonArt strand={o.strand} />
+							<div className="min-w-0 space-y-1.5">
 								<div className="flex flex-wrap items-center gap-2">
+									<SubjectTag subject={o.subject} strand={o.strand} />
 									<StatusBadge status={o.status} />
-									<span className="meta truncate">{o.strand}</span>
 								</div>
-								<p className="font-display text-lg leading-snug">{o.statement}</p>
+								<p className="font-display text-xl leading-snug font-semibold">{o.title}</p>
+								<p className="text-soft text-sm leading-snug">{o.statement}</p>
 							</div>
-							<div className="flex flex-wrap gap-2 sm:flex-col sm:items-stretch">
+							<div className="col-span-2 flex flex-wrap gap-2 sm:col-span-1 sm:flex-col sm:items-stretch">
 								{o.openSessionId ? (
 									<Link to="/learn/$sessionId" params={{ sessionId: o.openSessionId }} className="btn">
 										Continue lesson

@@ -441,4 +441,35 @@
 		background: color-mix(in oklab, var(--color-focus) 10%, var(--ui-bg));
 		color: var(--ui-fg);
 	}
+	.subject-tag {
+		@apply inline-flex items-stretch overflow-hidden rounded-[6px] border text-xs font-bold;
+		--subject: var(--color-brand);
+		border-color: color-mix(in oklab, var(--subject) 35%, transparent);
+	}
+	.subject-tag[data-subject="english"] {
+		--subject: var(--color-watch);
+	}
+	.subject-tag__subject {
+		@apply px-2 py-0.5 tracking-wide uppercase;
+		background: var(--subject);
+		color: #fff;
+	}
+	.subject-tag__strand {
+		@apply px-2 py-0.5;
+		background: color-mix(in oklab, var(--subject) 10%, transparent);
+		color: var(--ui-fg);
+	}
+	.surface-space .subject-tag {
+		--subject: var(--color-accent);
+	}
+	.surface-space .subject-tag__subject {
+		color: var(--color-space-800);
+	}
+	.lesson-art {
+		@apply shrink-0 overflow-hidden rounded-[10px];
+		background: radial-gradient(circle at 50% 50%, #1c2550 0%, #0d1330 60%, #070a1c 100%);
+	}
+	.lesson-art img {
+		@apply size-full object-cover;
+	}
 }

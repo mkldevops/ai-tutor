@@ -6,6 +6,7 @@ export type CurriculumObjective = {
 	subject: Subject;
 	yearGroup: number;
 	strand: string;
+	title: string;
 	statement: string;
 	assessmentCriteria: string[];
 	explanation: string[];
@@ -44,6 +45,7 @@ export const OBJECTIVES: CurriculumObjective[] = [
 		subject: "maths",
 		yearGroup: 2,
 		strand: "Number – addition and subtraction",
+		title: "Add and subtract two-digit numbers",
 		statement:
 			"add and subtract numbers using concrete objects, pictorial representations, and mentally, including: a two-digit number and 1s; a two-digit number and 10s; 2 two-digit numbers; adding 3 one-digit numbers",
 		assessmentCriteria: [
@@ -63,6 +65,7 @@ export const OBJECTIVES: CurriculumObjective[] = [
 		subject: "maths",
 		yearGroup: 3,
 		strand: "Number – addition and subtraction",
+		title: "Mental adding and subtracting to 999",
 		statement:
 			"add and subtract numbers mentally, including: a three-digit number and 1s; a three-digit number and 10s; a three-digit number and 100s",
 		assessmentCriteria: [
@@ -86,6 +89,7 @@ export const OBJECTIVES: CurriculumObjective[] = [
 		subject: "maths",
 		yearGroup: 3,
 		strand: "Number – number and place value",
+		title: "Count in steps and find 10 or 100 more",
 		statement: "count from 0 in multiples of 4, 8, 50 and 100; find 10 or 100 more or less than a given number",
 		assessmentCriteria: [
 			"Finds 10 or 100 more or less than a three-digit number",
@@ -105,6 +109,7 @@ export const OBJECTIVES: CurriculumObjective[] = [
 		subject: "maths",
 		yearGroup: 3,
 		strand: "Number – multiplication and division",
+		title: "The 3, 4 and 8 times tables",
 		statement: "recall and use multiplication and division facts for the 3, 4 and 8 multiplication tables",
 		assessmentCriteria: [
 			"Recalls multiplication facts for the 3, 4 and 8 tables",
@@ -123,6 +128,7 @@ export const OBJECTIVES: CurriculumObjective[] = [
 		subject: "maths",
 		yearGroup: 4,
 		strand: "Number – fractions (including decimals)",
+		title: "Divide by 10 and 100 into decimals",
 		statement:
 			"find the effect of dividing a one- or two-digit number by 10 and 100, identifying the value of the digits in the answer as ones, tenths and hundredths",
 		assessmentCriteria: [
@@ -142,6 +148,7 @@ export const OBJECTIVES: CurriculumObjective[] = [
 		subject: "maths",
 		yearGroup: 5,
 		strand: "Number – multiplication and division",
+		title: "Multiply and divide by 10, 100 and 1,000",
 		statement: "multiply and divide whole numbers and those involving decimals by 10, 100 and 1,000",
 		assessmentCriteria: [
 			"Multiplies and divides whole numbers by 10, 100 and 1,000",
@@ -163,6 +170,7 @@ export const OBJECTIVES: CurriculumObjective[] = [
 		subject: "maths",
 		yearGroup: 5,
 		strand: "Number – number and place value",
+		title: "Round big numbers",
 		statement: "round any number up to 1,000,000 to the nearest 10, 100, 1,000, 10,000 and 100,000",
 		assessmentCriteria: [
 			"Rounds numbers up to 1,000,000 to the nearest 10, 100 and 1,000",
@@ -181,6 +189,7 @@ export const OBJECTIVES: CurriculumObjective[] = [
 		subject: "maths",
 		yearGroup: 5,
 		strand: "Number – multiplication and division",
+		title: "Multiples and factors",
 		statement:
 			"identify multiples and factors, including finding all factor pairs of a number, and common factors of 2 numbers",
 		assessmentCriteria: [
