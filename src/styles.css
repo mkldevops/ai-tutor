@@ -15,6 +15,15 @@
   body {
     @apply bg-slate-50 text-ink antialiased;
   }
+  @media print {
+    @page {
+      size: A4;
+      margin: 15mm;
+    }
+    body {
+      @apply bg-white;
+    }
+  }
 }
 
 @layer components {
