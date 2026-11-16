@@ -126,6 +126,17 @@
 			transition: none !important;
 		}
 	}
+
+	@media print {
+		@page {
+			size: A4;
+			margin: 15mm;
+		}
+		body {
+			background: #fff;
+			color: #000;
+		}
+	}
 }
 
 @layer components {

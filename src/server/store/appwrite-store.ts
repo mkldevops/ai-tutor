@@ -106,5 +106,10 @@ export function createAppwriteStore(adminClient: Client, databaseId: string): Da
 		mastery_events: make("mastery_events"),
 		revision_schedules: make("revision_schedules"),
 		audit_logs: make("audit_logs"),
+		knowledge_sources: make("knowledge_sources"),
+		knowledge_versions: make("knowledge_versions"),
+		learning_resources: make("learning_resources"),
+		ingestion_jobs: make("ingestion_jobs"),
+		worksheet_checks: make("worksheet_checks"),
 	};
 }

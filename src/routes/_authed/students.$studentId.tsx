@@ -3,7 +3,9 @@ import { useState } from "react";
 import { ErrorBox, useAction } from "#/components/form";
 import { Orbi } from "#/components/orbi";
 import { OrbitMap } from "#/components/orbit-map";
+import { PrintableWorksheets } from "#/components/printable-worksheets";
 import { formatDate, StatusBadge } from "#/components/status";
+import { WorksheetChecks } from "#/components/worksheet-checks";
 import type { CompetencyStatus } from "#/domain/types";
 import {
 	deleteStudentFn,
@@ -225,6 +227,13 @@ function StudentPage() {
 					</details>
 				</section>
 			))}
+
+			<PrintableWorksheets studentId={student.id} objectives={progress.printables} />
+
+			<WorksheetChecks
+				studentId={student.id}
+				objectives={progress.objectives.map((o) => ({ code: o.code, statement: o.statement }))}
+			/>
 
 			{progress.events.length > 0 && (
 				<section className="card">

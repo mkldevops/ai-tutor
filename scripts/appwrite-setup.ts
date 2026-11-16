@@ -11,6 +11,7 @@ type Column =
 
 type TableSpec = { id: string; columns: Column[]; indexes: { key: string; columns: string[]; unique?: boolean }[] };
 
+const KNOWLEDGE_STATUSES = ["staged", "approved", "rejected", "superseded"];
 const STATUSES = ["not_started", "emerging", "developing", "secure", "mastered", "needs_review"];
 const id = (key: string): Column => ({ kind: "string", key, size: 36, required: true });
 
@@ -133,6 +134,104 @@ export const SCHEMA: TableSpec[] = [
 			{ kind: "string", key: "detail", size: 4000, required: true },
 		],
 		indexes: [{ key: "by_family", columns: ["familyId"] }],
+	},
+	{
+		id: "knowledge_sources",
+		columns: [
+			{ kind: "string", key: "sourceKey", size: 60, required: true },
+			{ kind: "string", key: "publisher", size: 120, required: true },
+			{ kind: "string", key: "title", size: 300, required: true },
+			{ kind: "string", key: "pageUrl", size: 500, required: true },
+			{ kind: "string", key: "licence", size: 120, required: true },
+			{ kind: "enum", key: "redistribution", elements: ["allowed", "link_only"], required: true },
+			{ kind: "enum", key: "status", elements: ["active", "disabled"], required: true },
+			{ kind: "integer", key: "checkIntervalDays", required: true, min: 1, max: 365 },
+			{ kind: "datetime", key: "lastCheckedAt" },
+			{ kind: "datetime", key: "lastChangedAt" },
+		],
+		indexes: [{ key: "by_key", columns: ["sourceKey"], unique: true }],
+	},
+	{
+		id: "knowledge_versions",
+		columns: [
+			id("sourceId"),
+			{ kind: "integer", key: "version", required: true, min: 1 },
+			{ kind: "string", key: "checksum", size: 64, required: true },
+			{ kind: "string", key: "title", size: 300, required: true },
+			{ kind: "datetime", key: "upstreamUpdatedAt" },
+			{ kind: "datetime", key: "fetchedAt", required: true },
+			{ kind: "enum", key: "status", elements: KNOWLEDGE_STATUSES, required: true },
+			{ kind: "integer", key: "chunkCount", required: true, min: 0 },
+			{ kind: "integer", key: "added", required: true, min: 0 },
+			{ kind: "integer", key: "removed", required: true, min: 0 },
+			{ kind: "integer", key: "flaggedCount", required: true, min: 0 },
+			{ kind: "string", key: "reviewedByUserId", size: 36 },
+			{ kind: "datetime", key: "reviewedAt" },
+			{ kind: "string", key: "reviewNote", size: 500 },
+		],
+		indexes: [
+			{ key: "by_source", columns: ["sourceId"] },
+			{ key: "by_source_version", columns: ["sourceId", "version"], unique: true },
+		],
+	},
+	{
+		id: "learning_resources",
+		columns: [
+			id("sourceId"),
+			id("versionId"),
+			{ kind: "integer", key: "ordinal", required: true, min: 0 },
+			{ kind: "string", key: "subject", size: 20, required: true },
+			{ kind: "string", key: "yearGroups", size: 100, required: true },
+			{ kind: "enum", key: "kind", elements: ["statutory", "guidance", "context"], required: true },
+			{ kind: "string", key: "heading", size: 400, required: true },
+			{ kind: "longtext", key: "text", required: true },
+			{ kind: "string", key: "checksum", size: 64, required: true },
+			{ kind: "string", key: "objectiveCodes", size: 1000, required: true },
+			{ kind: "string", key: "flags", size: 1000, required: true },
+			{ kind: "enum", key: "status", elements: KNOWLEDGE_STATUSES, required: true },
+		],
+		indexes: [
+			{ key: "by_version", columns: ["versionId"] },
+			{ key: "by_source_status", columns: ["sourceId", "status"] },
+		],
+	},
+	{
+		id: "ingestion_jobs",
+		columns: [
+			id("sourceId"),
+			{ kind: "enum", key: "trigger", elements: ["manual", "scheduled"], required: true },
+			{ kind: "enum", key: "status", elements: ["running", "staged", "unchanged", "failed"], required: true },
+			{ kind: "string", key: "actorUserId", size: 36 },
+			{ kind: "string", key: "versionId", size: 36 },
+			{ kind: "datetime", key: "finishedAt" },
+			{ kind: "string", key: "error", size: 1000 },
+			{ kind: "string", key: "stats", size: 2000, required: true },
+		],
+		indexes: [{ key: "by_source", columns: ["sourceId"] }],
+	},
+	{
+		id: "worksheet_checks",
+		columns: [
+			id("familyId"),
+			id("studentId"),
+			{ kind: "string", key: "objectiveCode", size: 40, required: true },
+			{ kind: "string", key: "imageSha256", size: 64, required: true },
+			{ kind: "string", key: "mimeType", size: 20, required: true },
+			{ kind: "integer", key: "bytes", required: true, min: 0, max: 10_000_000 },
+			{ kind: "string", key: "model", size: 120, required: true },
+			{ kind: "enum", key: "imageQuality", elements: ["good", "poor", "unreadable"], required: true },
+			{ kind: "longtext", key: "items", required: true },
+			{ kind: "string", key: "handwriting", size: 1000, required: true },
+			{ kind: "string", key: "flags", size: 1000, required: true },
+			{ kind: "enum", key: "status", elements: ["pending_review", "reviewed"], required: true },
+			{ kind: "string", key: "reviewedByUserId", size: 36 },
+			{ kind: "datetime", key: "reviewedAt" },
+			{ kind: "string", key: "parentNote", size: 1000 },
+		],
+		indexes: [
+			{ key: "by_student", columns: ["studentId"] },
+			{ key: "by_family", columns: ["familyId"] },
+		],
 	},
 	{
 		id: "curricula",

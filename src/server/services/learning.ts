@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { getObjective, getPrerequisiteCodes, LESSON_OBJECTIVES_BY_YEAR } from "#/curriculum/england-nc-maths";
+import { hasGenerator } from "#/curriculum/generators";
 import type { CompetencyStatus, Confidence, ConfidenceMoment, SessionKind } from "#/domain/types";
 import {
 	continueToPractice,
@@ -34,6 +35,11 @@ type Deps = { store: DataStore; now?: () => Date; policy?: MasteryPolicy };
 
 export function allowedObjectives(yearGroup: 3 | 5): string[] {
 	return LESSON_OBJECTIVES_BY_YEAR[yearGroup];
+}
+
+export function printableObjectives(yearGroup: 3 | 5): string[] {
+	const codes = allowedObjectives(yearGroup).flatMap((code) => [code, ...getPrerequisiteCodes(code)]);
+	return [...new Set(codes)].filter(hasGenerator);
 }
 
 async function requireSession(store: DataStore, actor: Actor, sessionId: string) {
@@ -378,5 +384,9 @@ export async function getStudentProgress(deps: Deps, actor: Actor, studentId: st
 				createdAt: s.createdAt,
 			})),
 		events: events.slice(-20).reverse(),
+		printables: printableObjectives(student.yearGroup).flatMap((code) => {
+			const o = getObjective(code);
+			return o ? [{ code: o.code, statement: o.statement, yearGroup: o.yearGroup }] : [];
+		}),
 	};
 }

@@ -21,7 +21,9 @@
     "format": "biome format --write",
     "lint": "biome lint",
     "check": "biome check",
-    "appwrite:setup": "node --env-file-if-exists=.env scripts/appwrite-setup.ts"
+    "appwrite:setup": "node --env-file-if-exists=.env scripts/appwrite-setup.ts",
+    "qdrant:up": "docker compose --env-file .env -f infra/qdrant/compose.yaml up -d",
+    "qdrant:down": "docker compose --env-file .env -f infra/qdrant/compose.yaml down"
   },
   "dependencies": {
     "@mastra/core": "^1.83.0",

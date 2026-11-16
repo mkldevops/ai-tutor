@@ -14,7 +14,9 @@ import { Route as AuthedRouteImport } from './routes/_authed'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as SignupRouteImport } from './routes/signup'
 import { Route as AuthedDashboardRouteImport } from './routes/_authed/dashboard'
+import { Route as AuthedKnowledgeRouteImport } from './routes/_authed/knowledge'
 import { Route as AuthedLearnSessionIdRouteImport } from './routes/_authed/learn.$sessionId'
+import { Route as AuthedPrintStudentIdRouteImport } from './routes/_authed/print.$studentId'
 import { Route as AuthedStudentsStudentIdRouteImport } from './routes/_authed/students.$studentId'
 
 const IndexRoute = IndexRouteImport.update({
@@ -41,9 +43,19 @@ const AuthedDashboardRoute = AuthedDashboardRouteImport.update({
   path: '/dashboard',
   getParentRoute: () => AuthedRoute,
 } as any)
+const AuthedKnowledgeRoute = AuthedKnowledgeRouteImport.update({
+  id: '/knowledge',
+  path: '/knowledge',
+  getParentRoute: () => AuthedRoute,
+} as any)
 const AuthedLearnSessionIdRoute = AuthedLearnSessionIdRouteImport.update({
   id: '/learn/$sessionId',
   path: '/learn/$sessionId',
+  getParentRoute: () => AuthedRoute,
+} as any)
+const AuthedPrintStudentIdRoute = AuthedPrintStudentIdRouteImport.update({
+  id: '/print/$studentId',
+  path: '/print/$studentId',
   getParentRoute: () => AuthedRoute,
 } as any)
 const AuthedStudentsStudentIdRoute = AuthedStudentsStudentIdRouteImport.update({
@@ -57,7 +69,9 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
   '/dashboard': typeof AuthedDashboardRoute
+  '/knowledge': typeof AuthedKnowledgeRoute
   '/learn/$sessionId': typeof AuthedLearnSessionIdRoute
+  '/print/$studentId': typeof AuthedPrintStudentIdRoute
   '/students/$studentId': typeof AuthedStudentsStudentIdRoute
 }
 export interface FileRoutesByTo {
@@ -65,7 +79,9 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
   '/dashboard': typeof AuthedDashboardRoute
+  '/knowledge': typeof AuthedKnowledgeRoute
   '/learn/$sessionId': typeof AuthedLearnSessionIdRoute
+  '/print/$studentId': typeof AuthedPrintStudentIdRoute
   '/students/$studentId': typeof AuthedStudentsStudentIdRoute
 }
 export interface FileRoutesById {
@@ -75,7 +91,9 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
   '/_authed/dashboard': typeof AuthedDashboardRoute
+  '/_authed/knowledge': typeof AuthedKnowledgeRoute
   '/_authed/learn/$sessionId': typeof AuthedLearnSessionIdRoute
+  '/_authed/print/$studentId': typeof AuthedPrintStudentIdRoute
   '/_authed/students/$studentId': typeof AuthedStudentsStudentIdRoute
 }
 export interface FileRouteTypes {
@@ -85,7 +103,9 @@ export interface FileRouteTypes {
     | '/login'
     | '/signup'
     | '/dashboard'
+    | '/knowledge'
     | '/learn/$sessionId'
+    | '/print/$studentId'
     | '/students/$studentId'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -93,7 +113,9 @@ export interface FileRouteTypes {
     | '/login'
     | '/signup'
     | '/dashboard'
+    | '/knowledge'
     | '/learn/$sessionId'
+    | '/print/$studentId'
     | '/students/$studentId'
   id:
     | '__root__'
@@ -102,7 +124,9 @@ export interface FileRouteTypes {
     | '/login'
     | '/signup'
     | '/_authed/dashboard'
+    | '/_authed/knowledge'
     | '/_authed/learn/$sessionId'
+    | '/_authed/print/$studentId'
     | '/_authed/students/$studentId'
   fileRoutesById: FileRoutesById
 }
@@ -150,11 +174,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthedDashboardRouteImport
       parentRoute: typeof AuthedRoute
     }
+    '/_authed/knowledge': {
+      id: '/_authed/knowledge'
+      path: '/knowledge'
+      fullPath: '/knowledge'
+      preLoaderRoute: typeof AuthedKnowledgeRouteImport
+      parentRoute: typeof AuthedRoute
+    }
     '/_authed/learn/$sessionId': {
       id: '/_authed/learn/$sessionId'
       path: '/learn/$sessionId'
       fullPath: '/learn/$sessionId'
       preLoaderRoute: typeof AuthedLearnSessionIdRouteImport
+      parentRoute: typeof AuthedRoute
+    }
+    '/_authed/print/$studentId': {
+      id: '/_authed/print/$studentId'
+      path: '/print/$studentId'
+      fullPath: '/print/$studentId'
+      preLoaderRoute: typeof AuthedPrintStudentIdRouteImport
       parentRoute: typeof AuthedRoute
     }
     '/_authed/students/$studentId': {
@@ -169,13 +207,17 @@ declare module '@tanstack/react-router' {
 
 interface AuthedRouteChildren {
   AuthedDashboardRoute: typeof AuthedDashboardRoute
+  AuthedKnowledgeRoute: typeof AuthedKnowledgeRoute
   AuthedLearnSessionIdRoute: typeof AuthedLearnSessionIdRoute
+  AuthedPrintStudentIdRoute: typeof AuthedPrintStudentIdRoute
   AuthedStudentsStudentIdRoute: typeof AuthedStudentsStudentIdRoute
 }
 
 const AuthedRouteChildren: AuthedRouteChildren = {
   AuthedDashboardRoute: AuthedDashboardRoute,
+  AuthedKnowledgeRoute: AuthedKnowledgeRoute,
   AuthedLearnSessionIdRoute: AuthedLearnSessionIdRoute,
+  AuthedPrintStudentIdRoute: AuthedPrintStudentIdRoute,
   AuthedStudentsStudentIdRoute: AuthedStudentsStudentIdRoute,
 }
 
