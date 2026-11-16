@@ -11,6 +11,7 @@ test("parent prints a worksheet and a separate answer key", async ({ page }) => 
 	await page.getByLabel("Year group").selectOption("5");
 	await page.getByRole("button", { name: "Add learner" }).click();
 	await page.getByRole("link", { name: "Open Robin" }).click();
+	await page.getByRole("link", { name: "Worksheets" }).click();
 
 	const card = page.getByTestId("printable-worksheets");
 	await card.getByLabel("Number of questions").selectOption("6");
