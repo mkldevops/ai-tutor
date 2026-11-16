@@ -1,6 +1,7 @@
 import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
 import { useState } from "react";
 import { ErrorBox, useAction } from "#/components/form";
+import { PrintableWorksheets } from "#/components/printable-worksheets";
 import { formatDate, StatusBadge } from "#/components/status";
 import { WorksheetChecks } from "#/components/worksheet-checks";
 import type { CompetencyStatus } from "#/domain/types";
@@ -140,6 +141,8 @@ function StudentPage() {
 					</details>
 				</section>
 			))}
+
+			<PrintableWorksheets studentId={student.id} objectives={progress.printables} />
 
 			<WorksheetChecks
 				studentId={student.id}

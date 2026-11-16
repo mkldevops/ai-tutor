@@ -432,3 +432,24 @@ export const reviewKnowledgeVersionFn = createServerFn({ method: "POST" })
 			return { status: v.status };
 		}),
 	);
+
+export const printableSheetSchema = z.object({
+	studentId: idSchema,
+	objectiveCode: z.string().regex(/^[A-Z0-9-]{3,40}$/),
+	seed: z.string().regex(/^[A-Za-z0-9-]{4,64}$/),
+	count: z.number().int().min(4).max(20),
+	difficulty: z.union([z.literal(1), z.literal(2), z.literal(3)]).nullable(),
+	variant: z.enum(["worksheet", "answer_key"]),
+});
+
+export const getPrintableSheetFn = createServerFn({ method: "GET" })
+	.validator(printableSheetSchema)
+	.handler(({ data }) =>
+		guard(async () => {
+			const { requireActor } = await import("./session");
+			const { getServerContext } = await import("./context");
+			const { getPrintableSheet } = await import("./services/printables");
+			const { actor } = await requireActor();
+			return getPrintableSheet(getServerContext().store, actor, data);
+		}),
+	);

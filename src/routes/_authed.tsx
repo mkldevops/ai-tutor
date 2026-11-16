@@ -15,7 +15,7 @@ function AuthedLayout() {
 	const router = useRouter();
 	return (
 		<div className="min-h-screen">
-			<header className="border-b border-slate-200 bg-white">
+			<header className="border-b border-slate-200 bg-white print:hidden">
 				<div className="mx-auto flex max-w-4xl items-center justify-between px-4 py-3">
 					<Link to="/dashboard" className="font-bold text-brand">
 						AI Tutor
