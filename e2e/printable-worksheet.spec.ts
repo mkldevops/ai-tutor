@@ -36,6 +36,6 @@ test("parent prints a worksheet and a separate answer key", async ({ page }) => 
 
 	await page.emulateMedia({ media: "print" });
 	await expect(page.getByRole("button", { name: "Print or save as PDF" })).toBeHidden();
-	await expect(page.getByRole("button", { name: "Sign out" })).toBeHidden();
+	await expect(page.getByRole("button", { name: "Account menu" })).toBeHidden();
 	await expect(page.getByRole("heading", { name: "Maths practice" })).toBeVisible();
 });

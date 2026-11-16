@@ -1,5 +1,6 @@
-import { createFileRoute, Link, Outlet, redirect, useRouter } from "@tanstack/react-router";
-import { getMe, signOut } from "#/server/functions";
+import { createFileRoute, Link, Outlet, redirect } from "@tanstack/react-router";
+import { UserMenu } from "#/components/user-menu";
+import { getMe } from "#/server/functions";
 
 export const Route = createFileRoute("/_authed")({
 	beforeLoad: async () => {
@@ -12,7 +13,6 @@ export const Route = createFileRoute("/_authed")({
 
 function AuthedLayout() {
 	const { me } = Route.useRouteContext();
-	const router = useRouter();
 	return (
 		<div className="min-h-screen">
 			<header className="surface-space border-b border-white/10 bg-space-800 bg-none print:hidden">
@@ -20,25 +20,7 @@ function AuthedLayout() {
 					<Link to="/dashboard" className="text-lg font-bold text-star" aria-label="AI Tutor home">
 						ai tutor<span className="text-accent">.</span>
 					</Link>
-					<div className="flex items-center gap-3 text-sm">
-						{me.isKnowledgeAdmin ? (
-							<Link to="/knowledge" className="link">
-								Knowledge
-							</Link>
-						) : null}
-						<span className="hidden text-dust sm:inline">{me.user.name}</span>
-						<button
-							type="button"
-							className="btn-secondary py-1"
-							onClick={async () => {
-								await signOut();
-								await router.invalidate();
-								await router.navigate({ to: "/login" });
-							}}
-						>
-							Sign out
-						</button>
-					</div>
+					<UserMenu name={me.user.name} email={me.user.email} isKnowledgeAdmin={me.isKnowledgeAdmin} />
 				</div>
 			</header>
 			<Outlet />

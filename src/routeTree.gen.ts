@@ -15,6 +15,7 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as SignupRouteImport } from './routes/signup'
 import { Route as AuthedDashboardRouteImport } from './routes/_authed/dashboard'
 import { Route as AuthedKnowledgeRouteImport } from './routes/_authed/knowledge'
+import { Route as AuthedSettingsRouteImport } from './routes/_authed/settings'
 import { Route as AuthedLearnSessionIdRouteImport } from './routes/_authed/learn.$sessionId'
 import { Route as AuthedPrintStudentIdRouteImport } from './routes/_authed/print.$studentId'
 import { Route as AuthedStudentsStudentIdRouteImport } from './routes/_authed/students.$studentId'
@@ -50,6 +51,11 @@ const AuthedDashboardRoute = AuthedDashboardRouteImport.update({
 const AuthedKnowledgeRoute = AuthedKnowledgeRouteImport.update({
   id: '/knowledge',
   path: '/knowledge',
+  getParentRoute: () => AuthedRoute,
+} as any)
+const AuthedSettingsRoute = AuthedSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
   getParentRoute: () => AuthedRoute,
 } as any)
 const AuthedLearnSessionIdRoute = AuthedLearnSessionIdRouteImport.update({
@@ -98,6 +104,7 @@ export interface FileRoutesByFullPath {
   '/signup': typeof SignupRoute
   '/dashboard': typeof AuthedDashboardRoute
   '/knowledge': typeof AuthedKnowledgeRoute
+  '/settings': typeof AuthedSettingsRoute
   '/learn/$sessionId': typeof AuthedLearnSessionIdRoute
   '/print/$studentId': typeof AuthedPrintStudentIdRoute
   '/students/$studentId': typeof AuthedStudentsStudentIdRouteWithChildren
@@ -112,6 +119,7 @@ export interface FileRoutesByTo {
   '/signup': typeof SignupRoute
   '/dashboard': typeof AuthedDashboardRoute
   '/knowledge': typeof AuthedKnowledgeRoute
+  '/settings': typeof AuthedSettingsRoute
   '/learn/$sessionId': typeof AuthedLearnSessionIdRoute
   '/print/$studentId': typeof AuthedPrintStudentIdRoute
   '/students/$studentId/progress': typeof AuthedStudentsStudentIdProgressRoute
@@ -127,6 +135,7 @@ export interface FileRoutesById {
   '/signup': typeof SignupRoute
   '/_authed/dashboard': typeof AuthedDashboardRoute
   '/_authed/knowledge': typeof AuthedKnowledgeRoute
+  '/_authed/settings': typeof AuthedSettingsRoute
   '/_authed/learn/$sessionId': typeof AuthedLearnSessionIdRoute
   '/_authed/print/$studentId': typeof AuthedPrintStudentIdRoute
   '/_authed/students/$studentId': typeof AuthedStudentsStudentIdRouteWithChildren
@@ -143,6 +152,7 @@ export interface FileRouteTypes {
     | '/signup'
     | '/dashboard'
     | '/knowledge'
+    | '/settings'
     | '/learn/$sessionId'
     | '/print/$studentId'
     | '/students/$studentId'
@@ -157,6 +167,7 @@ export interface FileRouteTypes {
     | '/signup'
     | '/dashboard'
     | '/knowledge'
+    | '/settings'
     | '/learn/$sessionId'
     | '/print/$studentId'
     | '/students/$studentId/progress'
@@ -171,6 +182,7 @@ export interface FileRouteTypes {
     | '/signup'
     | '/_authed/dashboard'
     | '/_authed/knowledge'
+    | '/_authed/settings'
     | '/_authed/learn/$sessionId'
     | '/_authed/print/$studentId'
     | '/_authed/students/$studentId'
@@ -229,6 +241,13 @@ declare module '@tanstack/react-router' {
       path: '/knowledge'
       fullPath: '/knowledge'
       preLoaderRoute: typeof AuthedKnowledgeRouteImport
+      parentRoute: typeof AuthedRoute
+    }
+    '/_authed/settings': {
+      id: '/_authed/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof AuthedSettingsRouteImport
       parentRoute: typeof AuthedRoute
     }
     '/_authed/learn/$sessionId': {
@@ -307,6 +326,7 @@ const AuthedStudentsStudentIdRouteWithChildren =
 interface AuthedRouteChildren {
   AuthedDashboardRoute: typeof AuthedDashboardRoute
   AuthedKnowledgeRoute: typeof AuthedKnowledgeRoute
+  AuthedSettingsRoute: typeof AuthedSettingsRoute
   AuthedLearnSessionIdRoute: typeof AuthedLearnSessionIdRoute
   AuthedPrintStudentIdRoute: typeof AuthedPrintStudentIdRoute
   AuthedStudentsStudentIdRoute: typeof AuthedStudentsStudentIdRouteWithChildren
@@ -315,6 +335,7 @@ interface AuthedRouteChildren {
 const AuthedRouteChildren: AuthedRouteChildren = {
   AuthedDashboardRoute: AuthedDashboardRoute,
   AuthedKnowledgeRoute: AuthedKnowledgeRoute,
+  AuthedSettingsRoute: AuthedSettingsRoute,
   AuthedLearnSessionIdRoute: AuthedLearnSessionIdRoute,
   AuthedPrintStudentIdRoute: AuthedPrintStudentIdRoute,
   AuthedStudentsStudentIdRoute: AuthedStudentsStudentIdRouteWithChildren,
