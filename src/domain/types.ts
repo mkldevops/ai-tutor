@@ -39,6 +39,7 @@ export type Confidence = { before?: number; after?: number };
 export const studentPreferencesSchema = z.object({
 	readingSupport: z.boolean().default(false),
 	theme: z.enum(["calm", "bright"]).default("calm"),
+	voice: z.boolean().optional(),
 });
 export type StudentPreferences = z.infer<typeof studentPreferencesSchema>;
 

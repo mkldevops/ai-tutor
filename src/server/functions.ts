@@ -142,6 +142,19 @@ export const updateStudentFn = createServerFn({ method: "POST" })
 		}),
 	);
 
+export const setStudentVoiceFn = createServerFn({ method: "POST" })
+	.validator(z.object({ studentId: idSchema, enabled: z.boolean() }))
+	.handler(({ data }) =>
+		guard(async () => {
+			const { requireActor } = await import("./session");
+			const { getServerContext } = await import("./context");
+			const { setStudentVoice } = await import("./services/family");
+			const { actor } = await requireActor();
+			const prefs = await setStudentVoice(getServerContext().store, actor, data.studentId, data.enabled);
+			return { voice: prefs.voice === true };
+		}),
+	);
+
 export const deleteStudentFn = createServerFn({ method: "POST" })
 	.validator(z.object({ studentId: idSchema, confirm: z.literal(true) }))
 	.handler(({ data }) =>
