@@ -36,6 +36,21 @@ Create a family account, add a learner, open them and start a lesson.
 
 First Playwright run: `pnpm exec playwright install chromium`.
 
+## Git hooks
+
+[Lefthook](https://lefthook.dev) installs the hooks on `pnpm install` ([lefthook.yml](./lefthook.yml)):
+
+| Hook | Checks |
+| --- | --- |
+| `pre-commit` | Biome check with safe fixes on staged files, re-staged automatically |
+| `commit-msg` | [Conventional Commits](https://www.conventionalcommits.org) via commitlint (`type(scope): subject`) |
+| `pre-push` | `biome ci`, `pnpm typecheck` and `pnpm test` in parallel |
+
+GitHub Actions ([ci.yml](./.github/workflows/ci.yml)) reruns the same checks plus commitlint on PR commits, `pnpm build`
+and the Playwright e2e suite.
+
+Personal overrides go in an untracked `lefthook-local.yml`.
+
 ## Environment
 
 All variables are server-only; nothing is exposed to the browser. See [.env.example](./.env.example).

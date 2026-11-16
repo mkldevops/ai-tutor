@@ -6,7 +6,7 @@ const CLAIM = new RegExp(
 	String.raw`(?<![\d,/]|\d\.|(?:${OP})\s*)((?:${NUM})(?:\s*(?:${OP})\s*(?:${NUM}))+)\s*=\s*(${NUM})(?![\d/]|\s*r\b|\s*remainder\b)`,
 	"g",
 );
-const TOKEN = new RegExp(String.raw`(${NUM})|(${OP})`, "g");
+const TOKEN = new RegExp(`(${NUM})|(${OP})`, "g");
 
 const toNumber = (s: string) => Number(s.replace(/,/g, ""));
 
