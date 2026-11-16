@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
 import { ErrorBox, Field, useAction } from "#/components/form";
-import { Orbi } from "#/components/orbi";
+import { Nova } from "#/components/nova";
 import { formatDate } from "#/components/status";
 import { createStudentFn, getFamilyOverviewFn } from "#/server/functions";
 import type { LearnerOverview } from "#/server/services/overview";
@@ -40,10 +40,10 @@ function Dashboard() {
 			<section aria-label="Learners">
 				{students.length === 0 ? (
 					<div className="panel-space surface-space flex flex-col items-center gap-4 text-center sm:flex-row sm:text-left">
-						<Orbi state="ready" size={120} className="shrink-0" />
+						<Nova state="empty" size={120} className="shrink-0" />
 						<div className="space-y-1">
 							<p className="font-display text-2xl">No learners yet.</p>
-							<p className="text-soft">Add one below and Orbi will plan their first mission.</p>
+							<p className="text-soft">Add one below and Nova will plan their first mission.</p>
 						</div>
 					</div>
 				) : (

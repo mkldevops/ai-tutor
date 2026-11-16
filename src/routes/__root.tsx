@@ -1,4 +1,5 @@
 import { createRootRoute, HeadContent, Link, Scripts } from "@tanstack/react-router";
+import { Nova } from "#/components/nova";
 import appCss from "../styles.css?url";
 
 export const Route = createRootRoute({
@@ -16,11 +17,13 @@ export const Route = createRootRoute({
 				href: "https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Lexend:wght@400..700&family=JetBrains+Mono:wght@500&display=swap",
 			},
 			{ rel: "stylesheet", href: appCss },
+			{ rel: "icon", type: "image/webp", href: "/mascot/nova-avatar.webp" },
 		],
 	}),
 	shellComponent: RootDocument,
 	errorComponent: ({ error }) => (
 		<main className="page space-y-4">
+			<Nova state="oops" size={140} />
 			<h1 className="h1">Something went wrong</h1>
 			<p role="alert" className="error">
 				{error instanceof Error ? error.message : "Unexpected error"}
@@ -31,7 +34,8 @@ export const Route = createRootRoute({
 		</main>
 	),
 	notFoundComponent: () => (
-		<main className="page">
+		<main className="page space-y-4">
+			<Nova state="oops" size={140} />
 			<h1 className="h1">Page not found</h1>
 			<Link to="/" className="link">
 				Go home

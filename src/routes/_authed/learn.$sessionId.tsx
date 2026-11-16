@@ -4,8 +4,8 @@ import { ConfidenceScale } from "#/components/confidence-scale";
 import { FlightPlan } from "#/components/flight-plan";
 import { ErrorBox, useAction } from "#/components/form";
 import { flightStep } from "#/components/learning-map";
-import { Orbi } from "#/components/orbi";
-import { orbiStateForLesson } from "#/components/orbi-state";
+import { Nova } from "#/components/nova";
+import { novaStateForLesson } from "#/components/nova-state";
 import { formatDate, formatWeekday, StatusBadge } from "#/components/status";
 import { askTutorFn, getSessionFn, sessionActionFn } from "#/server/functions";
 import { firstSpokenNumber, questionSpeech } from "#/voice/spoken";
@@ -95,11 +95,13 @@ function LessonPage() {
 		void act.run({ action: "answer", response: value.trim() });
 	};
 
-	const orbiState = orbiStateForLesson({
+	const novaState = novaStateForLesson({
 		phase: view.phase,
 		thinking: tutor.pending,
 		feedbackCorrect: session.feedback ? session.feedback.correct : null,
 		hasHint: Boolean(session.hint),
+		listening: listener.status === "listening",
+		speaking: speaker.speaking,
 	});
 
 	return (
@@ -119,7 +121,7 @@ function LessonPage() {
 
 				{view.phase !== "complete" && (
 					<div className="flex items-center gap-4">
-						<Orbi state={orbiState} size={120} className="shrink-0" />
+						<Nova state={novaState} size={160} priority className="w-28 shrink-0 sm:w-40" />
 						<p className="bubble text-soft">{session.objective.statement}</p>
 					</div>
 				)}
@@ -272,7 +274,7 @@ function LessonPage() {
 								</h2>
 								<p className="text-soft">{session.objective.statement}</p>
 							</div>
-							<Orbi state="proud" size={200} className="mx-auto" />
+							<Nova state="proud" size={200} className="mx-auto" />
 						</div>
 
 						<div className="card space-y-3">

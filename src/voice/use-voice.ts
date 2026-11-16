@@ -36,6 +36,7 @@ function recognitionCtor(): RecognitionCtor | null {
 
 export function useSpeaker(enabled: boolean) {
 	const [supported, setSupported] = useState(false);
+	const [speaking, setSpeaking] = useState(false);
 
 	useEffect(() => {
 		setSupported(enabled && typeof window !== "undefined" && "speechSynthesis" in window);
@@ -56,6 +57,9 @@ export function useSpeaker(enabled: boolean) {
 			utterance.rate = 0.95;
 			const voice = synth.getVoices().find((v) => v.lang === LANG);
 			if (voice) utterance.voice = voice;
+			utterance.onstart = () => setSpeaking(true);
+			utterance.onend = () => setSpeaking(false);
+			utterance.onerror = () => setSpeaking(false);
 			synth.speak(utterance);
 		},
 		[supported],
@@ -63,9 +67,10 @@ export function useSpeaker(enabled: boolean) {
 
 	const stop = useCallback(() => {
 		if (supported) window.speechSynthesis.cancel();
+		setSpeaking(false);
 	}, [supported]);
 
-	return { supported, speak, stop };
+	return { supported, speaking, speak, stop };
 }
 
 export type ListenerStatus =
