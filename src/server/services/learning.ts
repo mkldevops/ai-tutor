@@ -19,6 +19,7 @@ import { nextReviewDate } from "#/learning-engine/scheduling";
 import type { CompetencyRecord, DataStore, LearningSessionRecord } from "../store/types";
 import { AppError, notFound } from "./errors";
 import { type Actor, audit, requireStudent } from "./family";
+import { objectiveHistory } from "./history";
 
 export type SessionResponse = {
 	sessionId: string;
@@ -374,6 +375,11 @@ export async function getStudentProgress(deps: Deps, actor: Actor, studentId: st
 					review: byMode("review"),
 				},
 				openSessionId: sessions.filter((s) => s.objectiveCode === o.code && s.completedAt === null).at(-1)?.id ?? null,
+				history: objectiveHistory(
+					objAttempts,
+					events.filter((e) => e.objectiveCode === o.code),
+					now,
+				),
 			};
 		}),
 		recentSessions: sessions
