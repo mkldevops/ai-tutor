@@ -2,6 +2,7 @@ import { type ReactNode, useEffect, useRef } from "react";
 import type { Feedback } from "#/learning-engine/lesson";
 
 export const CELEBRATE_MS = 1800;
+export const SAVED_MS = 1000;
 
 type Props = {
 	feedback: Feedback;
@@ -20,13 +21,32 @@ export function AnswerFeedback({ feedback, onNext, extras, children }: Props) {
 	);
 }
 
-function Celebrate({ message, onNext }: { message: string; onNext: () => void }) {
+function useAutoNext(onNext: () => void, ms: number) {
 	const next = useRef(onNext);
 	next.current = onNext;
 	useEffect(() => {
-		const timer = setTimeout(() => next.current(), CELEBRATE_MS);
+		const timer = setTimeout(() => next.current(), ms);
 		return () => clearTimeout(timer);
-	}, []);
+	}, [ms]);
+}
+
+export function AnswerSaved({ onNext }: { onNext: () => void }) {
+	useAutoNext(onNext, SAVED_MS);
+	return (
+		<section className="card saved space-y-3 text-center" aria-live="polite" data-testid="answer-saved">
+			<span aria-hidden="true" className="saved-check">
+				✓
+			</span>
+			<p className="font-display text-2xl">Answer saved</p>
+			<div className="celebrate-track" aria-hidden="true">
+				<div className="celebrate-bar" style={{ animationDuration: `${SAVED_MS}ms` }} />
+			</div>
+		</section>
+	);
+}
+
+function Celebrate({ message, onNext }: { message: string; onNext: () => void }) {
+	useAutoNext(onNext, CELEBRATE_MS);
 
 	return (
 		<section

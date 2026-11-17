@@ -54,7 +54,11 @@ async function completeLesson(page: Page, { wrongInGuided = 0 } = {}) {
 		if (wrong) wrongLeft--;
 		await answerCurrent(page, wrong);
 		await expect(page.getByTestId("phase")).not.toHaveText(position);
-		if (phase !== "guided") continue;
+		if (phase !== "guided") {
+			const next = await page.getByTestId("phase").getAttribute("data-phase");
+			if (next === phase) await expect(page.getByTestId("answer-saved")).toBeVisible();
+			continue;
+		}
 		const feedback = page.getByTestId("feedback");
 		await expect(feedback).toHaveAttribute("data-correct", String(!wrong));
 		await expect(page.getByTestId("question")).toHaveCount(0);

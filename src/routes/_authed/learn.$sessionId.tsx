@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
-import { AnswerFeedback } from "#/components/answer-feedback";
+import { AnswerFeedback, AnswerSaved } from "#/components/answer-feedback";
 import { ConfidenceScale } from "#/components/confidence-scale";
 import { ExplanationStepper } from "#/components/explanation-stepper";
 import { FlightPlan } from "#/components/flight-plan";
@@ -42,6 +42,7 @@ function LessonPage() {
 	const [answer, setAnswer] = useState("");
 	const [tutorText, setTutorText] = useState<string | null>(null);
 	const [gate, setGate] = useState<Feedback | null>(null);
+	const [saved, setSaved] = useState(false);
 	const inputRef = useRef<HTMLInputElement>(null);
 	const { view } = session;
 	const { confidence } = session;
@@ -63,11 +64,11 @@ function LessonPage() {
 
 	useEffect(() => setSession(initial), [initial]);
 	useEffect(() => {
-		if (view.item && !gate) inputRef.current?.focus();
-	}, [view.item, gate]);
+		if (view.item && !gate && !saved) inputRef.current?.focus();
+	}, [view.item, gate, saved]);
 	useEffect(() => {
 		const key = gate ? `feedback:${spokenKey}` : spokenKey;
-		if (!speaker.supported || lastSpoken.current === key) return;
+		if (!speaker.supported || saved || lastSpoken.current === key) return;
 		lastSpoken.current = key;
 		const parts: (string | undefined)[] = [];
 		if (gate) parts.push(gate.correct ? `Bravo! ${gate.message}` : `${gate.message} ${gate.workedSolution ?? ""}`);
@@ -75,7 +76,7 @@ function LessonPage() {
 		else if (view.explanationSteps?.[0]) parts.push(view.explanationSteps[0].text);
 		else if (view.phase === "complete") parts.push("Mission complete. Well done for finishing!");
 		speaker.speak(parts.filter(Boolean).join(" "));
-	}, [speaker, spokenKey, gate, view.item, view.explanationSteps, view.phase]);
+	}, [speaker, spokenKey, gate, saved, view.item, view.explanationSteps, view.phase]);
 	useEffect(() => {
 		if (!speaker.supported || !session.hint || lastHint.current === session.hint) return;
 		lastHint.current = session.hint;
@@ -90,6 +91,7 @@ function LessonPage() {
 			setAnswer("");
 			setHeard(null);
 			setGate(next.feedback);
+			setSaved(!next.feedback && next.view.item !== null);
 		}
 		if (data.action === "continue") setTutorText(null);
 	});
@@ -215,7 +217,9 @@ function LessonPage() {
 					</ExplanationStepper>
 				)}
 
-				{view.item && !gate && (
+				{saved && <AnswerSaved key={spokenKey} onNext={() => setSaved(false)} />}
+
+				{view.item && !gate && !saved && (
 					<section className="card space-y-4" data-testid="question">
 						{view.item.prompt.includes(BLANK) && <p className="meta">Find the missing number</p>}
 						<p className="font-display text-4xl leading-tight" data-testid="prompt" data-prompt={view.item.prompt}>
