@@ -20,6 +20,7 @@ import type { CompetencyRecord, DataStore, LearningSessionRecord } from "../stor
 import { AppError, notFound } from "./errors";
 import { type Actor, audit, requireStudent } from "./family";
 import { objectiveHistory } from "./history";
+import { learningOutcomes } from "./outcomes";
 
 export type SessionResponse = {
 	sessionId: string;
@@ -349,6 +350,8 @@ export async function overrideCompetency(
 	return comp;
 }
 
+const ATTEMPT_WINDOW = 500;
+
 export async function getStudentProgress(deps: Deps, actor: Actor, studentId: string) {
 	const { store } = deps;
 	const student = await requireStudent(store, actor, studentId);
@@ -360,7 +363,7 @@ export async function getStudentProgress(deps: Deps, actor: Actor, studentId: st
 		store.learning_sessions.list({ studentId }, { latest: true }),
 		store.learning_sessions.list({ studentId, completedAt: null }, { latest: true }),
 		store.mastery_events.list({ studentId }, { latest: true }),
-		store.assessment_attempts.list({ studentId }, { limit: 500, latest: true }),
+		store.assessment_attempts.list({ studentId }, { limit: ATTEMPT_WINDOW, latest: true }),
 	]);
 	return {
 		student,
@@ -410,6 +413,12 @@ export async function getStudentProgress(deps: Deps, actor: Actor, studentId: st
 				confidence: s.confidence ?? {},
 				createdAt: s.createdAt,
 			})),
+		outcomes: learningOutcomes(
+			attempts.length < ATTEMPT_WINDOW
+				? sessions
+				: sessions.filter((s) => Date.parse(s.createdAt) >= Date.parse(attempts[0]?.createdAt ?? "")),
+			attempts,
+		),
 		events: events.slice(-20).reverse(),
 		printables: printableObjectives(student.yearGroup).flatMap((code) => {
 			const o = getObjective(code);

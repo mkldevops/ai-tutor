@@ -113,6 +113,9 @@ test("two learners complete separate lessons with isolated progress", async ({ p
 	await expect(avaHistory.getByRole("list", { name: "Answers per week" }).getByRole("listitem")).toHaveCount(6);
 	await expect(avaHistory.getByRole("list", { name: "Status history" })).toContainText("secure");
 	await expect(page.getByTestId("history-MA-Y3-MD-TABLES-348")).toHaveCount(0);
+	await expect(page.getByTestId("outcomes-retention")).toContainText("No review done yet");
+	await expect(page.getByTestId("outcomes-confidence")).toContainText("1 matched");
+	await expect(page.getByRole("list", { name: "Confidence check-ins" })).toContainText("felt 4 of 5");
 
 	await page.getByRole("link", { name: "← All learners" }).click();
 	const avaCard = page.getByTestId("learner-Ava");
