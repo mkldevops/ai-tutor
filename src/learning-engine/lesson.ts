@@ -53,7 +53,10 @@ export type LessonView = {
 	total: number;
 	canHint: boolean;
 	explanation: string[] | null;
+	explanationSteps: ExplanationStep[] | null;
 };
+
+export type ExplanationStep = { reminder: boolean; text: string };
 
 const modeForPhase = (phase: LessonPhase): EvidenceMode => {
 	switch (phase) {
@@ -141,6 +144,7 @@ export function viewLesson(state: LessonState): LessonView {
 		total: totalFor(state),
 		canHint: state.phase === "guided",
 		explanation: state.phase === "instruction" ? buildExplanation(state) : null,
+		explanationSteps: state.phase === "instruction" ? buildExplanationSteps(state) : null,
 	};
 }
 
@@ -153,6 +157,15 @@ export function buildExplanation(state: LessonState): string[] {
 	const target = getObjective(state.objectiveCode);
 	if (target) lines.push(...target.explanation);
 	return lines;
+}
+
+export function buildExplanationSteps(state: LessonState): ExplanationStep[] {
+	const steps: ExplanationStep[] = [];
+	for (const code of state.weakPrerequisites) {
+		for (const text of getObjective(code)?.explanation ?? []) steps.push({ reminder: true, text });
+	}
+	for (const text of getObjective(state.objectiveCode)?.explanation ?? []) steps.push({ reminder: false, text });
+	return steps;
 }
 
 export function requestHint(state: LessonState): { state: LessonState; hint: string } {

@@ -23,7 +23,7 @@ import { type Actor, audit, requireStudent } from "./family";
 export type SessionResponse = {
 	sessionId: string;
 	studentId: string;
-	objective: { code: string; statement: string; yearGroup: number };
+	objective: { code: string; title: string; statement: string; yearGroup: number };
 	view: LessonView;
 	feedback: Feedback | null;
 	hint: string | null;
@@ -70,7 +70,12 @@ async function respond(
 	return {
 		sessionId: session.id,
 		studentId: session.studentId,
-		objective: { code: objective.code, statement: objective.statement, yearGroup: objective.yearGroup },
+		objective: {
+			code: objective.code,
+			title: objective.title,
+			statement: objective.statement,
+			yearGroup: objective.yearGroup,
+		},
 		view: viewLesson(session.state),
 		feedback: extra.feedback ?? null,
 		hint: extra.hint ?? null,
