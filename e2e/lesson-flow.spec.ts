@@ -103,6 +103,11 @@ test("two learners complete separate lessons with isolated progress", async ({ p
 		.getByTestId("confidence")
 		.getByRole("button", { name: /^4 of 5/ })
 		.click();
+	const thanks = result.getByTestId("confidence-thanks");
+	await expect(thanks).toContainText("Thanks for rating!");
+	await expect(thanks.getByTestId("confidence-change")).toContainText("Before: 2 of 5 · Now: 4 of 5");
+	await expect(thanks).toHaveCount(0, { timeout: 5000 });
+	await expect(result.getByTestId("confidence")).toHaveCount(0);
 	await expect(result.getByTestId("confidence-change")).toContainText("Before: 2 of 5 · Now: 4 of 5");
 	await page.evaluate(() => localStorage.clear());
 	await page.reload();

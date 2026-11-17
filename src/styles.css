@@ -615,6 +615,42 @@
 		@apply block max-w-full select-none object-contain;
 		height: auto;
 	}
+	.confetti {
+		@apply pointer-events-none fixed inset-0 z-50 overflow-hidden print:hidden;
+	}
+	.confetti > span {
+		@apply absolute top-0 block h-3 w-2 rounded-[2px] opacity-0;
+		left: var(--x);
+		animation: confetti-fall var(--dur) cubic-bezier(0.2, 0.6, 0.4, 1) var(--delay) forwards;
+	}
+	.confetti > span[data-shape="1"] {
+		@apply size-2.5 rounded-full;
+	}
+	.confetti > span[data-shape="2"] {
+		@apply h-1.5 w-4;
+	}
+	.thanks {
+		@apply overflow-hidden py-6;
+		interpolate-size: allow-keywords;
+		animation:
+			celebrate-in 240ms ease-out,
+			thanks-out 400ms ease-in 2600ms forwards;
+	}
+	.thanks-badge {
+		@apply relative mx-auto grid size-14 place-items-center rounded-full text-3xl;
+		background: color-mix(in oklab, var(--color-hint) 20%, transparent);
+		color: var(--color-hint);
+		animation: thanks-pop 600ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+	}
+	.thanks-badge::after {
+		@apply absolute inset-0 rounded-full;
+		content: "";
+		border: 2px solid var(--color-hint);
+		animation: thanks-ring 900ms ease-out 150ms both;
+	}
+	.thanks-summary {
+		animation: celebrate-in 300ms ease-out;
+	}
 }
 
 @keyframes celebrate-in {
@@ -670,5 +706,51 @@
 	to {
 		opacity: 1;
 		transform: scale(1);
+	}
+}
+
+@keyframes confetti-fall {
+	0% {
+		opacity: 1;
+		transform: translate3d(0, -5vh, 0) rotate(0deg);
+	}
+	80% {
+		opacity: 1;
+	}
+	100% {
+		opacity: 0;
+		transform: translate3d(var(--drift), 105vh, 0) rotate(var(--spin));
+	}
+}
+
+@keyframes thanks-pop {
+	0% {
+		opacity: 0;
+		transform: scale(0.3) rotate(-30deg);
+	}
+	100% {
+		opacity: 1;
+		transform: scale(1) rotate(0deg);
+	}
+}
+
+@keyframes thanks-ring {
+	from {
+		opacity: 0.8;
+		transform: scale(1);
+	}
+	to {
+		opacity: 0;
+		transform: scale(2.2);
+	}
+}
+
+@keyframes thanks-out {
+	to {
+		opacity: 0;
+		transform: scale(0.96);
+		height: 0;
+		padding-block: 0;
+		border-width: 0;
 	}
 }

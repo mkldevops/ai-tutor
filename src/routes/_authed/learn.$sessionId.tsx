@@ -8,6 +8,7 @@ import { ErrorBox, useAction } from "#/components/form";
 import { flightStep } from "#/components/learning-map";
 import { BLANK, numberLineFor } from "#/components/missing-number";
 import { NumberLine, PromptText } from "#/components/missing-number-view";
+import { Confetti, RateConfidence } from "#/components/mission-complete";
 import { Nova } from "#/components/nova";
 import { novaStateForLesson } from "#/components/nova-state";
 import { formatDate, formatWeekday, StatusBadge } from "#/components/status";
@@ -304,6 +305,7 @@ function LessonPage() {
 
 				{view.phase === "complete" && session.result && (
 					<section className="space-y-6" data-testid="result">
+						<Confetti />
 						<div className="grid items-center gap-6 sm:grid-cols-[1fr_auto]">
 							<div className="space-y-3">
 								<p className="meta">Mission complete</p>
@@ -329,27 +331,11 @@ function LessonPage() {
 							</ul>
 						</div>
 
-						<div className="card space-y-3">
-							<ConfidenceScale
-								label="And now, how sure do you feel?"
-								value={confidence.after}
-								before={confidence.before}
-								onChange={(value) => void act.run({ action: "confidence", moment: "after", value })}
-							/>
-							{confidence.before !== undefined && confidence.after !== undefined && (
-								<p className="text-sm text-soft" data-testid="confidence-change">
-									Before: {confidence.before} of 5 · Now: {confidence.after} of 5.{" "}
-									{confidence.after > confidence.before
-										? "Practice paid off."
-										: confidence.after < confidence.before
-											? "That is normal after a solo check. The review will help."
-											: "Steady. The review check will show how it lasts."}
-								</p>
-							)}
-							{confidence.before !== undefined && confidence.after === undefined && (
-								<p className="text-xs text-muted">The dashed box is what you chose before the mission.</p>
-							)}
-						</div>
+						<RateConfidence
+							before={confidence.before}
+							after={confidence.after}
+							onRate={(value) => void act.run({ action: "confidence", moment: "after", value })}
+						/>
 
 						{session.result.nextReviewAt && (
 							<div className="card flex items-center gap-5">
