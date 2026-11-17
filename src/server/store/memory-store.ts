@@ -18,6 +18,10 @@ class MemoryTable<T extends BaseRecord> implements Table<T> {
 		return (opts.latest ? rows.slice(-limit) : rows.slice(0, limit)).map((r) => structuredClone(r));
 	}
 
+	async listAll(filter: Filter<T>) {
+		return this.list(filter, { limit: Number.POSITIVE_INFINITY });
+	}
+
 	async create(data: NewRecord<T>) {
 		const now = new Date().toISOString();
 		const row = { ...structuredClone(data), id: randomUUID().replace(/-/g, ""), createdAt: now, updatedAt: now } as T;

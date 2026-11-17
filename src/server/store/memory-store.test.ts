@@ -23,4 +23,13 @@ describe("memory store list", () => {
 			"OBJ-5",
 		]);
 	});
+
+	it("listAll returns every matching row beyond the default limit", async () => {
+		const store = createMemoryStore();
+		for (let n = 1; n <= 501; n++) await store.mastery_events.create(event(n));
+		expect(await store.mastery_events.list({ studentId: "s" })).toHaveLength(500);
+		const all = await store.mastery_events.listAll({ studentId: "s" });
+		expect(all).toHaveLength(501);
+		expect(all.at(-1)?.objectiveCode).toBe("OBJ-501");
+	});
 });
