@@ -127,7 +127,7 @@ function LearnerStats({ learner: s }: { learner: LearnerOverview }) {
 					</dd>
 				</div>
 				<div>
-					<dt className="text-xs text-ink-mute">Correct this week</dt>
+					<dt className="text-xs text-ink-mute">Correct</dt>
 					<dd className="font-display text-xl">{pct === null ? "—" : `${pct}%`}</dd>
 				</div>
 			</dl>
