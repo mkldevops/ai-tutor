@@ -7,6 +7,7 @@ test("parent prints a worksheet and a separate answer key", async ({ page }) => 
 	await page.getByLabel("Email").fill(`print-${Date.now()}@example.test`);
 	await page.getByLabel(/Password/).fill("correct-horse-battery");
 	await page.getByRole("button", { name: "Create account" }).click();
+	await page.getByRole("button", { name: "Add a learner" }).click();
 	await page.getByLabel("Display name").fill("Robin");
 	await page.getByLabel("Year group").selectOption("5");
 	await page.getByRole("button", { name: "Add learner" }).click();

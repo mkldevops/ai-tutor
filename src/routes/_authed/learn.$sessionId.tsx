@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
+import { AnswerFeedback } from "#/components/answer-feedback";
 import { ConfidenceScale } from "#/components/confidence-scale";
 import { ExplanationStepper } from "#/components/explanation-stepper";
 import { FlightPlan } from "#/components/flight-plan";
@@ -8,6 +9,7 @@ import { flightStep } from "#/components/learning-map";
 import { Nova } from "#/components/nova";
 import { novaStateForLesson } from "#/components/nova-state";
 import { formatDate, formatWeekday, StatusBadge } from "#/components/status";
+import type { Feedback } from "#/learning-engine/lesson";
 import { askTutorFn, getSessionFn, sessionActionFn } from "#/server/functions";
 import { firstSpokenNumber, questionSpeech } from "#/voice/spoken";
 import { useListener, useSpeaker } from "#/voice/use-voice";
@@ -37,6 +39,7 @@ function LessonPage() {
 	const [session, setSession] = useState<Session>(initial);
 	const [answer, setAnswer] = useState("");
 	const [tutorText, setTutorText] = useState<string | null>(null);
+	const [gate, setGate] = useState<Feedback | null>(null);
 	const inputRef = useRef<HTMLInputElement>(null);
 	const { view } = session;
 	const { confidence } = session;
@@ -58,17 +61,19 @@ function LessonPage() {
 
 	useEffect(() => setSession(initial), [initial]);
 	useEffect(() => {
-		if (view.item) inputRef.current?.focus();
-	}, [view.item]);
+		if (view.item && !gate) inputRef.current?.focus();
+	}, [view.item, gate]);
 	useEffect(() => {
-		if (!speaker.supported || lastSpoken.current === spokenKey) return;
-		lastSpoken.current = spokenKey;
-		const parts = [session.feedback?.message];
-		if (view.item) parts.push(questionSpeech(view.item));
+		const key = gate ? `feedback:${spokenKey}` : spokenKey;
+		if (!speaker.supported || lastSpoken.current === key) return;
+		lastSpoken.current = key;
+		const parts: (string | undefined)[] = [];
+		if (gate) parts.push(gate.correct ? `Bravo! ${gate.message}` : `${gate.message} ${gate.workedSolution ?? ""}`);
+		else if (view.item) parts.push(questionSpeech(view.item));
 		else if (view.explanationSteps?.[0]) parts.push(view.explanationSteps[0].text);
 		else if (view.phase === "complete") parts.push("Mission complete. Well done for finishing!");
 		speaker.speak(parts.filter(Boolean).join(" "));
-	}, [speaker, spokenKey, session.feedback, view.item, view.explanationSteps, view.phase]);
+	}, [speaker, spokenKey, gate, view.item, view.explanationSteps, view.phase]);
 	useEffect(() => {
 		if (!speaker.supported || !session.hint || lastHint.current === session.hint) return;
 		lastHint.current = session.hint;
@@ -82,6 +87,7 @@ function LessonPage() {
 		if (data.action === "answer") {
 			setAnswer("");
 			setHeard(null);
+			setGate(next.feedback);
 		}
 		if (data.action === "continue") setTutorText(null);
 	});
@@ -99,7 +105,7 @@ function LessonPage() {
 	const novaState = novaStateForLesson({
 		phase: view.phase,
 		thinking: tutor.pending,
-		feedbackCorrect: session.feedback ? session.feedback.correct : null,
+		feedbackCorrect: gate ? gate.correct : null,
 		hasHint: Boolean(session.hint),
 		listening: listener.status === "listening",
 		speaking: speaker.speaking,
@@ -144,21 +150,42 @@ function LessonPage() {
 					</section>
 				)}
 
-				{session.feedback && (
-					<section
-						aria-live="polite"
-						data-testid="feedback"
-						data-correct={session.feedback.correct}
-						className={session.feedback.correct ? "note-correct" : "note-focus"}
+				{gate && (
+					<AnswerFeedback
+						key={spokenKey}
+						feedback={gate}
+						onNext={() => {
+							setGate(null);
+							setTutorText(null);
+						}}
+						extras={
+							<>
+								{view.phase === "guided" && (
+									<button type="button" className="link" disabled={tutor.pending} onClick={() => void tutor.run()}>
+										{tutor.pending ? "Thinking…" : "Explain it another way"}
+									</button>
+								)}
+								{speaker.supported && (
+									<button
+										type="button"
+										className="link"
+										onClick={() =>
+											speaker.speak([gate.message, gate.workedSolution, tutorText].filter(Boolean).join(" "))
+										}
+									>
+										Hear it again
+									</button>
+								)}
+							</>
+						}
 					>
-						<p className="font-semibold">{session.feedback.message}</p>
-						{session.feedback.workedSolution && (
-							<p className="mt-2 text-sm text-soft">{session.feedback.workedSolution}</p>
+						{tutorText && (
+							<div className="bubble text-sm" data-testid="tutor-text">
+								{tutorText}
+							</div>
 						)}
-						{session.feedback.alternativeExplanation && (
-							<p className="mt-2 text-sm text-soft">{session.feedback.alternativeExplanation}</p>
-						)}
-					</section>
+						<ErrorBox error={tutor.error} />
+					</AnswerFeedback>
 				)}
 
 				{view.phase === "instruction" && view.explanationSteps && view.explanationSteps.length > 0 && (
@@ -184,7 +211,7 @@ function LessonPage() {
 					</ExplanationStepper>
 				)}
 
-				{view.item && (
+				{view.item && !gate && (
 					<section className="card space-y-4" data-testid="question">
 						<p className="font-display text-4xl leading-tight" data-testid="prompt">
 							{view.item.prompt}

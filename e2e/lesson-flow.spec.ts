@@ -12,6 +12,7 @@ async function signUp(page: Page, email: string) {
 }
 
 async function addLearner(page: Page, name: string, year: "3" | "5") {
+	await page.getByRole("button", { name: "Add a learner" }).click();
 	await page.getByLabel("Display name").fill(name);
 	await page.getByLabel("Year group").selectOption(year);
 	await page.getByRole("button", { name: "Add learner" }).click();
@@ -53,6 +54,17 @@ async function completeLesson(page: Page, { wrongInGuided = 0 } = {}) {
 		if (wrong) wrongLeft--;
 		await answerCurrent(page, wrong);
 		await expect(page.getByTestId("phase")).not.toHaveText(position);
+		if (phase !== "guided") continue;
+		const feedback = page.getByTestId("feedback");
+		await expect(feedback).toHaveAttribute("data-correct", String(!wrong));
+		await expect(page.getByTestId("question")).toHaveCount(0);
+		if (wrong) {
+			await expect(feedback.getByTestId("correct-answer")).toBeVisible();
+			await page.waitForTimeout(2500);
+			await expect(page.getByTestId("question")).toHaveCount(0);
+			await feedback.getByTestId("understood").click();
+		}
+		await expect(feedback).toHaveCount(0);
 	}
 	throw new Error("Lesson did not complete");
 }

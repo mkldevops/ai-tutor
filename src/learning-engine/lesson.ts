@@ -42,6 +42,10 @@ export type Feedback = {
 	message: string;
 	workedSolution?: string;
 	alternativeExplanation?: string;
+	question?: string;
+	yourAnswer?: string;
+	correctAnswer?: string;
+	hint?: string;
 };
 
 export type LessonView = {
@@ -229,7 +233,8 @@ export function submitAnswer(
 			state.difficulty = Math.min(3, state.difficulty + 1) as 1 | 2 | 3;
 			feedback = {
 				correct: true,
-				message: entry.hintsUsed > 0 ? "Correct — well done using the hint." : "Correct! Let's try a harder one.",
+				message:
+					entry.hintsUsed > 0 ? "Well done, the hint helped you get there." : "Well done! Next one is a bit harder.",
 			};
 		} else {
 			state.consecutiveWrong += 1;
@@ -238,6 +243,10 @@ export function submitAnswer(
 			feedback = {
 				correct: false,
 				message: "Not quite. Let's look at it together.",
+				question: item.prompt,
+				yourAnswer: response.trim(),
+				correctAnswer: item.answer,
+				hint: item.hint,
 				workedSolution: item.workedSolution,
 				...(target?.explanation[1] ? { alternativeExplanation: target.explanation[1] } : {}),
 			};

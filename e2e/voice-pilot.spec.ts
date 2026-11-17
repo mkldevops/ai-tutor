@@ -61,6 +61,7 @@ async function startVoiceLesson(page: Page, family: string) {
 	await page.getByLabel("Email").fill(`${family.toLowerCase().replace(/\s/g, "-")}-${Date.now()}@example.test`);
 	await page.getByLabel(/Password/).fill("correct-horse-battery");
 	await page.getByRole("button", { name: "Create account" }).click();
+	await page.getByRole("button", { name: "Add a learner" }).click();
 	await page.getByLabel("Display name").fill("Mia");
 	await page.getByLabel("Year group").selectOption("3");
 	await page.getByRole("button", { name: "Add learner" }).click();
