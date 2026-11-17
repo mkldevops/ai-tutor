@@ -1,7 +1,7 @@
 import { createFileRoute, useRouter } from "@tanstack/react-router";
 import { ErrorBox, useAction } from "#/components/form";
 import { formatDate, StatusBadge } from "#/components/status";
-import { DONE, type Objective, useProgress } from "#/components/student-progress";
+import { DONE, type Objective, type Progress, useProgress } from "#/components/student-progress";
 import type { CompetencyStatus } from "#/domain/types";
 import { overrideCompetencyFn } from "#/server/functions";
 
@@ -13,7 +13,7 @@ const STATUSES: CompetencyStatus[] = ["emerging", "developing", "secure", "maste
 const MODES = ["diagnostic", "guided", "independent", "review"] as const;
 
 function ProgressTab() {
-	const { student, objectives, events } = useProgress();
+	const { student, objectives, events, outcomes } = useProgress();
 	const stats = [
 		{ label: "Objectives", value: objectives.length },
 		{ label: "Secure or better", value: objectives.filter((o) => DONE.includes(o.status)).length },
@@ -34,6 +34,8 @@ function ProgressTab() {
 					</div>
 				))}
 			</section>
+
+			<LearningOutcomes outcomes={outcomes} objectives={objectives} />
 
 			<section aria-labelledby="evidence-title" className="space-y-3">
 				<h2 id="evidence-title" className="h2">
@@ -109,6 +111,65 @@ function ProgressTab() {
 				)}
 			</section>
 		</div>
+	);
+}
+
+const CALIBRATION_LABEL = {
+	matches: "Matched results",
+	over: "Felt more sure than results",
+	under: "Did better than felt",
+} as const;
+
+const percent = (x: number) => `${Math.round(x * 100)}%`;
+
+function LearningOutcomes({ outcomes, objectives }: { outcomes: Progress["outcomes"]; objectives: Objective[] }) {
+	const { reviews, confidence } = outcomes;
+	const title = (code: string) => objectives.find((o) => o.code === code)?.title ?? code;
+	return (
+		<section aria-labelledby="outcomes-title" className="card space-y-4" data-testid="outcomes">
+			<h2 id="outcomes-title" className="h2">
+				Learning outcomes
+			</h2>
+			<div className="grid gap-3 sm:grid-cols-2">
+				<div className="rounded-lg border border-line px-3 py-2" data-testid="outcomes-retention">
+					<p className="text-xs text-ink-mute">Remembered on delayed reviews</p>
+					{reviews.completed === 0 ? (
+						<p className="text-sm text-ink-soft">No review done yet.</p>
+					) : (
+						<p className="font-display text-xl">
+							{reviews.held}
+							<span className="text-sm text-ink-mute">
+								{" "}
+								/ {reviews.completed} reviews held · {percent(reviews.accuracy ?? 0)} correct
+							</span>
+						</p>
+					)}
+				</div>
+				<div className="rounded-lg border border-line px-3 py-2" data-testid="outcomes-confidence">
+					<p className="text-xs text-ink-mute">Confidence vs results</p>
+					{confidence.checks.length === 0 ? (
+						<p className="text-sm text-ink-soft">No confidence check-in yet.</p>
+					) : (
+						<p className="text-sm">
+							{confidence.matches} matched · {confidence.over} more sure · {confidence.under} less sure
+						</p>
+					)}
+				</div>
+			</div>
+			{confidence.checks.length > 0 && (
+				<ul className="space-y-1 text-sm text-ink-soft" aria-label="Confidence check-ins">
+					{confidence.checks.map((c) => (
+						<li key={c.sessionId}>
+							{formatDate(c.completedAt)} · {title(c.objectiveCode)}: felt {c.confidence} of 5, scored{" "}
+							{percent(c.accuracy)} on their own · <strong>{CALIBRATION_LABEL[c.calibration]}</strong>
+						</li>
+					))}
+				</ul>
+			)}
+			<p className="text-xs text-ink-mute">
+				A review holds at 80% or more. Confidence is compared with answers given without help.
+			</p>
+		</section>
 	);
 }
 
