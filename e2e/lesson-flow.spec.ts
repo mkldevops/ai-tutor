@@ -122,12 +122,14 @@ test("two learners complete separate lessons with isolated progress", async ({ p
 	await expect(page.getByTestId("objective-MA-Y3-MD-TABLES-348")).toBeVisible();
 
 	await page.getByRole("link", { name: "Progress", exact: true }).click();
+	await page.getByTestId("evidence-MA-Y3-AS-MENTAL").getByText("Details", { exact: true }).click();
 	const avaHistory = page.getByTestId("history-MA-Y3-AS-MENTAL");
 	await expect(avaHistory.getByRole("list", { name: "Answers per week" }).getByRole("listitem")).toHaveCount(6);
-	await expect(avaHistory.getByRole("list", { name: "Status history" })).toContainText("secure");
+	await expect(avaHistory.getByRole("list", { name: "Status history" })).toContainText("Secure");
 	await expect(page.getByTestId("history-MA-Y3-MD-TABLES-348")).toHaveCount(0);
 	await expect(page.getByTestId("outcomes-retention")).toContainText("No review done yet");
-	await expect(page.getByTestId("outcomes-confidence")).toContainText("1 matched");
+	await expect(page.getByTestId("outcomes-confidence")).toContainText("1 of 1 matched");
+	await page.getByText("See each check-in", { exact: true }).click();
 	await expect(page.getByRole("list", { name: "Confidence check-ins" })).toContainText("felt 4 of 5");
 
 	await page.getByRole("link", { name: "← All learners" }).click();

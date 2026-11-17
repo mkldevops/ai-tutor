@@ -408,12 +408,6 @@ function VoiceControls({
 						Listening… tap to stop
 					</button>
 				)}
-				{typed && status === "downloadable" && (
-					<button type="button" className="btn-secondary" onClick={() => void listener.install()}>
-						Download the speech pack once
-					</button>
-				)}
-				{typed && status === "downloading" && <span className="meta">Downloading the speech pack…</span>}
 			</div>
 			{typed && status === "unavailable" && (
 				<p className="meta" data-testid="voice-unavailable">

@@ -1,6 +1,6 @@
 import type { CompetencyStatus } from "#/domain/types";
 
-const LABELS: Record<CompetencyStatus, string> = {
+export const STATUS_LABELS: Record<CompetencyStatus, string> = {
 	not_started: "Not started",
 	emerging: "Emerging",
 	developing: "Developing",
@@ -12,7 +12,7 @@ const LABELS: Record<CompetencyStatus, string> = {
 export function StatusBadge({ status }: { status: CompetencyStatus }) {
 	return (
 		<span className="badge" data-testid="status-badge" data-status={status}>
-			{LABELS[status]}
+			{STATUS_LABELS[status]}
 		</span>
 	);
 }

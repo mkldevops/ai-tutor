@@ -3,14 +3,14 @@ import { normalise, solve } from "./solver";
 
 test.use({ extraHTTPHeaders: { "x-forwarded-for": "198.51.100.7" } });
 
-type VoiceWindow = Window & { __spoken: string[]; __say: string; __local: boolean };
+type VoiceWindow = Window & { __spoken: string[]; __say: string; __mode: string };
 
-async function fakeSpeech(page: Page, onDevice: boolean) {
-	await page.addInitScript((local) => {
+async function fakeSpeech(page: Page, mode: "available" | "unavailable" | "downloadable") {
+	await page.addInitScript((initial) => {
 		const w = window as unknown as VoiceWindow & Record<string, unknown>;
 		w.__spoken = [];
 		w.__say = "";
-		w.__local = local;
+		w.__mode = initial;
 		Object.defineProperty(window, "speechSynthesis", {
 			configurable: true,
 			value: {
@@ -29,8 +29,11 @@ async function fakeSpeech(page: Page, onDevice: boolean) {
 			}
 		};
 		class FakeRecognition {
-			static available = async () => (w.__local ? "available" : "unavailable");
-			static install = async () => w.__local;
+			static available = async () => w.__mode;
+			static install = async () => {
+				w.__mode = "available";
+				return true;
+			};
 			lang = "";
 			processLocally = false;
 			interimResults = false;
@@ -51,7 +54,7 @@ async function fakeSpeech(page: Page, onDevice: boolean) {
 		}
 		w.SpeechRecognition = FakeRecognition;
 		delete w.webkitSpeechRecognition;
-	}, onDevice);
+	}, mode);
 }
 
 async function startVoiceLesson(page: Page, family: string) {
@@ -74,6 +77,7 @@ async function startVoiceLesson(page: Page, family: string) {
 	await expect(settings.getByLabel("Use voice in lessons")).toBeChecked();
 	await page.reload({ waitUntil: "networkidle" });
 	await expect(page.getByTestId("voice-settings").getByLabel("Use voice in lessons")).toBeChecked();
+	const settingsUrl = page.url();
 	await page.getByRole("link", { name: "Missions" }).click();
 
 	await page.getByTestId("objective-MA-Y3-AS-MENTAL").getByRole("button", { name: "Start lesson" }).click();
@@ -82,6 +86,7 @@ async function startVoiceLesson(page: Page, family: string) {
 		.getByTestId("confidence")
 		.getByRole("button", { name: /^3 of 5/ })
 		.click();
+	return settingsUrl;
 }
 
 async function untilTypedQuestion(page: Page) {
@@ -106,7 +111,7 @@ async function untilTypedQuestion(page: Page) {
 }
 
 test("a learner hears the question and says the answer on the device", async ({ page }) => {
-	await fakeSpeech(page, true);
+	await fakeSpeech(page, "available");
 	await startVoiceLesson(page, "Voice family");
 
 	const prompt = ((await page.getByTestId("prompt").getAttribute("data-prompt")) ?? "").trim();
@@ -133,7 +138,7 @@ test("a learner hears the question and says the answer on the device", async ({ 
 });
 
 test("without on-device recognition the learner types and still hears the question", async ({ page }) => {
-	await fakeSpeech(page, false);
+	await fakeSpeech(page, "unavailable");
 	await startVoiceLesson(page, "Typing family");
 	await untilTypedQuestion(page);
 
@@ -146,4 +151,19 @@ test("without on-device recognition the learner types and still hears the questi
 	const position = (await page.getByTestId("phase").textContent()) ?? "";
 	await page.getByRole("button", { name: "Check" }).click();
 	await expect(page.getByTestId("phase")).not.toHaveText(position);
+});
+
+test("the speech pack download stays with the parent, not in the lesson", async ({ page }) => {
+	await fakeSpeech(page, "downloadable");
+	const settingsUrl = await startVoiceLesson(page, "Pack family");
+	await untilTypedQuestion(page);
+
+	await expect(page.getByText(/speech pack/i)).toHaveCount(0);
+	await expect(page.getByTestId("say-it")).toHaveCount(0);
+	await expect(page.getByTestId("voice-unavailable")).toHaveCount(0);
+
+	await page.goto(settingsUrl, { waitUntil: "networkidle" });
+	const pack = page.getByTestId("speech-pack");
+	await pack.getByRole("button", { name: "Download the speech pack" }).click();
+	await expect(page.getByTestId("voice-settings")).toContainText("This device is ready for spoken answers.");
 });
