@@ -90,7 +90,7 @@ export async function exportStudentData(store: DataStore, actor: Actor, studentI
 	const student = await requireStudent(store, actor, studentId);
 	const data: Record<string, unknown> = { student };
 	for (const table of STUDENT_OWNED) {
-		data[table] = await (store[table] as DataStore["assessment_attempts"]).list({ studentId }, { limit: 500 });
+		data[table] = await (store[table] as DataStore["assessment_attempts"]).listAll({ studentId });
 	}
 	await audit(store, actor, "student.export", `students/${studentId}`);
 	return data;
