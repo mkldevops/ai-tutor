@@ -78,6 +78,24 @@ describe("tenant isolation", () => {
 		expect(await store.students.get(bobY5)).not.toBeNull();
 	});
 
+	it("exports a learner's full history beyond 500 rows, scoped to that learner", async () => {
+		const event = (studentId: string, familyId: string, n: number) => ({
+			familyId,
+			studentId,
+			objectiveCode: `OBJ-${n}`,
+			fromStatus: "not_started" as const,
+			toStatus: "emerging" as const,
+			actor: "system" as const,
+			actorUserId: null,
+			reason: "",
+		});
+		for (let n = 1; n <= 501; n++) await store.mastery_events.create(event(aliceY3, alice.familyId, n));
+		await store.mastery_events.create(event(bobY5, bob.familyId, 0));
+		const data = (await exportStudentData(store, alice, aliceY3)) as { mastery_events: { studentId: string }[] };
+		expect(data.mastery_events).toHaveLength(501);
+		expect(data.mastery_events.every((e) => e.studentId === aliceY3)).toBe(true);
+	});
+
 	it("forbids starting a session for another family's student", async () => {
 		await expectNotFound(
 			startSession({ store }, alice, { studentId: bobY5, objectiveCode: "MA-Y5-MD-POWERS10", kind: "lesson" }),
