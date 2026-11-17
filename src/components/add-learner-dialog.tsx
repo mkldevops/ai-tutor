@@ -32,6 +32,7 @@ export function AddLearnerDialog() {
 				onClick={() => {
 					formRef.current?.reset();
 					dialogRef.current?.showModal();
+					formRef.current?.querySelector<HTMLInputElement>("input[name=displayName]")?.focus();
 				}}
 			>
 				<span aria-hidden="true" className="add-plus">
@@ -73,7 +74,7 @@ export function AddLearnerDialog() {
 							void create.run(e.currentTarget);
 						}}
 					>
-						<Field label="Display name" name="displayName" required maxLength={40} autoFocus />
+						<Field label="Display name" name="displayName" required maxLength={40} />
 						<label className="block">
 							<span className="label">Year group</span>
 							<select name="yearGroup" className="input" defaultValue="3">
