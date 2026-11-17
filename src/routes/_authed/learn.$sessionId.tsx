@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useRef, useState } from "react";
-import { AnswerFeedback } from "#/components/answer-feedback";
+import { type KeyboardEvent, useEffect, useRef, useState } from "react";
+import { AnswerFeedback, AnswerSaved } from "#/components/answer-feedback";
 import { ConfidenceScale } from "#/components/confidence-scale";
 import { ExplanationStepper } from "#/components/explanation-stepper";
 import { FlightPlan } from "#/components/flight-plan";
@@ -8,6 +8,7 @@ import { ErrorBox, useAction } from "#/components/form";
 import { flightStep } from "#/components/learning-map";
 import { BLANK, numberLineFor } from "#/components/missing-number";
 import { NumberLine, PromptText } from "#/components/missing-number-view";
+import { Confetti, RateConfidence } from "#/components/mission-complete";
 import { Nova } from "#/components/nova";
 import { novaStateForLesson } from "#/components/nova-state";
 import { formatDate, formatWeekday, StatusBadge } from "#/components/status";
@@ -42,7 +43,9 @@ function LessonPage() {
 	const [answer, setAnswer] = useState("");
 	const [tutorText, setTutorText] = useState<string | null>(null);
 	const [gate, setGate] = useState<Feedback | null>(null);
+	const [saved, setSaved] = useState(false);
 	const inputRef = useRef<HTMLInputElement>(null);
+	const choicesRef = useRef<HTMLFieldSetElement>(null);
 	const { view } = session;
 	const { confidence } = session;
 	const step = flightStep(view.phase);
@@ -63,11 +66,13 @@ function LessonPage() {
 
 	useEffect(() => setSession(initial), [initial]);
 	useEffect(() => {
-		if (view.item && !gate) inputRef.current?.focus();
-	}, [view.item, gate]);
+		if (!view.item || gate || saved) return;
+		if (choicesRef.current) choicesRef.current.querySelector("button")?.focus();
+		else inputRef.current?.focus();
+	}, [view.item, gate, saved]);
 	useEffect(() => {
 		const key = gate ? `feedback:${spokenKey}` : spokenKey;
-		if (!speaker.supported || lastSpoken.current === key) return;
+		if (!speaker.supported || saved || lastSpoken.current === key) return;
 		lastSpoken.current = key;
 		const parts: (string | undefined)[] = [];
 		if (gate) parts.push(gate.correct ? `Bravo! ${gate.message}` : `${gate.message} ${gate.workedSolution ?? ""}`);
@@ -75,7 +80,7 @@ function LessonPage() {
 		else if (view.explanationSteps?.[0]) parts.push(view.explanationSteps[0].text);
 		else if (view.phase === "complete") parts.push("Mission complete. Well done for finishing!");
 		speaker.speak(parts.filter(Boolean).join(" "));
-	}, [speaker, spokenKey, gate, view.item, view.explanationSteps, view.phase]);
+	}, [speaker, spokenKey, gate, saved, view.item, view.explanationSteps, view.phase]);
 	useEffect(() => {
 		if (!speaker.supported || !session.hint || lastHint.current === session.hint) return;
 		lastHint.current = session.hint;
@@ -90,6 +95,7 @@ function LessonPage() {
 			setAnswer("");
 			setHeard(null);
 			setGate(next.feedback);
+			setSaved(!next.feedback && next.view.item !== null);
 		}
 		if (data.action === "continue") setTutorText(null);
 	});
@@ -215,14 +221,21 @@ function LessonPage() {
 					</ExplanationStepper>
 				)}
 
-				{view.item && !gate && (
+				{saved && <AnswerSaved key={spokenKey} onNext={() => setSaved(false)} />}
+
+				{view.item && !gate && !saved && (
 					<section className="card space-y-4" data-testid="question">
 						{view.item.prompt.includes(BLANK) && <p className="meta">Find the missing number</p>}
 						<p className="font-display text-4xl leading-tight" data-testid="prompt" data-prompt={view.item.prompt}>
 							<PromptText prompt={view.item.prompt} />
 						</p>
 						{view.item.choices ? (
-							<div className="grid grid-cols-2 gap-3">
+							<fieldset
+								ref={choicesRef}
+								className="grid min-w-0 grid-cols-2 gap-3"
+								aria-label="Answer choices"
+								onKeyDown={moveChoiceFocus}
+							>
 								{view.item.choices.map((c) => (
 									<button
 										key={c}
@@ -235,7 +248,7 @@ function LessonPage() {
 										{c}
 									</button>
 								))}
-							</div>
+							</fieldset>
 						) : (
 							<form
 								className="flex gap-2"
@@ -292,6 +305,7 @@ function LessonPage() {
 
 				{view.phase === "complete" && session.result && (
 					<section className="space-y-6" data-testid="result">
+						<Confetti />
 						<div className="grid items-center gap-6 sm:grid-cols-[1fr_auto]">
 							<div className="space-y-3">
 								<p className="meta">Mission complete</p>
@@ -317,27 +331,11 @@ function LessonPage() {
 							</ul>
 						</div>
 
-						<div className="card space-y-3">
-							<ConfidenceScale
-								label="And now, how sure do you feel?"
-								value={confidence.after}
-								before={confidence.before}
-								onChange={(value) => void act.run({ action: "confidence", moment: "after", value })}
-							/>
-							{confidence.before !== undefined && confidence.after !== undefined && (
-								<p className="text-sm text-soft" data-testid="confidence-change">
-									Before: {confidence.before} of 5 · Now: {confidence.after} of 5.{" "}
-									{confidence.after > confidence.before
-										? "Practice paid off."
-										: confidence.after < confidence.before
-											? "That is normal after a solo check. The review will help."
-											: "Steady. The review check will show how it lasts."}
-								</p>
-							)}
-							{confidence.before !== undefined && confidence.after === undefined && (
-								<p className="text-xs text-muted">The dashed box is what you chose before the mission.</p>
-							)}
-						</div>
+						<RateConfidence
+							before={confidence.before}
+							after={confidence.after}
+							onRate={(value) => void act.run({ action: "confidence", moment: "after", value })}
+						/>
 
 						{session.result.nextReviewAt && (
 							<div className="card flex items-center gap-5">
@@ -433,4 +431,17 @@ function VoiceControls({
 			{listener.error && <p className="text-sm text-soft">{listener.error}</p>}
 		</div>
 	);
+}
+
+const CHOICE_STEPS: Record<string, number> = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -2, ArrowDown: 2 };
+
+function moveChoiceFocus(e: KeyboardEvent<HTMLFieldSetElement>) {
+	const step = CHOICE_STEPS[e.key];
+	if (!step) return;
+	const buttons = [...e.currentTarget.querySelectorAll("button")];
+	const current = buttons.indexOf(document.activeElement as HTMLButtonElement);
+	if (current < 0) return;
+	e.preventDefault();
+	const count = buttons.length;
+	buttons[(((current + step) % count) + count) % count]?.focus();
 }

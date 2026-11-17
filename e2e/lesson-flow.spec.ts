@@ -29,7 +29,10 @@ async function answerCurrent(page: Page, wrong = false) {
 			? texts.findIndex((t) => normalise(t) !== solve(prompt))
 			: texts.findIndex((t) => normalise(t) === answer);
 		expect(idx, `choice for ${prompt}`).toBeGreaterThanOrEqual(0);
-		await choices.nth(idx).click();
+		await expect(choices.first()).toBeFocused();
+		for (let i = 0; i < idx; i++) await page.keyboard.press("ArrowRight");
+		await expect(choices.nth(idx)).toBeFocused();
+		await page.keyboard.press("Enter");
 	} else {
 		await page.getByLabel("Your answer").fill(answer);
 		await page.getByRole("button", { name: "Check" }).click();
@@ -54,7 +57,11 @@ async function completeLesson(page: Page, { wrongInGuided = 0 } = {}) {
 		if (wrong) wrongLeft--;
 		await answerCurrent(page, wrong);
 		await expect(page.getByTestId("phase")).not.toHaveText(position);
-		if (phase !== "guided") continue;
+		if (phase !== "guided") {
+			const next = await page.getByTestId("phase").getAttribute("data-phase");
+			if (next === phase) await expect(page.getByTestId("answer-saved")).toBeVisible();
+			continue;
+		}
 		const feedback = page.getByTestId("feedback");
 		await expect(feedback).toHaveAttribute("data-correct", String(!wrong));
 		await expect(page.getByTestId("question")).toHaveCount(0);
@@ -62,7 +69,8 @@ async function completeLesson(page: Page, { wrongInGuided = 0 } = {}) {
 			await expect(feedback.getByTestId("correct-answer")).toBeVisible();
 			await page.waitForTimeout(2500);
 			await expect(page.getByTestId("question")).toHaveCount(0);
-			await feedback.getByTestId("understood").click();
+			await expect(feedback.getByTestId("understood")).toBeFocused();
+			await page.keyboard.press("Enter");
 		}
 		await expect(feedback).toHaveCount(0);
 	}
@@ -95,6 +103,11 @@ test("two learners complete separate lessons with isolated progress", async ({ p
 		.getByTestId("confidence")
 		.getByRole("button", { name: /^4 of 5/ })
 		.click();
+	const thanks = result.getByTestId("confidence-thanks");
+	await expect(thanks).toContainText("Thanks for rating!");
+	await expect(thanks.getByTestId("confidence-change")).toContainText("Before: 2 of 5 · Now: 4 of 5");
+	await expect(thanks).toHaveCount(0, { timeout: 5000 });
+	await expect(result.getByTestId("confidence")).toHaveCount(0);
 	await expect(result.getByTestId("confidence-change")).toContainText("Before: 2 of 5 · Now: 4 of 5");
 	await page.evaluate(() => localStorage.clear());
 	await page.reload();
