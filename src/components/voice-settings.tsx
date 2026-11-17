@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { setStudentVoiceFn } from "#/server/functions";
+import { useListener } from "#/voice/use-voice";
 import { ErrorBox, useAction } from "./form";
 
 export function VoiceSettings({
@@ -44,6 +45,34 @@ export function VoiceSettings({
 				Use voice in lessons
 			</label>
 			<ErrorBox error={save.error} />
+			{on && <DeviceSpeech />}
 		</section>
 	);
+}
+
+function DeviceSpeech() {
+	const listener = useListener(true, () => {});
+	const { status, error } = listener;
+	if (status === "downloadable" || status === "downloading") {
+		return (
+			<div className="space-y-2 border-t pt-3" data-testid="speech-pack">
+				<p className="text-sm text-soft">
+					To speak answers, this device needs its speech pack. Download it once here, before the lesson.
+				</p>
+				<button
+					type="button"
+					className="btn-secondary"
+					disabled={status === "downloading"}
+					onClick={() => void listener.install()}
+				>
+					{status === "downloading" ? "Downloading…" : "Download the speech pack"}
+				</button>
+				{error && <p className="text-sm text-soft">{error}</p>}
+			</div>
+		);
+	}
+	if (status === "ready") {
+		return <p className="border-t pt-3 text-sm text-soft">This device is ready for spoken answers.</p>;
+	}
+	return null;
 }
