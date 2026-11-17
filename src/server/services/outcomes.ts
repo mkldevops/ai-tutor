@@ -18,7 +18,7 @@ export type LearningOutcomes = {
 };
 
 const SCORED_MODES = new Set(["independent", "review"]);
-const CALIBRATION_MARGIN = 0.2;
+const CALIBRATION_MARGIN_POINTS = 20;
 
 type SessionInput = Pick<LearningSessionRecord, "id" | "objectiveCode" | "kind" | "completedAt" | "confidence">;
 type AttemptInput = Pick<AttemptRecord, "sessionId" | "mode" | "correct">;
@@ -49,9 +49,9 @@ export function learningOutcomes(
 		const r = score((bySession.get(s.id) ?? []).filter((a) => SCORED_MODES.has(a.mode)));
 		if (r.items === 0) return [];
 		const accuracy = r.correct / r.items;
-		const gap = confidence / 5 - accuracy;
-		const calibration: Calibration =
-			gap > CALIBRATION_MARGIN ? "over" : gap < -CALIBRATION_MARGIN ? "under" : "matches";
+		const gap = confidence * 20 * r.items - r.correct * 100;
+		const margin = CALIBRATION_MARGIN_POINTS * r.items;
+		const calibration: Calibration = gap > margin ? "over" : gap < -margin ? "under" : "matches";
 		return [
 			{
 				sessionId: s.id,

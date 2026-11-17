@@ -46,4 +46,9 @@ describe("learningOutcomes", () => {
 		expect(o.confidence).toMatchObject({ matches: 1, over: 1, under: 1 });
 		expect(o.reviews).toEqual({ completed: 0, held: 0, accuracy: null });
 	});
+
+	it("keeps an exact 20-point gap in the matched bucket", () => {
+		const o = learningOutcomes([session("e", "lesson", { after: 4 })], answers("e", "independent", 3, 2));
+		expect(o.confidence.checks[0]?.calibration).toBe("matches");
+	});
 });
