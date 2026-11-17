@@ -78,6 +78,11 @@ function Explain({
 	extras?: ReactNode;
 	children?: ReactNode;
 }) {
+	const understood = useRef<HTMLButtonElement>(null);
+	useEffect(() => {
+		understood.current?.focus({ preventScroll: true });
+	}, []);
+
 	return (
 		<section className="card space-y-5 p-5 sm:p-6" aria-live="polite" data-testid="feedback" data-correct="false">
 			<p className="note-focus font-semibold">{feedback.message}</p>
@@ -117,7 +122,7 @@ function Explain({
 			)}
 			{children}
 			<div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-t pt-4 explain-extras">
-				<button type="button" className="btn" onClick={onNext} data-testid="understood">
+				<button ref={understood} type="button" className="btn" onClick={onNext} data-testid="understood">
 					I understand, next question
 				</button>
 				{extras}

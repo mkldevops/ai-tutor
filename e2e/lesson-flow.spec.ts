@@ -66,7 +66,8 @@ async function completeLesson(page: Page, { wrongInGuided = 0 } = {}) {
 			await expect(feedback.getByTestId("correct-answer")).toBeVisible();
 			await page.waitForTimeout(2500);
 			await expect(page.getByTestId("question")).toHaveCount(0);
-			await feedback.getByTestId("understood").click();
+			await expect(feedback.getByTestId("understood")).toBeFocused();
+			await page.keyboard.press("Enter");
 		}
 		await expect(feedback).toHaveCount(0);
 	}
