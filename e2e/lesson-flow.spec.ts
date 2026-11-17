@@ -29,7 +29,10 @@ async function answerCurrent(page: Page, wrong = false) {
 			? texts.findIndex((t) => normalise(t) !== solve(prompt))
 			: texts.findIndex((t) => normalise(t) === answer);
 		expect(idx, `choice for ${prompt}`).toBeGreaterThanOrEqual(0);
-		await choices.nth(idx).click();
+		await expect(choices.first()).toBeFocused();
+		for (let i = 0; i < idx; i++) await page.keyboard.press("ArrowRight");
+		await expect(choices.nth(idx)).toBeFocused();
+		await page.keyboard.press("Enter");
 	} else {
 		await page.getByLabel("Your answer").fill(answer);
 		await page.getByRole("button", { name: "Check" }).click();

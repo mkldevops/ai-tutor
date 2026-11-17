@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useRef, useState } from "react";
+import { type KeyboardEvent, useEffect, useRef, useState } from "react";
 import { AnswerFeedback, AnswerSaved } from "#/components/answer-feedback";
 import { ConfidenceScale } from "#/components/confidence-scale";
 import { ExplanationStepper } from "#/components/explanation-stepper";
@@ -44,6 +44,7 @@ function LessonPage() {
 	const [gate, setGate] = useState<Feedback | null>(null);
 	const [saved, setSaved] = useState(false);
 	const inputRef = useRef<HTMLInputElement>(null);
+	const choicesRef = useRef<HTMLFieldSetElement>(null);
 	const { view } = session;
 	const { confidence } = session;
 	const step = flightStep(view.phase);
@@ -64,7 +65,9 @@ function LessonPage() {
 
 	useEffect(() => setSession(initial), [initial]);
 	useEffect(() => {
-		if (view.item && !gate && !saved) inputRef.current?.focus();
+		if (!view.item || gate || saved) return;
+		if (choicesRef.current) choicesRef.current.querySelector("button")?.focus();
+		else inputRef.current?.focus();
 	}, [view.item, gate, saved]);
 	useEffect(() => {
 		const key = gate ? `feedback:${spokenKey}` : spokenKey;
@@ -226,7 +229,12 @@ function LessonPage() {
 							<PromptText prompt={view.item.prompt} />
 						</p>
 						{view.item.choices ? (
-							<div className="grid grid-cols-2 gap-3">
+							<fieldset
+								ref={choicesRef}
+								className="grid min-w-0 grid-cols-2 gap-3"
+								aria-label="Answer choices"
+								onKeyDown={moveChoiceFocus}
+							>
 								{view.item.choices.map((c) => (
 									<button
 										key={c}
@@ -239,7 +247,7 @@ function LessonPage() {
 										{c}
 									</button>
 								))}
-							</div>
+							</fieldset>
 						) : (
 							<form
 								className="flex gap-2"
@@ -437,4 +445,19 @@ function VoiceControls({
 			{listener.error && <p className="text-sm text-soft">{listener.error}</p>}
 		</div>
 	);
+}
+
+const CHOICE_STEPS: Record<string, number> = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -2, ArrowDown: 2 };
+
+function moveChoiceFocus(e: KeyboardEvent<HTMLFieldSetElement>) {
+	const step = CHOICE_STEPS[e.key];
+	if (!step) return;
+	const buttons = [...e.currentTarget.querySelectorAll("button")];
+	const current = buttons.indexOf(document.activeElement as HTMLButtonElement);
+	if (current < 0) return;
+	e.preventDefault();
+	const target = current + step;
+	const next =
+		target < 0 || target >= buttons.length ? (current + Math.sign(step) + buttons.length) % buttons.length : target;
+	buttons[next]?.focus();
 }
