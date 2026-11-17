@@ -42,7 +42,9 @@ async function completeLesson(page: Page, { wrongInGuided = 0 } = {}) {
 		if (phase === "complete") return;
 		if (phase === "instruction") {
 			await expect(page.getByTestId("explanation")).toBeVisible();
-			await page.getByRole("button", { name: "I'm ready to practise" }).click();
+			const ready = page.getByRole("button", { name: "I'm ready to practise" });
+			while (!(await ready.isVisible())) await page.getByRole("button", { name: "Next" }).click();
+			await ready.click();
 			await expect(page.getByTestId("phase")).not.toHaveAttribute("data-phase", "instruction");
 			continue;
 		}

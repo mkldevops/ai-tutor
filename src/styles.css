@@ -409,6 +409,20 @@
 		background: rgb(255 255 255 / 0.08);
 		border-color: rgb(255 255 255 / 0.14);
 	}
+	.explain-figure {
+		@apply font-display text-4xl leading-none font-bold tracking-tight tabular-nums sm:text-6xl;
+		color: var(--ui-fg);
+	}
+	.explain-dot {
+		@apply size-2 rounded-full;
+		background: var(--ui-card-line);
+	}
+	.explain-dot[data-on] {
+		background: var(--color-accent);
+	}
+	.explain-extras {
+		border-color: var(--ui-card-line);
+	}
 	.note-correct {
 		@apply rounded-[10px] border p-4;
 		border-color: color-mix(in oklab, var(--color-accent) 55%, transparent);

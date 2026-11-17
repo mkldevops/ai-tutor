@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { ConfidenceScale } from "#/components/confidence-scale";
+import { ExplanationStepper } from "#/components/explanation-stepper";
 import { FlightPlan } from "#/components/flight-plan";
 import { ErrorBox, useAction } from "#/components/form";
 import { flightStep } from "#/components/learning-map";
@@ -64,10 +65,10 @@ function LessonPage() {
 		lastSpoken.current = spokenKey;
 		const parts = [session.feedback?.message];
 		if (view.item) parts.push(questionSpeech(view.item));
-		else if (view.explanation) parts.push(...view.explanation);
+		else if (view.explanationSteps?.[0]) parts.push(view.explanationSteps[0].text);
 		else if (view.phase === "complete") parts.push("Mission complete. Well done for finishing!");
 		speaker.speak(parts.filter(Boolean).join(" "));
-	}, [speaker, spokenKey, session.feedback, view.item, view.explanation, view.phase]);
+	}, [speaker, spokenKey, session.feedback, view.item, view.explanationSteps, view.phase]);
 	useEffect(() => {
 		if (!speaker.supported || !session.hint || lastHint.current === session.hint) return;
 		lastHint.current = session.hint;
@@ -122,7 +123,15 @@ function LessonPage() {
 				{view.phase !== "complete" && (
 					<div className="flex items-center gap-4">
 						<Nova state={novaState} size={160} priority className="w-28 shrink-0 sm:w-40" />
-						<p className="bubble text-soft">{session.objective.statement}</p>
+						<div className="bubble">
+							<p className="meta">Today's mission</p>
+							<p
+								className="mt-1 font-display text-2xl leading-tight font-bold sm:text-3xl"
+								data-testid="objective-title"
+							>
+								{session.objective.title}
+							</p>
+						</div>
 					</div>
 				)}
 
@@ -152,43 +161,27 @@ function LessonPage() {
 					</section>
 				)}
 
-				{view.phase === "instruction" && view.explanation && (
-					<section className="card space-y-3" data-testid="explanation">
-						{view.explanation.map((line) => (
-							<p key={line} className="text-lg leading-relaxed">
-								{line}
-							</p>
-						))}
+				{view.phase === "instruction" && view.explanationSteps && view.explanationSteps.length > 0 && (
+					<ExplanationStepper
+						key={session.sessionId}
+						steps={view.explanationSteps}
+						onStep={speaker.speak}
+						onReady={() => void act.run({ action: "continue" })}
+						readyPending={act.pending}
+						onHear={speaker.supported ? (text) => speaker.speak([text, tutorText ?? ""].join(" ")) : undefined}
+						extras={
+							<button type="button" className="link" disabled={tutor.pending} onClick={() => void tutor.run()}>
+								{tutor.pending ? "Thinking…" : "Explain it another way"}
+							</button>
+						}
+					>
 						{tutorText && (
 							<div className="bubble text-sm" data-testid="tutor-text">
 								{tutorText}
 							</div>
 						)}
-						<div className="flex flex-wrap gap-2 pt-2">
-							<button
-								type="button"
-								className="btn"
-								disabled={act.pending}
-								onClick={() => void act.run({ action: "continue" })}
-							>
-								I'm ready to practise
-							</button>
-							<button type="button" className="btn-secondary" disabled={tutor.pending} onClick={() => void tutor.run()}>
-								{tutor.pending ? "Thinking…" : "Explain it another way"}
-							</button>
-							{speaker.supported && (
-								<button
-									type="button"
-									className="btn-secondary"
-									data-testid="hear-again"
-									onClick={() => speaker.speak([...(view.explanation ?? []), tutorText ?? ""].join(" "))}
-								>
-									Hear it again
-								</button>
-							)}
-						</div>
 						<ErrorBox error={tutor.error} />
-					</section>
+					</ExplanationStepper>
 				)}
 
 				{view.item && (
