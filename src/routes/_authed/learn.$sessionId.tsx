@@ -6,6 +6,8 @@ import { ExplanationStepper } from "#/components/explanation-stepper";
 import { FlightPlan } from "#/components/flight-plan";
 import { ErrorBox, useAction } from "#/components/form";
 import { flightStep } from "#/components/learning-map";
+import { BLANK, numberLineFor } from "#/components/missing-number";
+import { NumberLine, PromptText } from "#/components/missing-number-view";
 import { Nova } from "#/components/nova";
 import { novaStateForLesson } from "#/components/nova-state";
 import { formatDate, formatWeekday, StatusBadge } from "#/components/status";
@@ -101,6 +103,8 @@ function LessonPage() {
 		if (!value.trim() || act.pending) return;
 		void act.run({ action: "answer", response: value.trim() });
 	};
+
+	const hintLine = session.hint && view.item ? numberLineFor(view.item.prompt) : null;
 
 	const novaState = novaStateForLesson({
 		phase: view.phase,
@@ -213,8 +217,9 @@ function LessonPage() {
 
 				{view.item && !gate && (
 					<section className="card space-y-4" data-testid="question">
-						<p className="font-display text-4xl leading-tight" data-testid="prompt">
-							{view.item.prompt}
+						{view.item.prompt.includes(BLANK) && <p className="meta">Find the missing number</p>}
+						<p className="font-display text-4xl leading-tight" data-testid="prompt" data-prompt={view.item.prompt}>
+							<PromptText prompt={view.item.prompt} />
 						</p>
 						{view.item.choices ? (
 							<div className="grid grid-cols-2 gap-3">
@@ -274,9 +279,10 @@ function LessonPage() {
 							</button>
 						)}
 						{session.hint && (
-							<p className="note-hint" data-testid="hint">
-								Hint: {session.hint}
-							</p>
+							<div className="note-hint" data-testid="hint">
+								<p>Hint: {session.hint}</p>
+								{hintLine && <NumberLine line={hintLine} />}
+							</div>
 						)}
 						{(view.phase === "independent" || view.phase === "review" || view.phase === "diagnostic") && (
 							<p className="meta">No hints here. Just try your best.</p>

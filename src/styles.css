@@ -438,6 +438,31 @@
 		border-color: color-mix(in oklab, var(--color-hint) 45%, transparent);
 		background: color-mix(in oklab, var(--color-hint) 10%, transparent);
 	}
+	.blank-slot {
+		@apply mx-1 inline-grid min-w-[1.6em] place-items-center rounded-lg border-2 border-dashed px-2 align-middle;
+		line-height: 1.15;
+		border-color: var(--color-hint);
+		background: color-mix(in oklab, var(--color-hint) 14%, transparent);
+		color: var(--color-hint);
+	}
+	.number-line {
+		@apply mt-3 block h-auto w-full;
+		color: var(--ui-fg);
+	}
+	.number-line__axis,
+	.number-line__tick {
+		stroke: currentColor;
+		stroke-width: 2;
+		stroke-linecap: round;
+	}
+	.number-line__mark {
+		fill: var(--color-hint);
+	}
+	.number-line__label {
+		fill: currentColor;
+		font-family: var(--font-mono);
+		font-size: 18px;
+	}
 	.add-trigger {
 		@apply px-3 sm:px-4;
 	}
