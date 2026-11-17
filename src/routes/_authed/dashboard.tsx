@@ -1,8 +1,8 @@
-import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
-import { ErrorBox, Field, useAction } from "#/components/form";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { AddLearnerDialog } from "#/components/add-learner-dialog";
 import { Nova } from "#/components/nova";
 import { formatDate } from "#/components/status";
-import { createStudentFn, getFamilyOverviewFn } from "#/server/functions";
+import { getFamilyOverviewFn } from "#/server/functions";
 import type { LearnerOverview } from "#/server/services/overview";
 
 export const Route = createFileRoute("/_authed/dashboard")({
@@ -12,26 +12,17 @@ export const Route = createFileRoute("/_authed/dashboard")({
 
 function Dashboard() {
 	const students = Route.useLoaderData();
-	const router = useRouter();
-	const create = useAction(async (form: HTMLFormElement) => {
-		const data = new FormData(form);
-		await createStudentFn({
-			data: {
-				displayName: String(data.get("displayName")),
-				yearGroup: Number(data.get("yearGroup")) as 3 | 5,
-			},
-		});
-		form.reset();
-		await router.invalidate();
-	});
 
 	return (
 		<main className="page space-y-8">
 			<header className="space-y-3">
 				<p className="meta">Family dashboard · Key Stage 2 maths</p>
-				<h1 className="h1">
-					Your <i>learners</i>
-				</h1>
+				<div className="flex items-center justify-between gap-4">
+					<h1 className="h1">
+						Your <i>learners</i>
+					</h1>
+					<AddLearnerDialog />
+				</div>
 				<p className="max-w-xl text-ink-soft">
 					Each learner has their own missions, progress and review dates. Open one to see what to practise next.
 				</p>
@@ -43,7 +34,7 @@ function Dashboard() {
 						<Nova state="empty" size={120} className="shrink-0" />
 						<div className="space-y-1">
 							<p className="font-display text-2xl">No learners yet.</p>
-							<p className="text-soft">Add one below and Nova will plan their first mission.</p>
+							<p className="text-soft">Tap + to add one and Nova will plan their first mission.</p>
 						</div>
 					</div>
 				) : (
@@ -75,33 +66,6 @@ function Dashboard() {
 						))}
 					</ul>
 				)}
-			</section>
-
-			<section className="card max-w-md">
-				<h2 className="h2 mb-1">Add a learner</h2>
-				<p className="mb-4 text-sm text-ink-soft">
-					Use a first name or nickname only. No full names or school details are needed.
-				</p>
-				<form
-					className="space-y-4"
-					onSubmit={(e) => {
-						e.preventDefault();
-						void create.run(e.currentTarget);
-					}}
-				>
-					<Field label="Display name" name="displayName" required maxLength={40} />
-					<label className="block">
-						<span className="label">Year group</span>
-						<select name="yearGroup" className="input" defaultValue="3">
-							<option value="3">Year 3</option>
-							<option value="5">Year 5</option>
-						</select>
-					</label>
-					<ErrorBox error={create.error} />
-					<button className="btn" type="submit" disabled={create.pending}>
-						Add learner
-					</button>
-				</form>
 			</section>
 		</main>
 	);

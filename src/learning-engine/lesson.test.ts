@@ -167,6 +167,9 @@ describe("lesson flow", () => {
 		const r1 = submitAnswer(s, "-1");
 		expect(r1.feedback?.correct).toBe(false);
 		expect(r1.feedback?.workedSolution).toBeTruthy();
+		expect(r1.feedback?.yourAnswer).toBe("-1");
+		expect(r1.feedback?.correctAnswer).toBe(currentItem(s)?.answer);
+		expect(r1.feedback?.question).toBe(currentItem(s)?.prompt);
 		const r2 = submitAnswer(r1.state, "-1");
 		expect(currentItem(r2.state)?.objectiveCode).toBe("MA-Y2-AS-MENTAL");
 	});

@@ -438,6 +438,107 @@
 		border-color: color-mix(in oklab, var(--color-hint) 45%, transparent);
 		background: color-mix(in oklab, var(--color-hint) 10%, transparent);
 	}
+	.add-trigger {
+		@apply px-3 sm:px-4;
+	}
+	.add-plus {
+		@apply grid size-6 place-items-center text-2xl leading-none font-bold;
+		transition: rotate 320ms cubic-bezier(0.34, 1.56, 0.64, 1);
+	}
+	.add-trigger:hover .add-plus,
+	.add-trigger:focus-visible .add-plus {
+		rotate: 90deg;
+	}
+	.modal {
+		@apply m-auto w-[min(28rem,calc(100vw-2rem))] max-w-none rounded-[14px] border p-0;
+		background: var(--ui-card);
+		color: var(--ui-fg);
+		border-color: var(--ui-card-line);
+		box-shadow: 0 24px 60px -12px rgb(10 14 40 / 0.35);
+		opacity: 0;
+		translate: 0 24px;
+		scale: 0.94;
+		transition:
+			opacity 200ms ease-out,
+			translate 360ms cubic-bezier(0.34, 1.4, 0.64, 1),
+			scale 360ms cubic-bezier(0.34, 1.4, 0.64, 1),
+			overlay 360ms allow-discrete,
+			display 360ms allow-discrete;
+	}
+	.modal[open] {
+		opacity: 1;
+		translate: 0 0;
+		scale: 1;
+		@starting-style {
+			opacity: 0;
+			translate: 0 24px;
+			scale: 0.94;
+		}
+	}
+	.modal::backdrop {
+		background: rgb(10 14 40 / 0);
+		backdrop-filter: blur(0);
+		transition:
+			background 280ms ease-out,
+			backdrop-filter 280ms ease-out,
+			overlay 280ms allow-discrete,
+			display 280ms allow-discrete;
+	}
+	.modal[open]::backdrop {
+		background: rgb(10 14 40 / 0.45);
+		backdrop-filter: blur(4px);
+		@starting-style {
+			background: rgb(10 14 40 / 0);
+			backdrop-filter: blur(0);
+		}
+	}
+	.modal-body {
+		@apply p-5 sm:p-6;
+	}
+	.modal[open] .modal-body > * {
+		animation: modal-rise 420ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+	}
+	.modal[open] .modal-body > *:nth-child(2) {
+		animation-delay: 70ms;
+	}
+	.modal[open] .modal-nova {
+		animation: modal-wave 700ms cubic-bezier(0.34, 1.56, 0.64, 1) 120ms both;
+	}
+	.modal-close {
+		@apply grid size-9 shrink-0 place-items-center rounded-full text-2xl leading-none;
+		color: var(--ui-muted);
+		transition:
+			background 150ms,
+			rotate 200ms;
+	}
+	.modal-close:hover {
+		background: var(--ui-ghost-hover);
+		rotate: 90deg;
+	}
+	.celebrate {
+		@apply py-6;
+		animation: celebrate-in 240ms ease-out;
+	}
+	.celebrate-track {
+		@apply mx-auto h-1 max-w-48 overflow-hidden rounded-full;
+		background: var(--ui-card-line);
+	}
+	.celebrate-bar {
+		@apply h-full origin-left rounded-full;
+		background: var(--color-accent);
+		animation: celebrate-countdown linear forwards;
+	}
+	.answer-review {
+		@apply space-y-1 rounded-[8px] border p-3;
+		border-color: var(--ui-card-line);
+	}
+	.answer-review[data-kind="yours"] dd {
+		color: var(--ui-muted);
+	}
+	.answer-review[data-kind="right"] {
+		border-color: color-mix(in oklab, var(--color-accent) 55%, transparent);
+		background: color-mix(in oklab, var(--color-accent) 10%, transparent);
+	}
 	.error {
 		@apply rounded-lg border px-3 py-2 text-sm;
 		border-color: color-mix(in oklab, var(--color-focus) 50%, transparent);
@@ -478,5 +579,50 @@
 	.nova {
 		@apply block max-w-full select-none object-contain;
 		height: auto;
+	}
+}
+
+@keyframes celebrate-in {
+	from {
+		opacity: 0;
+		transform: scale(0.96);
+	}
+	to {
+		opacity: 1;
+		transform: scale(1);
+	}
+}
+
+@keyframes celebrate-countdown {
+	from {
+		transform: scaleX(1);
+	}
+	to {
+		transform: scaleX(0);
+	}
+}
+
+@keyframes modal-rise {
+	from {
+		opacity: 0;
+		transform: translateY(10px);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+
+@keyframes modal-wave {
+	0% {
+		opacity: 0;
+		transform: translateY(12px) rotate(-12deg) scale(0.8);
+	}
+	60% {
+		opacity: 1;
+		transform: translateY(-4px) rotate(6deg) scale(1.04);
+	}
+	100% {
+		transform: translateY(0) rotate(0) scale(1);
 	}
 }
