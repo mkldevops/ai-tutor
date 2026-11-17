@@ -50,7 +50,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
 		<html lang="en">
 			<head>
 				{/* biome-ignore lint/security/noDangerouslySetInnerHtml: static build-time script */}
-				<script dangerouslySetInnerHTML={{ __html: assetRecoveryScript }} />
+				<script suppressHydrationWarning dangerouslySetInnerHTML={{ __html: assetRecoveryScript }} />
 				<HeadContent />
 			</head>
 			<body>
