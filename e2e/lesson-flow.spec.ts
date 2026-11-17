@@ -20,7 +20,7 @@ async function addLearner(page: Page, name: string, year: "3" | "5") {
 }
 
 async function answerCurrent(page: Page, wrong = false) {
-	const prompt = (await page.getByTestId("prompt").innerText()).trim();
+	const prompt = ((await page.getByTestId("prompt").getAttribute("data-prompt")) ?? "").trim();
 	const answer = wrong ? "999999" : solve(prompt);
 	const choices = page.getByTestId("question").getByTestId("choice");
 	if ((await choices.count()) > 0) {

@@ -85,10 +85,18 @@ async function startVoiceLesson(page: Page, family: string) {
 }
 
 async function untilTypedQuestion(page: Page) {
-	for (let step = 0; step < 10; step++) {
+	for (let step = 0; step < 20; step++) {
+		if ((await page.getByTestId("phase").getAttribute("data-phase")) === "instruction") {
+			const ready = page.getByRole("button", { name: "I'm ready to practise" });
+			while (!(await ready.isVisible())) await page.getByRole("button", { name: "Next" }).click();
+			await ready.click();
+			await expect(page.getByTestId("phase")).not.toHaveAttribute("data-phase", "instruction");
+			continue;
+		}
+		await expect(page.getByTestId("question")).toBeVisible();
+		if (await page.getByLabel("Your answer").isVisible()) return;
 		const choices = page.getByTestId("question").getByTestId("choice");
-		if ((await choices.count()) === 0) return;
-		const prompt = (await page.getByTestId("prompt").innerText()).trim();
+		const prompt = ((await page.getByTestId("prompt").getAttribute("data-prompt")) ?? "").trim();
 		const position = (await page.getByTestId("phase").textContent()) ?? "";
 		const texts = await choices.allInnerTexts();
 		await choices.nth(texts.findIndex((t) => normalise(t) === solve(prompt))).click();
@@ -101,14 +109,14 @@ test("a learner hears the question and says the answer on the device", async ({ 
 	await fakeSpeech(page, true);
 	await startVoiceLesson(page, "Voice family");
 
-	const prompt = (await page.getByTestId("prompt").innerText()).trim();
+	const prompt = ((await page.getByTestId("prompt").getAttribute("data-prompt")) ?? "").trim();
 	await expect
 		.poll(() => page.evaluate(() => (window as unknown as VoiceWindow).__spoken.at(-1)))
 		.toContain(prompt.split(" ")[0]);
 	expect(await page.evaluate(() => (window as unknown as VoiceWindow).__spoken.at(-1))).not.toMatch(/[×÷−☐]/);
 
 	await untilTypedQuestion(page);
-	const typedPrompt = (await page.getByTestId("prompt").innerText()).trim();
+	const typedPrompt = ((await page.getByTestId("prompt").getAttribute("data-prompt")) ?? "").trim();
 	const answer = solve(typedPrompt);
 	await page.evaluate((a) => {
 		(window as unknown as VoiceWindow).__say = `the answer is ${a}`;
@@ -133,7 +141,7 @@ test("without on-device recognition the learner types and still hears the questi
 	await expect(page.getByTestId("say-it")).toHaveCount(0);
 	await expect(page.getByTestId("hear-again")).toBeVisible();
 
-	const answer = solve((await page.getByTestId("prompt").innerText()).trim());
+	const answer = solve(((await page.getByTestId("prompt").getAttribute("data-prompt")) ?? "").trim());
 	await page.getByLabel("Your answer").fill(answer);
 	const position = (await page.getByTestId("phase").textContent()) ?? "";
 	await page.getByRole("button", { name: "Check" }).click();
