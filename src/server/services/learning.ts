@@ -271,8 +271,9 @@ export async function recomputeCompetency(
 	}
 
 	const pending = await store.revision_schedules.list({ studentId, objectiveCode, status: "pending" });
-	const due = nextReviewDate(decision.status, now);
 	if (decision.status !== previous || pending.length === 0) {
+		const streak = decision.status === previous ? await successfulReviews(store, studentId, objectiveCode) : 0;
+		const due = nextReviewDate(decision.status, now, streak);
 		for (const p of pending) await store.revision_schedules.update(p.id, { status: "superseded" });
 		if (due && ["secure", "mastered", "needs_review"].includes(decision.status)) {
 			await store.revision_schedules.create({
@@ -285,6 +286,15 @@ export async function recomputeCompetency(
 		}
 	}
 	return comp;
+}
+
+async function successfulReviews(store: DataStore, studentId: string, objectiveCode: string) {
+	const [events, done] = await Promise.all([
+		store.mastery_events.listAll({ studentId, objectiveCode }),
+		store.revision_schedules.listAll({ studentId, objectiveCode, status: "done" }),
+	]);
+	const since = Math.max(0, ...events.map((e) => Date.parse(e.createdAt)));
+	return done.filter((d) => Date.parse(d.createdAt) >= since).length;
 }
 
 export async function overrideCompetency(
