@@ -1,7 +1,7 @@
 import { createFileRoute, useRouter } from "@tanstack/react-router";
 import { ErrorBox, useAction } from "#/components/form";
 import { formatDate, StatusBadge } from "#/components/status";
-import { DONE, useProgress } from "#/components/student-progress";
+import { DONE, type Objective, useProgress } from "#/components/student-progress";
 import type { CompetencyStatus } from "#/domain/types";
 import { overrideCompetencyFn } from "#/server/functions";
 
@@ -70,6 +70,8 @@ function ProgressTab() {
 								))}
 							</ul>
 						)}
+						<ObjectiveHistory history={o.history} code={o.code} />
+
 						{o.override && (
 							<p className="note-hint text-sm">
 								Parent override: {o.override.status} — “{o.override.reason}” (computed: {o.computedStatus})
@@ -106,6 +108,46 @@ function ProgressTab() {
 					</ul>
 				)}
 			</section>
+		</div>
+	);
+}
+
+function ObjectiveHistory({ history, code }: { history: Objective["history"]; code: string }) {
+	const max = Math.max(1, ...history.weeks.map((w) => w.answers));
+	const active = history.weeks.some((w) => w.answers > 0) || history.changes.length > 0;
+	if (!active) return null;
+	return (
+		<div className="space-y-3 border-t border-line pt-4" data-testid={`history-${code}`}>
+			<p className="text-xs font-medium text-ink-mute">Last 6 weeks</p>
+			<ol className="flex h-16 items-end gap-2" aria-label="Answers per week">
+				{history.weeks.map((w) => {
+					const label = `Week of ${formatDate(w.start)}: ${w.correct} correct out of ${w.answers}`;
+					return (
+						<li key={w.start} className="flex flex-1 flex-col items-center gap-1" title={label} aria-label={label}>
+							<div
+								className="flex w-full flex-col-reverse overflow-hidden rounded-sm bg-brand-soft"
+								style={{ height: `${(w.answers / max) * 48 + 2}px` }}
+							>
+								<div
+									className="w-full bg-brand"
+									style={{ height: w.answers ? `${(w.correct / w.answers) * 100}%` : "0%" }}
+								/>
+							</div>
+							<span className="text-[10px] text-ink-mute">{w.answers || "·"}</span>
+						</li>
+					);
+				})}
+			</ol>
+			{history.changes.length > 0 && (
+				<ol className="space-y-1 text-sm text-ink-soft" aria-label="Status history">
+					{history.changes.map((c) => (
+						<li key={`${c.at}-${c.toStatus}`}>
+							{formatDate(c.at)} · {c.fromStatus} → <strong>{c.toStatus}</strong>
+							{c.actor === "parent" ? " (parent)" : ""}
+						</li>
+					))}
+				</ol>
+			)}
 		</div>
 	);
 }

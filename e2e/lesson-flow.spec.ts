@@ -96,6 +96,12 @@ test("two learners complete separate lessons with isolated progress", async ({ p
 	await expect(avaObjective.getByRole("button", { name: /Review due/ })).toBeDisabled();
 	await expect(page.getByTestId("objective-MA-Y3-MD-TABLES-348")).toBeVisible();
 
+	await page.getByRole("link", { name: "Progress", exact: true }).click();
+	const avaHistory = page.getByTestId("history-MA-Y3-AS-MENTAL");
+	await expect(avaHistory.getByRole("list", { name: "Answers per week" }).getByRole("listitem")).toHaveCount(6);
+	await expect(avaHistory.getByRole("list", { name: "Status history" })).toContainText("secure");
+	await expect(page.getByTestId("history-MA-Y3-MD-TABLES-348")).toHaveCount(0);
+
 	await page.getByRole("link", { name: "← All learners" }).click();
 	const avaCard = page.getByTestId("learner-Ava");
 	await expect(avaCard.getByTestId("overview-secure")).toContainText(/^1/);
