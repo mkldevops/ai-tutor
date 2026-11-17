@@ -1,4 +1,5 @@
 import { createRootRoute, HeadContent, Link, Scripts } from "@tanstack/react-router";
+import { assetRecoveryScript } from "#/asset-recovery";
 import { Nova } from "#/components/nova";
 import appCss from "../styles.css?url";
 
@@ -48,6 +49,8 @@ function RootDocument({ children }: { children: React.ReactNode }) {
 	return (
 		<html lang="en">
 			<head>
+				{/* biome-ignore lint/security/noDangerouslySetInnerHtml: static build-time script */}
+				<script dangerouslySetInnerHTML={{ __html: assetRecoveryScript }} />
 				<HeadContent />
 			</head>
 			<body>
