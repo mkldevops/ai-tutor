@@ -228,7 +228,7 @@ export async function recomputeCompetency(
 	now: Date,
 ): Promise<CompetencyRecord> {
 	const { store } = deps;
-	const attempts = await store.assessment_attempts.list({ studentId, objectiveCode }, { limit: 500 });
+	const attempts = await store.assessment_attempts.list({ studentId, objectiveCode }, { limit: 500, latest: true });
 	const decision = evaluateMastery(
 		attempts.map((a) => ({
 			sessionId: a.sessionId,
@@ -347,9 +347,9 @@ export async function getStudentProgress(deps: Deps, actor: Actor, studentId: st
 	const [competencies, schedules, sessions, events, attempts] = await Promise.all([
 		store.student_competencies.list({ studentId }),
 		store.revision_schedules.list({ studentId, status: "pending" }),
-		store.learning_sessions.list({ studentId }),
-		store.mastery_events.list({ studentId }),
-		store.assessment_attempts.list({ studentId }, { limit: 500 }),
+		store.learning_sessions.list({ studentId }, { latest: true }),
+		store.mastery_events.list({ studentId }, { latest: true }),
+		store.assessment_attempts.list({ studentId }, { limit: 500, latest: true }),
 	]);
 	return {
 		student,

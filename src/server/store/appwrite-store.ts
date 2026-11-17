@@ -5,6 +5,7 @@ import {
 	type DataStore,
 	type Filter,
 	JSON_COLUMNS,
+	type ListOptions,
 	type NewRecord,
 	type Table,
 	type TableMap,
@@ -58,13 +59,17 @@ class AppwriteTable<T extends BaseRecord> implements Table<T> {
 		}
 	}
 
-	async list(filter: Filter<T>, opts: { limit?: number } = {}) {
+	async list(filter: Filter<T>, opts: ListOptions = {}) {
 		const queries = Object.entries(filter).map(([k, v]) =>
 			v === null ? Query.isNull(k) : Query.equal(k, v as string | number | boolean),
 		);
-		queries.push(Query.orderAsc("$createdAt"), Query.limit(opts.limit ?? 500));
+		queries.push(
+			opts.latest ? Query.orderDesc("$createdAt") : Query.orderAsc("$createdAt"),
+			Query.limit(opts.limit ?? 500),
+		);
 		const res = await this.db.listRows({ databaseId: this.databaseId, tableId: this.tableId, queries });
-		return res.rows.map((r) => this.fromRow(r));
+		const rows = res.rows.map((r) => this.fromRow(r));
+		return opts.latest ? rows.reverse() : rows;
 	}
 
 	async create(data: NewRecord<T>) {

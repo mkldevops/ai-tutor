@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import type { BaseRecord, DataStore, Filter, NewRecord, Table, TableName } from "./types";
+import type { BaseRecord, DataStore, Filter, ListOptions, NewRecord, Table, TableName } from "./types";
 
 class MemoryTable<T extends BaseRecord> implements Table<T> {
 	private rows = new Map<string, T>();
@@ -9,13 +9,13 @@ class MemoryTable<T extends BaseRecord> implements Table<T> {
 		return row ? structuredClone(row) : null;
 	}
 
-	async list(filter: Filter<T>, opts: { limit?: number } = {}) {
+	async list(filter: Filter<T>, opts: ListOptions = {}) {
 		const entries = Object.entries(filter) as [keyof T, unknown][];
-		return [...this.rows.values()]
+		const limit = opts.limit ?? 500;
+		const rows = [...this.rows.values()]
 			.filter((r) => entries.every(([k, v]) => r[k] === v))
-			.sort((a, b) => a.createdAt.localeCompare(b.createdAt))
-			.slice(0, opts.limit ?? 500)
-			.map((r) => structuredClone(r));
+			.sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+		return (opts.latest ? rows.slice(-limit) : rows.slice(0, limit)).map((r) => structuredClone(r));
 	}
 
 	async create(data: NewRecord<T>) {
