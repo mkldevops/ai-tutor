@@ -442,8 +442,6 @@ function moveChoiceFocus(e: KeyboardEvent<HTMLFieldSetElement>) {
 	const current = buttons.indexOf(document.activeElement as HTMLButtonElement);
 	if (current < 0) return;
 	e.preventDefault();
-	const target = current + step;
-	const next =
-		target < 0 || target >= buttons.length ? (current + Math.sign(step) + buttons.length) % buttons.length : target;
-	buttons[next]?.focus();
+	const count = buttons.length;
+	buttons[(((current + step) % count) + count) % count]?.focus();
 }
