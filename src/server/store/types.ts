@@ -182,9 +182,12 @@ export type Filter<T> = Partial<
 	Pick<T, { [K in keyof T]: T[K] extends string | number | boolean | null ? K : never }[keyof T]>
 >;
 
+export type ListOptions = { limit?: number; latest?: boolean };
+
 export interface Table<T extends BaseRecord> {
 	get(id: string): Promise<T | null>;
-	list(filter: Filter<T>, opts?: { limit?: number; orderBy?: "createdAt" }): Promise<T[]>;
+	list(filter: Filter<T>, opts?: ListOptions): Promise<T[]>;
+	listAll(filter: Filter<T>): Promise<T[]>;
 	create(data: NewRecord<T>): Promise<T>;
 	update(id: string, patch: Partial<NewRecord<T>>): Promise<T>;
 	delete(id: string): Promise<void>;

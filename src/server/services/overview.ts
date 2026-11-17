@@ -32,7 +32,7 @@ export async function getFamilyOverview(
 			const [competencies, schedules, attempts] = await Promise.all([
 				store.student_competencies.list({ studentId: s.id, familyId: actor.familyId }),
 				store.revision_schedules.list({ studentId: s.id, familyId: actor.familyId, status: "pending" }),
-				store.assessment_attempts.list({ studentId: s.id, familyId: actor.familyId }, { limit: 500 }),
+				store.assessment_attempts.list({ studentId: s.id, familyId: actor.familyId }, { limit: 500, latest: true }),
 			]);
 			const comps = competencies.filter((c) => codes.has(c.objectiveCode));
 			const pending = schedules.filter((r) => codes.has(r.objectiveCode));

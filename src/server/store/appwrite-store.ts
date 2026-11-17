@@ -5,6 +5,7 @@ import {
 	type DataStore,
 	type Filter,
 	JSON_COLUMNS,
+	type ListOptions,
 	type NewRecord,
 	type Table,
 	type TableMap,
@@ -58,13 +59,35 @@ class AppwriteTable<T extends BaseRecord> implements Table<T> {
 		}
 	}
 
-	async list(filter: Filter<T>, opts: { limit?: number } = {}) {
-		const queries = Object.entries(filter).map(([k, v]) =>
+	private filterQueries(filter: Filter<T>): string[] {
+		return Object.entries(filter).map(([k, v]) =>
 			v === null ? Query.isNull(k) : Query.equal(k, v as string | number | boolean),
 		);
-		queries.push(Query.orderAsc("$createdAt"), Query.limit(opts.limit ?? 500));
+	}
+
+	async listAll(filter: Filter<T>) {
+		const out: T[] = [];
+		const page = 500;
+		let cursor: string | null = null;
+		for (;;) {
+			const queries = [...this.filterQueries(filter), Query.orderAsc("$createdAt"), Query.limit(page)];
+			if (cursor) queries.push(Query.cursorAfter(cursor));
+			const res = await this.db.listRows({ databaseId: this.databaseId, tableId: this.tableId, queries });
+			out.push(...res.rows.map((r) => this.fromRow(r)));
+			if (res.rows.length < page) return out;
+			cursor = res.rows[res.rows.length - 1].$id;
+		}
+	}
+
+	async list(filter: Filter<T>, opts: ListOptions = {}) {
+		const queries = this.filterQueries(filter);
+		queries.push(
+			opts.latest ? Query.orderDesc("$createdAt") : Query.orderAsc("$createdAt"),
+			Query.limit(opts.limit ?? 500),
+		);
 		const res = await this.db.listRows({ databaseId: this.databaseId, tableId: this.tableId, queries });
-		return res.rows.map((r) => this.fromRow(r));
+		const rows = res.rows.map((r) => this.fromRow(r));
+		return opts.latest ? rows.reverse() : rows;
 	}
 
 	async create(data: NewRecord<T>) {
