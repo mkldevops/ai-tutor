@@ -85,9 +85,17 @@ async function startVoiceLesson(page: Page, family: string) {
 }
 
 async function untilTypedQuestion(page: Page) {
-	for (let step = 0; step < 10; step++) {
+	for (let step = 0; step < 20; step++) {
+		if ((await page.getByTestId("phase").getAttribute("data-phase")) === "instruction") {
+			const ready = page.getByRole("button", { name: "I'm ready to practise" });
+			while (!(await ready.isVisible())) await page.getByRole("button", { name: "Next" }).click();
+			await ready.click();
+			await expect(page.getByTestId("phase")).not.toHaveAttribute("data-phase", "instruction");
+			continue;
+		}
+		await expect(page.getByTestId("question")).toBeVisible();
+		if (await page.getByLabel("Your answer").isVisible()) return;
 		const choices = page.getByTestId("question").getByTestId("choice");
-		if ((await choices.count()) === 0) return;
 		const prompt = ((await page.getByTestId("prompt").getAttribute("data-prompt")) ?? "").trim();
 		const position = (await page.getByTestId("phase").textContent()) ?? "";
 		const texts = await choices.allInnerTexts();
