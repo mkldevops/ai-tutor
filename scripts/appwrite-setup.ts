@@ -1,5 +1,7 @@
 import { Client, Storage, TablesDB, TablesDBIndexType } from "node-appwrite";
-import { ENGLAND_NC, OBJECTIVES, PREREQUISITES } from "../src/curriculum/england-nc-maths.ts";
+import { ENGLAND_NC, OBJECTIVES, PREREQUISITES } from "../src/curriculum/england-nc.ts";
+
+const ITEM_TYPES = ["numeric", "multiple_choice", "missing_number", "word_problem", "written"];
 
 type Column =
 	| { kind: "string"; key: string; size: number; required?: boolean }
@@ -71,7 +73,7 @@ export const SCHEMA: TableSpec[] = [
 			{
 				kind: "enum",
 				key: "itemType",
-				elements: ["numeric", "multiple_choice", "missing_number", "word_problem"],
+				elements: ITEM_TYPES,
 				required: true,
 			},
 			{ kind: "string", key: "prompt", size: 500, required: true },
@@ -306,6 +308,26 @@ async function ensure(label: string, fn: () => Promise<unknown>) {
 	}
 }
 
+async function syncEnumElements(
+	db: TablesDB,
+	databaseId: string,
+	tableId: string,
+	c: Extract<Column, { kind: "enum" }>,
+) {
+	const current = (await db.getColumn({ databaseId, tableId, key: c.key })) as { elements?: string[] };
+	const missing = c.elements.filter((e) => !current.elements?.includes(e));
+	if (missing.length === 0) return;
+	await db.updateEnumColumn({
+		databaseId,
+		tableId,
+		key: c.key,
+		elements: [...new Set([...(current.elements ?? []), ...c.elements])],
+		required: c.required ?? false,
+		xdefault: null,
+	});
+	console.log(`updated ${tableId}.${c.key}: added ${missing.join(", ")}`);
+}
+
 async function createColumn(db: TablesDB, databaseId: string, tableId: string, c: Column) {
 	const base = { databaseId, tableId, key: c.key, required: c.required ?? false };
 	switch (c.kind) {
@@ -369,6 +391,7 @@ async function main() {
 		);
 		for (const c of t.columns) {
 			await ensure(`${t.id}.${c.key}`, () => createColumn(db, databaseId, t.id, c));
+			if (c.kind === "enum") await syncEnumElements(db, databaseId, t.id, c);
 		}
 		await waitForColumns(db, databaseId, t.id);
 		for (const ix of t.indexes) {

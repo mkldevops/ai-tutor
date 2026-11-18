@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { getObjective, getPrerequisiteCodes, LESSON_OBJECTIVES_BY_YEAR } from "#/curriculum/england-nc-maths";
+import { getObjective, getPrerequisiteCodes, LESSON_OBJECTIVES_BY_YEAR } from "#/curriculum/england-nc";
 import { hasGenerator } from "#/curriculum/generators";
 import type { CompetencyStatus, Confidence, ConfidenceMoment, SessionKind } from "#/domain/types";
 import {
@@ -43,7 +43,7 @@ export function allowedObjectives(yearGroup: 3 | 5): string[] {
 
 export function printableObjectives(yearGroup: 3 | 5): string[] {
 	const codes = allowedObjectives(yearGroup).flatMap((code) => [code, ...getPrerequisiteCodes(code)]);
-	return [...new Set(codes)].filter(hasGenerator);
+	return [...new Set(codes)].filter((code) => hasGenerator(code) && getObjective(code)?.subject === "maths");
 }
 
 async function requireSession(store: DataStore, actor: Actor, sessionId: string) {

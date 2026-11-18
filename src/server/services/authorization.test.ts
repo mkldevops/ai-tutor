@@ -140,8 +140,22 @@ describe("tenant isolation", () => {
 
 		const pa = await getStudentProgress({ store }, alice, aliceY3);
 		const pb = await getStudentProgress({ store }, bob, bobY5);
-		expect(pa.objectives.map((o) => o.code)).toEqual(["MA-Y3-AS-MENTAL", "MA-Y3-PV-MORE-LESS", "MA-Y3-MD-TABLES-348"]);
-		expect(pb.objectives.map((o) => o.code)).toEqual(["MA-Y5-MD-POWERS10", "MA-Y5-PV-ROUND", "MA-Y5-MD-FACTORS"]);
+		expect(pa.objectives.map((o) => o.code)).toEqual([
+			"MA-Y3-AS-MENTAL",
+			"MA-Y3-PV-MORE-LESS",
+			"MA-Y3-MD-TABLES-348",
+			"EN-Y3-SP-PREFIXES",
+			"EN-Y3-GR-PRESENT-PERFECT",
+			"EN-Y3-PU-INVERTED-COMMAS",
+		]);
+		expect(pb.objectives.map((o) => o.code)).toEqual([
+			"MA-Y5-MD-POWERS10",
+			"MA-Y5-PV-ROUND",
+			"MA-Y5-MD-FACTORS",
+			"EN-Y5-SP-VERB-PREFIXES",
+			"EN-Y5-GR-RELATIVE-CLAUSES",
+			"EN-Y5-GR-POSSIBILITY",
+		]);
 		expect(pa.objectives[0]?.review).not.toBeNull();
 
 		const aAttempts = await store.assessment_attempts.list({ studentId: aliceY3 });

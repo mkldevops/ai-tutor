@@ -5,7 +5,7 @@ import { ImageRejected, validateImage } from "#/worksheets/image";
 import type { DataStore, WorksheetCheckRecord, WorksheetItem } from "../store/types";
 import { AppError, notFound } from "./errors";
 import { type Actor, audit, requireStudent } from "./family";
-import { allowedObjectives, recomputeCompetency } from "./learning";
+import { allowedObjectives, printableObjectives, recomputeCompetency } from "./learning";
 
 export type WorksheetReader = { model: string; generate: VisionGenerate };
 
@@ -43,7 +43,8 @@ export async function checkWorksheetPhoto(
 ): Promise<WorksheetCheckRecord> {
 	const { store, reader } = deps;
 	const student = await requireStudent(store, actor, input.studentId);
-	if (!allowedObjectives(student.yearGroup).includes(input.objectiveCode)) {
+	const code = input.objectiveCode;
+	if (!allowedObjectives(student.yearGroup).includes(code) || !printableObjectives(student.yearGroup).includes(code)) {
 		throw new AppError("invalid", "Objective not available for this learner");
 	}
 	let image: ReturnType<typeof validateImage>;

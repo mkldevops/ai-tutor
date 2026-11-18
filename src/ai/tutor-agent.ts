@@ -3,17 +3,19 @@ import { Agent } from "@mastra/core/agent";
 import { createTool } from "@mastra/core/tools";
 import type { ModelMessage } from "ai";
 import { z } from "zod";
-import { getObjective, getPrerequisiteCodes } from "#/curriculum/england-nc-maths";
+import { getObjective, getPrerequisiteCodes } from "#/curriculum/england-nc";
 import { type RetrievalDeps, retrieveApprovedKnowledge } from "#/knowledge/retrieval";
 import type { AppConfig } from "#/server/config";
 import type { TutorStreamer } from "#/server/services/tutor-chat";
 import type { DataStore } from "#/server/store/types";
 
-export const TUTOR_INSTRUCTIONS = `You are a warm, patient maths tutor for a child in England (Key Stage 2).
+export const TUTOR_INSTRUCTIONS = `You are a warm, patient tutor for a child in England (Key Stage 2), in maths or in English
+(spelling, grammar and punctuation). Teach only the subject of the current curriculum objective.
 Rules:
 - Use short sentences and age-appropriate words. One idea at a time.
 - Teach the method; never just give the answer to a question the child is currently being asked.
-- Use concrete examples and place value language (hundreds, tens, ones, tenths).
+- Use concrete examples. In maths, use place value language (hundreds, tens, ones, tenths). In English, use the
+  grammar terms of the objective (prefix, verb, relative clause, inverted commas) with a short example sentence.
 - Only rely on the curriculum objective and evidence returned by your tools. If you are unsure, say so.
 - Never claim to know exactly what the child understands; describe what their answers suggest.
 - Never ask for or repeat personal information.

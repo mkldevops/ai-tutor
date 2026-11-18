@@ -127,6 +127,17 @@ describe("worksheet photo checks", () => {
 		).rejects.toMatchObject({ code: "invalid" });
 	});
 
+	it("does not check English sheets, which have no paper version", async () => {
+		await expect(
+			checkWorksheetPhoto({ store, reader: readerOf(reading([])) }, alice, {
+				studentId: sam,
+				objectiveCode: "EN-Y3-SP-PREFIXES",
+				imageBase64: JPEG,
+				mimeType: "image/jpeg",
+			}),
+		).rejects.toMatchObject({ code: "invalid" });
+	});
+
 	it("lets a parent correct a misread answer and regrades it", async () => {
 		const res = await check(readerOf(reading([{ question: "6 × 7 =", childAnswer: "47", legibility: "unsure" }])));
 		const reviewed = await reviewWorksheetCheck(store, alice, res.id, {
