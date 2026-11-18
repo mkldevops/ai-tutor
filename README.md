@@ -211,8 +211,10 @@ Index backends: `KNOWLEDGE_INDEX=memory` (default, rebuilt only on approval, so 
   lesson works without it.
 - Rate limits are in-process memory; use a shared store before running several instances.
 - Only Maths. No streaming chat yet.
-- **Voice is a pilot**, off by default and switched on per learner by the parent. Nova reads aloud with the
-  browser's speech synthesis. Spoken answers use the Web Speech API with `processLocally = true` only
+- **Voice is a pilot**, off by default and switched on per learner by the parent. Nova reads aloud with ElevenLabs when
+  `ELEVENLABS_API_KEY` is set (lesson text only, clips cached in the Appwrite bucket `speech`, budget per
+  family per hour), otherwise with the browser.s speech synthesis. The ElevenLabs path is covered by unit
+  tests only; e2e runs without a key. Spoken answers use the Web Speech API with `processLocally = true` only
   (on-device recognition, en-GB), so no audio leaves the device and nothing is recorded or stored.
   Where on-device recognition is missing (most browsers outside recent Chrome), the learner types.
   Automated tests use a fake speech engine; real recognition with a child's voice is untested.

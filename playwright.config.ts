@@ -24,6 +24,11 @@ export default defineConfig({
 				url: `http://localhost:${PORT}`,
 				reuseExistingServer: false,
 				timeout: 120_000,
-				env: { DATA_BACKEND, AI_ENABLED: "false", KNOWLEDGE_ADMIN_EMAILS: "knowledge-admin@example.test" },
+				env: {
+					DATA_BACKEND,
+					AI_ENABLED: "false",
+					ELEVENLABS_API_KEY: "",
+					KNOWLEDGE_ADMIN_EMAILS: "knowledge-admin@example.test",
+				},
 			},
 });
