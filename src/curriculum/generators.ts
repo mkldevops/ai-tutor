@@ -1,29 +1,9 @@
 import type { Item, ItemType } from "#/domain/types";
 
-export type Rng = () => number;
+import { ENGLISH_GENERATORS } from "./english-generators";
+import { createRng, hashSeed, int, pick, type Rng, shuffle } from "./rng";
 
-export function createRng(seed: number): Rng {
-	let a = seed >>> 0;
-	return () => {
-		a = (a + 0x6d2b79f5) >>> 0;
-		let t = a;
-		t = Math.imul(t ^ (t >>> 15), t | 1);
-		t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-		return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-	};
-}
-
-export function hashSeed(input: string): number {
-	let h = 2166136261;
-	for (let i = 0; i < input.length; i++) {
-		h ^= input.charCodeAt(i);
-		h = Math.imul(h, 16777619);
-	}
-	return h >>> 0;
-}
-
-const int = (rng: Rng, min: number, max: number) => Math.floor(rng() * (max - min + 1)) + min;
-const pick = <T>(rng: Rng, xs: readonly T[]): T => xs[int(rng, 0, xs.length - 1)] as T;
+export { createRng, hashSeed, type Rng };
 
 export function formatNumber(n: number): string {
 	const rounded = Math.round(n * 1e6) / 1e6;
@@ -32,22 +12,13 @@ export function formatNumber(n: number): string {
 	return frac ? `${withCommas}.${frac}` : withCommas;
 }
 
-function shuffle<T>(rng: Rng, xs: T[]): T[] {
-	const out = [...xs];
-	for (let i = out.length - 1; i > 0; i--) {
-		const j = int(rng, 0, i);
-		[out[i], out[j]] = [out[j] as T, out[i] as T];
-	}
-	return out;
-}
-
 function choicesFor(rng: Rng, answer: number, distractors: number[]): string[] {
 	const unique = [...new Set(distractors.filter((d) => d !== answer && d >= 0))].slice(0, 3);
 	return shuffle(rng, [answer, ...unique].map(formatNumber));
 }
 
-type GenArgs = { rng: Rng; difficulty: 1 | 2 | 3; type: ItemType; id: string };
-type Generator = (args: GenArgs) => Item;
+export type GenArgs = { rng: Rng; difficulty: 1 | 2 | 3; type: ItemType; id: string };
+export type Generator = (args: GenArgs) => Item;
 
 const y2AddSub: Generator = ({ rng, difficulty, type, id }) => {
 	const a = int(rng, 21, 78);
@@ -445,6 +416,7 @@ const GENERATORS: Record<string, { gen: Generator; types: ItemType[] }> = {
 		gen: y5Factors,
 		types: ["numeric", "multiple_choice", "missing_number", "word_problem"],
 	},
+	...ENGLISH_GENERATORS,
 };
 
 export function hasGenerator(objectiveCode: string): boolean {

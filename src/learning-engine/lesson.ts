@@ -1,4 +1,4 @@
-import { getObjective } from "#/curriculum/england-nc-maths";
+import { getObjective } from "#/curriculum/england-nc";
 import { createRng, generateItem, hashSeed, supportedTypes } from "#/curriculum/generators";
 import type { EvidenceMode, Item, ItemType, LessonPhase, PublicItem, SessionKind } from "#/domain/types";
 import { toPublicItem } from "#/domain/types";

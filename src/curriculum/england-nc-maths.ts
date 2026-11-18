@@ -38,7 +38,7 @@ const DFE_MATHS: Omit<SourceProvenance, "retrievedAt"> = {
 
 const source: SourceProvenance = { ...DFE_MATHS, retrievedAt: "2026-11-15" };
 
-export const OBJECTIVES: CurriculumObjective[] = [
+export const MATHS_OBJECTIVES: CurriculumObjective[] = [
 	{
 		code: "MA-Y2-AS-MENTAL",
 		curriculumCode: ENGLAND_NC_CODE,
@@ -206,20 +206,12 @@ export const OBJECTIVES: CurriculumObjective[] = [
 	},
 ];
 
-export const PREREQUISITES: PrerequisiteEdge[] = [
+export const MATHS_PREREQUISITES: PrerequisiteEdge[] = [
 	{ objectiveCode: "MA-Y3-AS-MENTAL", prerequisiteCode: "MA-Y2-AS-MENTAL" },
 	{ objectiveCode: "MA-Y5-MD-POWERS10", prerequisiteCode: "MA-Y4-FR-DIV10-100" },
 ];
 
-export const LESSON_OBJECTIVES_BY_YEAR: Record<3 | 5, string[]> = {
+export const MATHS_LESSON_OBJECTIVES_BY_YEAR: Record<3 | 5, string[]> = {
 	3: ["MA-Y3-AS-MENTAL", "MA-Y3-PV-MORE-LESS", "MA-Y3-MD-TABLES-348"],
 	5: ["MA-Y5-MD-POWERS10", "MA-Y5-PV-ROUND", "MA-Y5-MD-FACTORS"],
 };
-
-export function getObjective(code: string): CurriculumObjective | undefined {
-	return OBJECTIVES.find((o) => o.code === code);
-}
-
-export function getPrerequisiteCodes(code: string): string[] {
-	return PREREQUISITES.filter((e) => e.objectiveCode === code).map((e) => e.prerequisiteCode);
-}

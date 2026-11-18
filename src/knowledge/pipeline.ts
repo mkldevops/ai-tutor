@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { z } from "zod";
-import { OBJECTIVES } from "#/curriculum/england-nc-maths";
+import { OBJECTIVES } from "#/curriculum/england-nc";
 import type { Subject } from "#/domain/types";
 
 export type ChunkKind = "statutory" | "guidance" | "context";

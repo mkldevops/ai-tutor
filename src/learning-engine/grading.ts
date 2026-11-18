@@ -7,9 +7,24 @@ export function normaliseNumeric(raw: string): number | null {
 	return Number.isFinite(n) ? n : null;
 }
 
+export function normaliseText(raw: string): string {
+	return raw
+		.normalize("NFKC")
+		.replace(/[“”„«»]/g, '"')
+		.replace(/[‘’‚]/g, "'")
+		.replace(/\s+/g, " ")
+		.trim()
+		.replace(/[\s.,!?]+$/, "")
+		.toLowerCase();
+}
+
 export type GradeResult = { correct: boolean; parsed: boolean };
 
 export function gradeResponse(item: Item, response: string): GradeResult {
+	if (item.type === "written") {
+		const given = normaliseText(response);
+		return { correct: given !== "" && given === normaliseText(item.answer), parsed: given !== "" };
+	}
 	const expected = normaliseNumeric(item.answer);
 	const given = normaliseNumeric(response);
 	if (expected === null) {
