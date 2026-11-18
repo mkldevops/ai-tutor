@@ -159,6 +159,15 @@ export type WorksheetCheckRecord = BaseRecord & {
 	parentNote: string | null;
 };
 
+export type SessionMessageRecord = BaseRecord & {
+	familyId: string;
+	studentId: string;
+	sessionId: string;
+	role: "child" | "tutor";
+	text: string;
+	expiresAt: string;
+};
+
 export type TableMap = {
 	families: FamilyRecord;
 	family_members: FamilyMemberRecord;
@@ -174,6 +183,7 @@ export type TableMap = {
 	learning_resources: LearningResourceRecord;
 	ingestion_jobs: IngestionJobRecord;
 	worksheet_checks: WorksheetCheckRecord;
+	session_messages: SessionMessageRecord;
 };
 export type TableName = keyof TableMap;
 

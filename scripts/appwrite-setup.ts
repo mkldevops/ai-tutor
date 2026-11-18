@@ -242,6 +242,23 @@ export const SCHEMA: TableSpec[] = [
 		indexes: [{ key: "by_expires", columns: ["expiresAt"] }],
 	},
 	{
+		id: "session_messages",
+		columns: [
+			id("familyId"),
+			id("studentId"),
+			id("sessionId"),
+			{ kind: "enum", key: "role", elements: ["child", "tutor"], required: true },
+			{ kind: "string", key: "text", size: 2000, required: true },
+			{ kind: "datetime", key: "expiresAt", required: true },
+		],
+		indexes: [
+			{ key: "by_session", columns: ["sessionId"] },
+			{ key: "by_student", columns: ["studentId"] },
+			{ key: "by_family", columns: ["familyId"] },
+			{ key: "by_expires", columns: ["expiresAt"] },
+		],
+	},
+	{
 		id: "curricula",
 		columns: [
 			{ kind: "string", key: "code", size: 40, required: true },
