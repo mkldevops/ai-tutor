@@ -23,6 +23,11 @@ describe("leaksAnswer", () => {
 		expect(leaksAnswer("It is a Triangle!", ["triangle"])).toBe(true);
 		expect(leaksAnswer("Think about triangles.", ["triangle"])).toBe(false);
 	});
+
+	it("treats curly and straight quotes alike", () => {
+		expect(leaksAnswer("Write “Can we go now?” asked Ella.", ['"Can we go now?" asked Ella.'])).toBe(true);
+		expect(leaksAnswer("It’s ‘who’.", ["'who'"])).toBe(true);
+	});
 });
 
 describe("guardReply", () => {

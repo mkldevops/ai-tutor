@@ -1,5 +1,5 @@
 import { type GuardEvent, guardReply, leaksAnswer } from "#/ai/reply-guard";
-import { getObjective } from "#/curriculum/england-nc-maths";
+import { getObjective } from "#/curriculum/england-nc";
 import { currentItem } from "#/learning-engine/lesson";
 import { rateLimit } from "../rate-limit";
 import type { DataStore, LearningSessionRecord } from "../store/types";
@@ -42,18 +42,34 @@ export function forbiddenAnswers(session: LearningSessionRecord): string[] {
 	if (session.state.phase !== "guided") return [];
 	const item = currentItem(session.state);
 	if (!item) return [];
+	if (!Number.isFinite(Number(item.answer))) return textAnswerForms(item.answer, item.prompt);
 	return [item.answer].filter((a) => !leaksAnswer(item.prompt, [a]));
+}
+
+const GIVE_AWAY = ["answer is", "answer:", "word", "it is", "it's", "use", "choose", "pick", "write"];
+
+export function textAnswerForms(answer: string, prompt: string): string[] {
+	const word = answer.trim();
+	if (/\s/.test(word)) return [word];
+	const forms = [`"${word}"`, `'${word}'`, `*${word}*`, ...GIVE_AWAY.map((g) => `${g} ${word}`)];
+	const gap = prompt.match(/(\S+)\s+_{3,}\s+(\S+)/);
+	if (gap) forms.push(`${gap[1]} ${word} ${gap[2]}`);
+	return forms;
 }
 
 export function lessonContext(session: LearningSessionRecord): string {
 	const objective = getObjective(session.objectiveCode);
-	const lines = [`Objective: ${objective?.statement ?? session.objectiveCode}`];
+	const lines = [
+		`Subject: ${objective?.subject === "english" ? "English (spelling, grammar and punctuation)" : "Maths"}`,
+		`Objective: ${objective?.statement ?? session.objectiveCode}`,
+	];
 	if (session.state.phase === "instruction") {
 		lines.push("The child is reading the explanation before practice.");
 	} else {
 		const item = currentItem(session.state);
 		if (item) {
 			lines.push(`The child is working on this practice question: "${item.prompt}".`);
+			if (item.choices) lines.push(`The choices are: ${item.choices.map((c) => `"${c}"`).join(", ")}.`);
 			lines.push("Do not give its answer or the final result. Guide with one small step or a question.");
 		}
 	}

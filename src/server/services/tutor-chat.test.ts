@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest";
+import { leaksAnswer } from "#/ai/reply-guard";
 import { createTutorStreamer } from "#/ai/tutor-agent";
 import { currentItem } from "#/learning-engine/lesson";
 import { loadConfig } from "../config";
@@ -15,6 +16,7 @@ import {
 	type TutorChatDeps,
 	type TutorChatEvent,
 	type TutorStreamer,
+	textAnswerForms,
 	UNAVAILABLE_TEXT,
 } from "./tutor-chat";
 
@@ -55,8 +57,8 @@ describe("tutor chat", () => {
 		...over,
 	});
 
-	async function lessonAt(phase: "instruction" | "guided" | "independent") {
-		let res = await startSession({ store }, alice, { studentId, objectiveCode: OBJECTIVE, kind: "lesson" });
+	async function lessonAt(phase: "instruction" | "guided" | "independent", objectiveCode = OBJECTIVE) {
+		let res = await startSession({ store }, alice, { studentId, objectiveCode, kind: "lesson" });
 		while (res.view.phase !== phase) {
 			if (res.view.phase === "complete") throw new Error(`never reached ${phase}`);
 			if (res.view.phase === "instruction") {
@@ -235,5 +237,61 @@ describe("tutor chat", () => {
 		);
 		expect(events.filter((e) => e.type === "text").length).toBeGreaterThan(1);
 		expect(events.map((e) => e.text).join("")).toContain("What did you notice about the tens digit?");
+	});
+
+	describe("English lessons", () => {
+		const ENGLISH = "EN-Y5-GR-POSSIBILITY";
+
+		it("chats during instruction and guided practice with English context", async () => {
+			for (const phase of ["instruction", "guided"] as const) {
+				const sessionId = await lessonAt(phase, ENGLISH);
+				const seen: { context?: string } = {};
+				await drain(
+					await startTutorChat(deps({ createStreamer: () => fakeStreamer(["Good."], seen) }), alice, {
+						sessionId,
+						message: "what is a modal verb?",
+					}),
+				);
+				expect(seen.context).toContain("Subject: English");
+				expect(seen.context).not.toContain("Subject: Maths");
+			}
+		});
+
+		it("refuses during independent English practice", async () => {
+			const sessionId = await lessonAt("independent", ENGLISH);
+			await expectCode(startTutorChat(deps(), alice, { sessionId, message: "help" }), "forbidden");
+		});
+
+		it("stops a reply that gives the guided English answer away", async () => {
+			const sessionId = await lessonAt("guided", ENGLISH);
+			const session = await store.learning_sessions.get(sessionId);
+			const answer = currentItem(session!.state)!.answer;
+			const events = await drain(
+				await startTutorChat(
+					deps({ createStreamer: () => fakeStreamer(["Look closely. ", `The answer is "${answer}". `]) }),
+					alice,
+					{ sessionId, message: "tell me" },
+				),
+			);
+			expect(events.map((e) => e.text).join("")).toContain("Look closely.");
+			expect(events.at(-1)).toMatchObject({ type: "stopped", reason: "answer_leak" });
+		});
+	});
+
+	describe("textAnswerForms", () => {
+		it("blocks give-away phrasings of a one-word answer but not teaching about the word", () => {
+			const forms = textAnswerForms(
+				"who",
+				"Which word completes the sentence? My sister, _____ is ten, loves swimming.",
+			);
+			expect(leaksAnswer("The answer is who.", forms)).toBe(true);
+			expect(leaksAnswer("Try the word 'who'.", forms)).toBe(true);
+			expect(leaksAnswer("My sister, who is ten, loves swimming.", forms)).toBe(true);
+			expect(leaksAnswer("Who is the sentence about? A person or a thing?", forms)).toBe(false);
+		});
+
+		it("blocks a multi-word answer as a whole", () => {
+			expect(textAnswerForms("has finished", "Leo _____ his lunch.")).toEqual(["has finished"]);
+		});
 	});
 });
