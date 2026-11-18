@@ -9,27 +9,33 @@ export const FAKE_REPLY = [
 	"What did you notice about the tens digit?",
 ];
 
+export const FAKE_CUT_REPLY = ["A prefix goes at the start of a word. ", "It changes the meaning of the word that"];
+
 const usage = {
 	inputTokens: { total: 0, noCache: 0, cacheRead: 0, cacheWrite: 0 },
 	outputTokens: { total: 0, text: 0, reasoning: 0 },
 };
 
-export function fakeStreamParts(deltas: string[]) {
+export function fakeStreamParts(deltas: string[], finishReason: "stop" | "length" = "stop") {
 	return [
 		{ type: "stream-start" as const, warnings: [] },
 		{ type: "text-start" as const, id: "t" },
 		...deltas.map((delta) => ({ type: "text-delta" as const, id: "t", delta })),
 		{ type: "text-end" as const, id: "t" },
-		{ type: "finish" as const, finishReason: { unified: "stop" as const, raw: "stop" }, usage },
+		{ type: "finish" as const, finishReason: { unified: finishReason, raw: finishReason }, usage },
 	];
 }
 
-export function createFakeTutorModel(deltas: string[] = FAKE_REPLY, chunkDelayInMs = 40): LanguageModel {
+export function createFakeTutorModel(
+	deltas: string[] = FAKE_REPLY,
+	chunkDelayInMs = 40,
+	finishReason: "stop" | "length" = "stop",
+): LanguageModel {
 	const model = new MockLanguageModelV4({
 		provider: "fake",
 		modelId: "tutor",
 		doStream: async () => ({
-			stream: simulateReadableStream({ chunks: fakeStreamParts(deltas), chunkDelayInMs }),
+			stream: simulateReadableStream({ chunks: fakeStreamParts(deltas, finishReason), chunkDelayInMs }),
 		}),
 	});
 	return model as unknown as LanguageModel;

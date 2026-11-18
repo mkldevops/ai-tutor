@@ -10,6 +10,7 @@ import { type Actor, createFamilyForUser, createStudent, deleteStudent, exportSt
 import { answerSession, continueSession, startSession } from "./learning";
 import {
 	type ChatTurn,
+	CUT_TEXT,
 	FAILED_TEXT,
 	listTutorMessages,
 	startTutorChat,
@@ -192,6 +193,24 @@ describe("tutor chat", () => {
 		expect(events).toEqual([{ type: "failed", text: FAILED_TEXT }]);
 		const [log] = await store.audit_logs.list({ action: "tutor.chat" });
 		expect(log?.detail).toMatchObject({ outcome: "error" });
+	});
+
+	it("drops a cut-off sentence and asks the child to retry", async () => {
+		const sessionId = await lessonAt("instruction");
+		const config = loadConfig({ AI_ENABLED: "true", AI_API_KEY: "test", AI_MODEL: "fake/cut" });
+		const events = await drain(
+			await startTutorChat(deps({ createStreamer: (scope) => createTutorStreamer(config, store, scope) }), alice, {
+				sessionId,
+				message: "what is a prefix?",
+			}),
+		);
+		const shown = events.map((e) => e.text).join("");
+		expect(shown).toBe(`A prefix goes at the start of a word. ${CUT_TEXT}`);
+		expect(events.at(-1)).toEqual({ type: "failed", text: ` ${CUT_TEXT}` });
+		const [log] = await store.audit_logs.list({ action: "tutor.chat" });
+		expect(log?.detail).toMatchObject({ outcome: "cut" });
+		const tutor = (await store.session_messages.list({ studentId })).filter((m) => m.role === "tutor");
+		expect(tutor.map((m) => m.text)).toEqual([shown]);
 	});
 
 	it("never changes mastery", async () => {
