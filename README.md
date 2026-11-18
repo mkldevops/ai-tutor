@@ -178,6 +178,20 @@ study* (DFE-00180-2013, HTML updated 2021-09-28), Open Government Licence v3.0. 
 - Year 3 — add and subtract numbers mentally (ones, tens, hundreds); prerequisite Year 2 mental add/sub.
 - Year 5 — multiply and divide by 10, 100 and 1,000; prerequisite Year 4 dividing by 10 and 100.
 
+English (Sprint 5) is limited to spelling, grammar and punctuation items that a program can mark without an LLM.
+Statements are quoted verbatim from the DfE *National curriculum in England: English programmes of study*
+(DFE-00181-2013) and its *English Appendix 2: Vocabulary, grammar and punctuation*, Open Government Licence v3.0:
+
+- Year 3 — prefixes (dis–, mis–, in–/il–/im–/ir–, re–, sub–, inter–), the present perfect (prerequisite
+  Year 2 past and present tense), inverted commas for direct speech.
+- Year 5 — verb prefixes (dis–, de–, mis–, over–, re–; prerequisite Year 3 prefixes), relative clauses,
+  degrees of possibility with modal verbs and adverbs.
+
+Each English objective mixes multiple-choice and short written answers. Written answers ignore case, extra
+spaces, curly quotes and a final full stop, and nothing else: spelling and speech punctuation must be exact.
+The learner picks Maths or English on the Missions tab; the Progress tab shows secured objectives and due
+reviews per subject. The mastery policy is the same for both subjects.
+
 ## Knowledge pipeline (Sprint 2)
 
 Approved curriculum guidance is retrieved by the tutor with citations. The official objectives in
@@ -242,7 +256,9 @@ Index backends: `KNOWLEDGE_INDEX=memory` (default, rebuilt only on approval, so 
 - **Retention purge runs dry until `RETENTION_PURGE_ENABLED=true`.** Each run deletes at most 5,000 rows per
   step and reports truncated steps. Purging mastery evidence (`RETENTION_EVIDENCE_DAYS`) does not recompute
   competency statuses, so a status can outlive the evidence behind it.
-- Only Maths.
+- English covers six GPS objectives only (no reading comprehension or composition). Relative clause items avoid
+  `that` and omitted pronouns, which have more than one correct answer. Printable worksheets, photo checks and
+  the knowledge pipeline stay Maths only.
 - **Voice is a pilot**, off by default and switched on per learner by the parent. Nova reads aloud with ElevenLabs when
   `ELEVENLABS_API_KEY` is set (lesson text only, clips cached in the Appwrite bucket `speech`, budget per
   family per hour), otherwise with the browser's speech synthesis. The browser voice is also the fallback when a clip cannot
