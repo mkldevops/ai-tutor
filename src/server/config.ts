@@ -61,6 +61,7 @@ const envSchema = z
 		RETENTION_WORKSHEET_CHECK_DAYS: z.coerce.number().int().min(1).max(3650).default(90),
 		RETENTION_AUDIT_LOG_DAYS: z.coerce.number().int().min(30).max(3650).default(400),
 		RETENTION_EVIDENCE_DAYS: z.coerce.number().int().min(0).max(3650).default(0),
+		RETENTION_SESSION_MESSAGES_DAYS: z.coerce.number().int().min(1).max(365).default(30),
 	})
 	.superRefine((env, ctx) => {
 		if (env.DATA_BACKEND === "appwrite") {
@@ -87,6 +88,9 @@ const envSchema = z
 		}
 		if (env.KNOWLEDGE_INDEX === "qdrant" && !env.QDRANT_URL) {
 			ctx.addIssue({ code: "custom", path: ["QDRANT_URL"], message: "Required when KNOWLEDGE_INDEX=qdrant" });
+		}
+		if (env.NODE_ENV === "production" && env.AI_MODEL.startsWith("fake/")) {
+			ctx.addIssue({ code: "custom", path: ["AI_MODEL"], message: "fake/ models are for tests only" });
 		}
 		if ((env.AI_ENABLED || env.VISION_ENABLED) && !env.AI_API_KEY) {
 			ctx.addIssue({ code: "custom", path: ["AI_API_KEY"], message: "Required when AI_ENABLED or VISION_ENABLED" });

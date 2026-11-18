@@ -353,6 +353,20 @@ export const askTutorFn = createServerFn({ method: "POST" })
 		}),
 	);
 
+export const getTutorChatFn = createServerFn({ method: "GET" })
+	.validator(z.object({ sessionId: idSchema }))
+	.handler(({ data }) =>
+		guard(async () => {
+			const { requireActor } = await import("./session");
+			const { getServerContext } = await import("./context");
+			const { listTutorMessages } = await import("./services/tutor-chat");
+			const { actor } = await requireActor();
+			const { config, store } = getServerContext();
+			const enabled = config.AI_ENABLED && !!config.AI_API_KEY;
+			return { enabled, messages: enabled ? await listTutorMessages(store, actor, data.sessionId) : [] };
+		}),
+	);
+
 export const listWorksheetChecksFn = createServerFn({ method: "GET" })
 	.validator(z.object({ studentId: idSchema }))
 	.handler(({ data }) =>

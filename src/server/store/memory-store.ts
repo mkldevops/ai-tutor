@@ -58,6 +58,7 @@ const TABLES: TableName[] = [
 	"learning_resources",
 	"ingestion_jobs",
 	"worksheet_checks",
+	"session_messages",
 ];
 
 export function createMemoryStore(): DataStore {
