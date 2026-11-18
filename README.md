@@ -64,7 +64,6 @@ All variables are server-only; nothing is exposed to the browser. See [.env.exam
 | `AI_MODEL` | `anthropic/claude-sonnet-5-5` | Mastra model-router id (`provider/model`). `fake/…` selects a scripted test model and is refused in production. |
 | `AI_API_KEY` | — | Required when `AI_ENABLED=true`. |
 | `AI_DAILY_CALLS_PER_FAMILY` | `50` | Per-family daily cap on tutor calls, shared by "Explain it another way" and chat messages. |
-| `TUTOR_MESSAGE_RETENTION_DAYS` | `30` | How long chat messages (`session_messages`) are kept before they are pruned. |
 | `VISION_ENABLED` | `false` | Turns on worksheet photo checks (Sprint 3). Uses `AI_API_KEY`. **Untested on real children's handwriting.** |
 | `VISION_MODEL` | `openrouter/deepseek/deepseek-v4.1-flash` | Vision model that only transcribes the page; the app grades the arithmetic. |
 | `VISION_DAILY_CHECKS_PER_FAMILY` | `20` | Per-family daily cap on photo checks (cost cap). |
@@ -80,6 +79,7 @@ All variables are server-only; nothing is exposed to the browser. See [.env.exam
 | `RETENTION_WORKSHEET_CHECK_DAYS` | `90` | Worksheet photo check results older than this are deleted (derived answers stay). |
 | `RETENTION_AUDIT_LOG_DAYS` | `400` | Audit log retention (minimum 30). |
 | `RETENTION_EVIDENCE_DAYS` | `0` | Mastery evidence retention. `0` keeps it forever; otherwise at least 365. |
+| `RETENTION_SESSION_MESSAGES_DAYS` | `30` | Nova chat messages (`session_messages`) older than this are hidden and pruned on the next chat write, and deleted by the purge task (1–365). |
 
 ### Local self-hosted Appwrite
 
@@ -218,7 +218,7 @@ Index backends: `KNOWLEDGE_INDEX=memory` (default, rebuilt only on approval, so 
 - Tutor chat (fake model, no network): reply guard (sentence release, wrong arithmetic, answer leak, length),
   service (stream and storage, refusal outside tutoring phases with audit, other family → not found, per-user
   burst and per-family daily cap, model failure, no mastery change, retention, export/delete), HTTP route
-  (401, body size/JSON, 403 in assessment, 429), and a Mastra agent run on `MockLanguageModelV4`.
+  (401, 411/413 body size, 400 non-JSON, 403 in assessment, 429), and the retention purge of old chat messages, and a Mastra agent run on `MockLanguageModelV4`.
 - E2E (tutor chat): with `AI_MODEL=fake/tutor`, a learner chats with Nova in instruction and guided practice,
   the reply streams and survives a reload, the panel disappears in independent practice and a direct
   `POST /api/tutor-chat` there returns 403.

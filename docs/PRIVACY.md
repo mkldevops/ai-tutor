@@ -28,6 +28,7 @@ Every student read or write goes through a server function that checks the paren
 | `mastery_events` | Status changes, actor (system/parent), reason | Explain how a status was reached | _TBD_ | Evidence, see below |
 | `revision_schedules` | Objective, due date, status | Spaced review | _TBD_ | Pending rows kept; done/superseded rows follow evidence retention |
 | `worksheet_checks` | Image sha256, MIME type, byte size, model id, transcribed items, handwriting note, flags, parent review | Check a printed worksheet from a photo | _TBD_ | `RETENTION_WORKSHEET_CHECK_DAYS` (90). Parents can delete one at any time |
+| `session_messages` | Nova chat turns during a lesson: role (child/tutor), text (child ≤ 500 chars, reply ≤ 1,500), session, expiry | Show the conversation and give the model the last turns | _TBD_ | `RETENTION_SESSION_MESSAGES_DAYS` (30): hidden after expiry, pruned on the next chat write, deleted by the purge task |
 | `audit_logs` | Action, target id, actor user id, family id, small detail (counts, field names; no names or answers) | Accountability, abuse investigation | _TBD_ | `RETENTION_AUDIT_LOG_DAYS` (400, minimum 30) |
 | `rate_limits` | Hashed bucket id (sha256 of key + window), count, expiry | Abuse protection | _TBD_ | Deleted after the window ends (purge task) |
 | `knowledge_sources`, `knowledge_versions`, `learning_resources`, `ingestion_jobs`, `curricula`, `learning_objectives`, `objective_prerequisites` | Public curriculum text (DfE programme of study), versions, admin review notes and user ids | Curriculum retrieval | _TBD_ | Kept; not child data |
@@ -52,13 +53,16 @@ Nitro task `retention:purge` (`src/server/tasks/retention-purge.ts`) runs daily 
   (minimum 14 days) never races a lesson being completed.
 - A row already deleted by another run is skipped. If a step fails, the run still writes its audit entry with
   the counts so far and the failed step, then stops.
+- Chat audit entries (`tutor.chat`, `tutor.chat_refused`) hold the outcome, phase, duration and lengths,
+  never the text.
 - `student_competencies` are never purged. Purging evidence does not recompute statuses.
 
 ## Export and deletion
 
 - **Export**: the learner page downloads a JSON file with the learner record and every row of
   `learning_sessions`, `assessment_attempts`, `student_competencies`, `mastery_events`, `revision_schedules`
-  and `worksheet_checks` for that learner (full history, paged). Audited as `student.export`.
+  `worksheet_checks` and `session_messages` for that learner (full history, paged). Audited as
+  `student.export`.
 - **Delete a learner**: removes the learner and all rows in the tables above. Audited as `student.delete`.
   Audit entries that reference the learner's id stay until their own retention ends.
 - **Delete a worksheet check**: parents can remove a single check. Audited as `worksheet.delete`.
@@ -71,7 +75,7 @@ Nitro task `retention:purge` (`src/server/tasks/retention-purge.ts`) runs daily 
 | --- | --- | --- |
 | Appwrite (self-hosted on Coolify, Hostinger VPS) | All stored data above, parent accounts and sessions | Always with `DATA_BACKEND=appwrite` |
 | Coolify / Hostinger | Hosts the app, Appwrite and Qdrant containers; server logs | Always |
-| OpenRouter (and the model provider it routes to) | Tutor: objective, curriculum passages, the child's last 5 wrong answers on that objective. Vision: the worksheet photo and a fixed instruction. No display name | Only with `AI_ENABLED` / `VISION_ENABLED` |
+| OpenRouter (and the model provider it routes to) | Tutor: objective, curriculum passages, the child's last 5 wrong answers on that objective. Chat: the child's message and the last 12 turns of that lesson's chat. Vision: the worksheet photo and a fixed instruction. No display name | Only with `AI_ENABLED` / `VISION_ENABLED` |
 | ElevenLabs | Lesson text to read aloud. No child input, no audio from the child | Only with `ELEVENLABS_API_KEY` and voice switched on for the learner |
 | Qdrant (self-hosted) | Approved curriculum passages and their vectors | Only with `KNOWLEDGE_INDEX=qdrant` |
 
