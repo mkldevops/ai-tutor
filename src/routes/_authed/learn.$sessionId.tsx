@@ -12,6 +12,7 @@ import { Confetti, RateConfidence } from "#/components/mission-complete";
 import { Nova } from "#/components/nova";
 import { novaStateForLesson } from "#/components/nova-state";
 import { formatDate, formatWeekday, StatusBadge } from "#/components/status";
+import { TutorChat } from "#/components/tutor-chat";
 import type { Feedback } from "#/learning-engine/lesson";
 import { askTutorFn, getSessionFn, sessionActionFn } from "#/server/functions";
 import { firstSpokenNumber, questionSpeech } from "#/voice/spoken";
@@ -301,6 +302,10 @@ function LessonPage() {
 							<p className="meta">No hints here. Just try your best.</p>
 						)}
 					</section>
+				)}
+
+				{(view.phase === "instruction" || view.phase === "guided") && (
+					<TutorChat key={session.sessionId} sessionId={session.sessionId} />
 				)}
 
 				{view.phase === "complete" && session.result && (

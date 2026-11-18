@@ -26,7 +26,9 @@ export default defineConfig({
 				timeout: 120_000,
 				env: {
 					DATA_BACKEND,
-					AI_ENABLED: "false",
+					AI_ENABLED: "true",
+					AI_MODEL: "fake/tutor",
+					AI_API_KEY: "fake",
 					ELEVENLABS_API_KEY: "",
 					KNOWLEDGE_ADMIN_EMAILS: "knowledge-admin@example.test",
 				},
