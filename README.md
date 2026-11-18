@@ -60,10 +60,11 @@ All variables are server-only; nothing is exposed to the browser. See [.env.exam
 | `DATA_BACKEND` | `memory` | `memory` (dev/tests, lost on restart) or `appwrite`. `memory` is refused in production unless `ALLOW_MEMORY_BACKEND_IN_PRODUCTION=true`. |
 | `APPWRITE_ENDPOINT`, `APPWRITE_PROJECT_ID`, `APPWRITE_API_KEY` | — | Required with `appwrite`. Server API key; never ship it to a client. |
 | `APPWRITE_DATABASE_ID` | `ai_tutor` | |
-| `AI_ENABLED` | `false` | Turns on the optional "Explain it another way" tutor. |
-| `AI_MODEL` | `anthropic/claude-sonnet-5-5` | Mastra model-router id (`provider/model`). |
+| `AI_ENABLED` | `false` | Turns on the optional "Explain it another way" tutor and the "Ask Nova" chat. |
+| `AI_MODEL` | `anthropic/claude-sonnet-5-5` | Mastra model-router id (`provider/model`). `fake/…` selects a scripted test model and is refused in production. |
 | `AI_API_KEY` | — | Required when `AI_ENABLED=true`. |
-| `AI_DAILY_CALLS_PER_FAMILY` | `50` | Per-family daily cap on tutor calls. |
+| `AI_DAILY_CALLS_PER_FAMILY` | `50` | Per-family daily cap on tutor calls, shared by "Explain it another way" and chat messages. |
+| `TUTOR_MESSAGE_RETENTION_DAYS` | `30` | How long chat messages (`session_messages`) are kept before they are pruned. |
 | `VISION_ENABLED` | `false` | Turns on worksheet photo checks (Sprint 3). Uses `AI_API_KEY`. **Untested on real children's handwriting.** |
 | `VISION_MODEL` | `openrouter/deepseek/deepseek-v4.1-flash` | Vision model that only transcribes the page; the app grades the arithmetic. |
 | `VISION_DAILY_CHECKS_PER_FAMILY` | `20` | Per-family daily cap on photo checks (cost cap). |
@@ -139,11 +140,13 @@ src/
     store/           DataStore interface + memory and Appwrite (TablesDB) implementations
     auth/            AuthProvider: memory (scrypt) and Appwrite (Users + email/password sessions)
     services/        family/student CRUD, learning sessions, progress, overrides, export/delete
-    functions.ts     TanStack Start server functions (the only API surface)
+    functions.ts     TanStack Start server functions
+    tutor-chat-http.ts  POST /api/tutor-chat (streamed chat; the only server route besides functions)
     session.ts       httpOnly session cookie, actor resolution, rate limits
   knowledge/         source registry, GOV.UK fetch + parse, versioning/approval, embeddings, vector index, retrieval
   server/tasks/      Nitro scheduled tasks: knowledge update check (opt-in), retention purge (dry run by default)
-  ai/tutor-agent.ts  Mastra agent with read-only, server-scoped tools (optional)
+  ai/tutor-agent.ts  Mastra agent with read-only, server-scoped tools (optional), also streams chat replies
+  ai/reply-guard.ts  checks each streamed sentence before it reaches the child
   routes/            UI: sign-in/up, dashboard, learner progress, lesson, knowledge admin
 scripts/appwrite-setup.ts
 e2e/                 Playwright: lesson flow, knowledge admin access
@@ -212,14 +215,26 @@ Index backends: `KNOWLEDGE_INDEX=memory` (default, rebuilt only on approval, so 
   `QDRANT_TEST_URL=http://127.0.0.1:6333 QDRANT_TEST_API_KEY=… pnpm test` runs ingestion → approval →
   year-filtered search → superseding against a real Qdrant (passes on v1.20.0);
   `APPWRITE_IT=1 pnpm test` runs the lifecycle on the Appwrite tables from `.env` (passes on local 2.7.1).
+- Tutor chat (fake model, no network): reply guard (sentence release, wrong arithmetic, answer leak, length),
+  service (stream and storage, refusal outside tutoring phases with audit, other family → not found, per-user
+  burst and per-family daily cap, model failure, no mastery change, retention, export/delete), HTTP route
+  (401, body size/JSON, 403 in assessment, 429), and a Mastra agent run on `MockLanguageModelV4`.
+- E2E (tutor chat): with `AI_MODEL=fake/tutor`, a learner chats with Nova in instruction and guided practice,
+  the reply streams and survives a reload, the panel disappears in independent practice and a direct
+  `POST /api/tutor-chat` there returns 403.
 - E2E: one Playwright test — two learners (Y3, Y5) in one family complete lessons, both reach `secure`
   (not `mastered`), each sees only their year's objective, and a second family cannot open the first
   family's learner. It passes on both the memory backend and the local Appwrite 2.7.1.
 
 ## Known limitations
 
-- **AI tutor is untested end-to-end** (no API key used during development). It is off by default and the
-  lesson works without it.
+- **AI tutor is untested against a real provider** (no API key used during development). Chat and "Explain it
+  another way" are tested end to end with a scripted fake model only. Both are off by default and the lesson
+  works without them.
+- Tutor chat is available only in the instruction and guided phases; the server refuses it in diagnostic,
+  independent and review. Replies are released one sentence at a time and stopped on wrong arithmetic, on the
+  pending guided answer, or past 1,500 characters. A claim split over two sentences, or text a model writes
+  before a tool call in the same step, is not caught by that guard. Chat never changes mastery.
 - **Rate limits use fixed windows** stored in the Appwrite table `rate_limits` (atomic `incrementRowColumn`).
   A burst across a window boundary can reach twice the limit. If Appwrite is unreachable, limited calls fail
   instead of passing. The client key is the first `X-Forwarded-For` entry, which a client can spoof unless the
@@ -227,7 +242,7 @@ Index backends: `KNOWLEDGE_INDEX=memory` (default, rebuilt only on approval, so 
 - **Retention purge runs dry until `RETENTION_PURGE_ENABLED=true`.** Each run deletes at most 5,000 rows per
   step and reports truncated steps. Purging mastery evidence (`RETENTION_EVIDENCE_DAYS`) does not recompute
   competency statuses, so a status can outlive the evidence behind it.
-- Only Maths. No streaming chat yet.
+- Only Maths.
 - **Voice is a pilot**, off by default and switched on per learner by the parent. Nova reads aloud with ElevenLabs when
   `ELEVENLABS_API_KEY` is set (lesson text only, clips cached in the Appwrite bucket `speech`, budget per
   family per hour), otherwise with the browser's speech synthesis. The browser voice is also the fallback when a clip cannot
