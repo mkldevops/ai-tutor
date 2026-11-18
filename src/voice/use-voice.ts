@@ -35,6 +35,11 @@ function recognitionCtor(): RecognitionCtor | null {
 	return w.SpeechRecognition ?? w.webkitSpeechRecognition ?? null;
 }
 
+const REMOTE_WAIT_MS = 8_000;
+const MAX_REMOTE_CHARS = 600;
+
+const hasSynth = () => typeof window !== "undefined" && "speechSynthesis" in window;
+
 export function useSpeaker(enabled: boolean) {
 	const [supported, setSupported] = useState(false);
 	const [speaking, setSpeaking] = useState(false);
@@ -42,16 +47,18 @@ export function useSpeaker(enabled: boolean) {
 	const clips = useRef(new Map<string, string>());
 	const audio = useRef<HTMLAudioElement | null>(null);
 	const turn = useRef(0);
+	const primed = useRef(false);
 
 	useEffect(() => {
-		setSupported(enabled && typeof window !== "undefined" && ("speechSynthesis" in window || "Audio" in window));
+		setSupported(enabled && typeof window !== "undefined" && (hasSynth() || "Audio" in window));
 	}, [enabled]);
 
 	const silence = useCallback(() => {
 		turn.current++;
 		audio.current?.pause();
 		audio.current = null;
-		if (typeof window !== "undefined" && "speechSynthesis" in window) window.speechSynthesis.cancel();
+		setSpeaking(false);
+		if (hasSynth()) window.speechSynthesis.cancel();
 	}, []);
 
 	useEffect(() => {
@@ -59,32 +66,39 @@ export function useSpeaker(enabled: boolean) {
 		return silence;
 	}, [supported, silence]);
 
-	const browserSpeak = useCallback((spoken: string) => {
-		if (!("speechSynthesis" in window)) {
-			setSpeaking(false);
-			return;
-		}
+	const browserSpeak = useCallback((spoken: string, mine: number) => {
+		if (!hasSynth()) return;
 		const synth = window.speechSynthesis;
 		const utterance = new SpeechSynthesisUtterance(spoken);
 		utterance.lang = LANG;
 		utterance.rate = 0.95;
 		const voice = synth.getVoices().find((v) => v.lang === LANG);
 		if (voice) utterance.voice = voice;
-		utterance.onstart = () => setSpeaking(true);
-		utterance.onend = () => setSpeaking(false);
-		utterance.onerror = () => setSpeaking(false);
+		const set = (on: boolean) => () => {
+			if (mine === turn.current) setSpeaking(on);
+		};
+		utterance.onstart = set(true);
+		utterance.onend = set(false);
+		utterance.onerror = set(false);
 		synth.speak(utterance);
 	}, []);
 
 	const remoteClip = useCallback(async (spoken: string): Promise<string | null> => {
-		if (!remote.current) return null;
 		const known = clips.current.get(spoken);
 		if (known) return known;
-		const res = await speakFn({ data: { text: spoken } }).catch(() => null);
-		if (!res?.audio) {
+		if (!remote.current || spoken.length > MAX_REMOTE_CHARS) return null;
+		let timer: ReturnType<typeof setTimeout> | undefined;
+		const late = new Promise<null>((resolve) => {
+			timer = setTimeout(() => resolve(null), REMOTE_WAIT_MS);
+		});
+		const res = await Promise.race([speakFn({ data: { text: spoken } }).catch(() => null), late]).finally(() =>
+			clearTimeout(timer),
+		);
+		if (res?.status === "off") {
 			remote.current = false;
-			return null;
+			if (!hasSynth()) setSupported(false);
 		}
+		if (!res?.audio) return null;
 		const src = `data:audio/mpeg;base64,${res.audio}`;
 		clips.current.set(spoken, src);
 		return src;
@@ -93,34 +107,43 @@ export function useSpeaker(enabled: boolean) {
 	const speak = useCallback(
 		async (text: string) => {
 			if (!supported || !text.trim()) return;
+			if (!primed.current && hasSynth()) {
+				primed.current = true;
+				window.speechSynthesis.speak(new SpeechSynthesisUtterance(""));
+			}
 			silence();
 			const mine = turn.current;
 			const spoken = toSpeech(text);
-			const src = spoken.length <= 600 ? await remoteClip(spoken) : null;
+			const src = await remoteClip(spoken);
 			if (mine !== turn.current) return;
-			if (src) {
-				const el = new Audio(src);
-				audio.current = el;
-				el.onplaying = () => setSpeaking(true);
-				el.onended = () => setSpeaking(false);
-				el.onerror = () => setSpeaking(false);
-				try {
-					await el.play();
-					return;
-				} catch {
-					if (mine !== turn.current) return;
-					audio.current = null;
-				}
+			if (!src) {
+				browserSpeak(spoken, mine);
+				return;
 			}
-			browserSpeak(spoken);
+			let fellBack = false;
+			const fallBack = () => {
+				if (fellBack || mine !== turn.current) return;
+				fellBack = true;
+				clips.current.delete(spoken);
+				audio.current = null;
+				setSpeaking(false);
+				browserSpeak(spoken, mine);
+			};
+			const el = new Audio(src);
+			audio.current = el;
+			el.onplaying = () => {
+				if (mine === turn.current) setSpeaking(true);
+			};
+			el.onended = () => {
+				if (mine === turn.current) setSpeaking(false);
+			};
+			el.onerror = fallBack;
+			await el.play().catch(fallBack);
 		},
 		[supported, silence, remoteClip, browserSpeak],
 	);
 
-	const stop = useCallback(() => {
-		silence();
-		setSpeaking(false);
-	}, [silence]);
+	const stop = useCallback(() => silence(), [silence]);
 
 	return { supported, speaking, speak, stop };
 }

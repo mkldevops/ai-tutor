@@ -368,7 +368,10 @@ async function main() {
 			maximumFileSize: 2_000_000,
 			allowedFileExtensions: ["mp3"],
 		}),
-	);
+	).catch((e) => {
+		if ((e as { code?: number }).code !== 401) throw e;
+		console.warn("skipped bucket speech: the API key needs buckets.write (ElevenLabs clips will not be cached)");
+	});
 
 	await upsertRow(db, databaseId, "curricula", rowId(ENGLAND_NC.code), {
 		code: ENGLAND_NC.code,

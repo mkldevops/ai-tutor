@@ -116,7 +116,8 @@ Qdrant runs as the internal Coolify service `qdrant` (no public domain), reached
 
 ### Appwrite setup (any instance)
 
-1. Create an Appwrite project and a server API key (users, sessions, databases, tables, rows scopes).
+1. Create an Appwrite project and a server API key (users, sessions, databases, tables, rows scopes, plus
+   buckets and files for cached ElevenLabs clips; add them to an existing key in the Appwrite console).
 2. Put the values in `.env` and set `DATA_BACKEND=appwrite`.
 3. Run `pnpm appwrite:setup`. Tables are created with no client permissions; every read and write goes
    through server functions using the admin key after a family-scope check.
@@ -213,7 +214,8 @@ Index backends: `KNOWLEDGE_INDEX=memory` (default, rebuilt only on approval, so 
 - Only Maths. No streaming chat yet.
 - **Voice is a pilot**, off by default and switched on per learner by the parent. Nova reads aloud with ElevenLabs when
   `ELEVENLABS_API_KEY` is set (lesson text only, clips cached in the Appwrite bucket `speech`, budget per
-  family per hour), otherwise with the browser.s speech synthesis. The ElevenLabs path is covered by unit
+  family per hour), otherwise with the browser's speech synthesis. The browser voice is also the fallback when a clip cannot
+  be made or played (budget spent, provider error, playback blocked). The ElevenLabs path is covered by unit
   tests only; e2e runs without a key. Spoken answers use the Web Speech API with `processLocally = true` only
   (on-device recognition, en-GB), so no audio leaves the device and nothing is recorded or stored.
   Where on-device recognition is missing (most browsers outside recent Chrome), the learner types.

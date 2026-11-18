@@ -29,10 +29,10 @@ export function VoiceSettings({
 			<div>
 				<h2 className="h2">Voice (pilot)</h2>
 				<p className="mt-1 text-sm text-soft">
-					Nova reads questions and feedback aloud, and {displayName} can say an answer instead of typing it. To make
-					Nova's voice, the lesson text is sent to our voice provider, ElevenLabs. {displayName}'s own voice stays on
-					this device: it is never recorded, uploaded or stored. Speaking an answer only appears on devices that can
-					recognise speech on the device itself; typing always works.
+					Nova reads questions and feedback aloud, and {displayName} can say an answer instead of typing it. When AI
+					narration is on, lesson text that has no recorded clip yet is sent to our voice provider, ElevenLabs.{" "}
+					{displayName}'s own voice stays on this device: it is never recorded, uploaded or stored. Speaking an answer
+					only appears on devices that can recognise speech on the device itself; typing always works.
 				</p>
 			</div>
 			<label className="flex items-center gap-3 text-sm">

@@ -175,7 +175,7 @@ export const speakFn = createServerFn({ method: "POST" })
 			const { synthesize } = await import("./speech/speech");
 			const { actor } = await requireActor();
 			const { config, speechCache } = getServerContext();
-			if (!config.ELEVENLABS_API_KEY) return { audio: null };
+			if (!config.ELEVENLABS_API_KEY) return { audio: null, status: "off" as const };
 			try {
 				const audio = await synthesize(
 					{
@@ -188,10 +188,11 @@ export const speakFn = createServerFn({ method: "POST" })
 					},
 					data.text,
 				);
-				return { audio: audio ? Buffer.from(audio).toString("base64") : null };
+				if (!audio) return { audio: null, status: "skipped" as const };
+				return { audio: Buffer.from(audio).toString("base64"), status: "ok" as const };
 			} catch (e) {
 				console.warn("[ai-tutor] speech fell back to the browser voice", e instanceof Error ? e.message : e);
-				return { audio: null };
+				return { audio: null, status: "busy" as const };
 			}
 		}),
 	);

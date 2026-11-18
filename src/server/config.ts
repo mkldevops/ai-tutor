@@ -52,7 +52,7 @@ const envSchema = z
 			.string()
 			.regex(/^[a-z0-9_]+$/)
 			.default("eleven_flash_v2_5"),
-		SPEECH_HOURLY_CLIPS_PER_FAMILY: z.coerce.number().int().min(0).default(200),
+		SPEECH_HOURLY_CLIPS_PER_FAMILY: z.coerce.number().int().min(1).default(200),
 	})
 	.superRefine((env, ctx) => {
 		if (env.DATA_BACKEND === "appwrite") {

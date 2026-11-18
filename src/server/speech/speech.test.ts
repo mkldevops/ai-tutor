@@ -34,6 +34,20 @@ describe("speech synthesis", () => {
 		});
 	});
 
+	it("returns the fresh clip when the cache stalls", async () => {
+		vi.useFakeTimers();
+		try {
+			const stalled = { get: () => new Promise<null>(() => {}), put: () => new Promise<void>(() => {}) };
+			const { deps: d, fetch } = deps({ cache: stalled });
+			const pending = synthesize(d, "Hello");
+			await vi.advanceTimersByTimeAsync(6_000);
+			expect(await pending).toEqual(mp3);
+			expect(fetch).toHaveBeenCalledTimes(1);
+		} finally {
+			vi.useRealTimers();
+		}
+	});
+
 	it("returns nothing without an API key or for oversized text", async () => {
 		const { deps: d, fetch } = deps({ apiKey: undefined });
 		expect(await synthesize(d, "Hello")).toBeNull();
