@@ -73,6 +73,12 @@ All variables are server-only; nothing is exposed to the browser. See [.env.exam
 | `QDRANT_COLLECTION` | `ai_tutor_knowledge` | Collection prefix; the embedder id is appended. |
 | `KNOWLEDGE_ADMIN_EMAILS` | empty | Comma-separated accounts allowed to check and approve sources. |
 | `KNOWLEDGE_AUTO_CHECK` | `false` | Enable the daily scheduled update check. |
+| `RATE_LIMIT_BACKEND` | `DATA_BACKEND` | `memory` (one instance) or `appwrite` (shared `rate_limits` table, needs `DATA_BACKEND=appwrite`). |
+| `RETENTION_PURGE_ENABLED` | `false` | The daily `retention:purge` task only logs what it would delete until this is `true`. |
+| `RETENTION_OPEN_SESSION_DAYS` | `30` | Unfinished lessons older than this are deleted. |
+| `RETENTION_WORKSHEET_CHECK_DAYS` | `90` | Worksheet photo check results older than this are deleted (derived answers stay). |
+| `RETENTION_AUDIT_LOG_DAYS` | `400` | Audit log retention (minimum 30). |
+| `RETENTION_EVIDENCE_DAYS` | `0` | Mastery evidence retention. `0` keeps it forever; otherwise at least 365. |
 
 ### Local self-hosted Appwrite
 
@@ -136,7 +142,7 @@ src/
     functions.ts     TanStack Start server functions (the only API surface)
     session.ts       httpOnly session cookie, actor resolution, rate limits
   knowledge/         source registry, GOV.UK fetch + parse, versioning/approval, embeddings, vector index, retrieval
-  server/tasks/      Nitro scheduled task: daily knowledge update check (opt-in)
+  server/tasks/      Nitro scheduled tasks: knowledge update check (opt-in), retention purge (dry run by default)
   ai/tutor-agent.ts  Mastra agent with read-only, server-scoped tools (optional)
   routes/            UI: sign-in/up, dashboard, learner progress, lesson, knowledge admin
 scripts/appwrite-setup.ts
@@ -155,7 +161,11 @@ Key rules enforced in code:
 - **Curriculum is read-only data.** The AI agent can look objectives up but cannot change them; tool output
   and learner text are treated as untrusted data in the prompt.
 - **Privacy.** Learners have a display name only (first name or nickname). Parents can export a learner's
-  data as JSON or delete it with everything attached.
+  data as JSON or delete it with everything attached. What is stored, for how long and who processes it:
+  [docs/PRIVACY.md](./docs/PRIVACY.md).
+- **Request limits.** A global request middleware (`src/start.ts`) rejects bodies over 6 MB on server functions
+  and 64 KB elsewhere (413), and bodies without a `Content-Length` (411). Worksheet photos are also checked for
+  type (magic bytes), size (3 MB) and pixel size (10,000 px per side, 50 MP).
 
 ## Curriculum source
 
@@ -193,7 +203,7 @@ Index backends: `KNOWLEDGE_INDEX=memory` (default, rebuilt only on approval, so 
 
 ## Test status
 
-- Unit: 61 tests (mastery policy, lesson engine, generators self-check, tenant isolation; knowledge parser on a
+- Unit: 249 tests (mastery policy, rate limits, request size, retention purge, image header checks, lesson engine, generators self-check, tenant isolation; knowledge parser on a
   real GOV.UK extract, ingestion/approval lifecycle, retrieval scoping and citations, Qdrant adapter against a
   fake HTTP server, fetcher guards).
 - E2E (knowledge): non-admin parents cannot reach `/knowledge`; an allowlisted admin sees the registry.
@@ -210,7 +220,13 @@ Index backends: `KNOWLEDGE_INDEX=memory` (default, rebuilt only on approval, so 
 
 - **AI tutor is untested end-to-end** (no API key used during development). It is off by default and the
   lesson works without it.
-- Rate limits are in-process memory; use a shared store before running several instances.
+- **Rate limits use fixed windows** stored in the Appwrite table `rate_limits` (atomic `incrementRowColumn`).
+  A burst across a window boundary can reach twice the limit. If Appwrite is unreachable, limited calls fail
+  instead of passing. The client key is the first `X-Forwarded-For` entry, which a client can spoof unless the
+  proxy overwrites it.
+- **Retention purge runs dry until `RETENTION_PURGE_ENABLED=true`.** Each run deletes at most 5,000 rows per
+  step and reports truncated steps. Purging mastery evidence (`RETENTION_EVIDENCE_DAYS`) does not recompute
+  competency statuses, so a status can outlive the evidence behind it.
 - Only Maths. No streaming chat yet.
 - **Voice is a pilot**, off by default and switched on per learner by the parent. Nova reads aloud with ElevenLabs when
   `ELEVENLABS_API_KEY` is set (lesson text only, clips cached in the Appwrite bucket `speech`, budget per
