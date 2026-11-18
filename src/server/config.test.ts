@@ -73,3 +73,14 @@ describe("open lesson retention", () => {
 		expect(loadConfig({ RETENTION_OPEN_SESSION_DAYS: "14" }).RETENTION_OPEN_SESSION_DAYS).toBe(14);
 	});
 });
+
+describe("tutor chat", () => {
+	it("keeps chat messages for 30 days by default", () => {
+		expect(loadConfig({}).TUTOR_MESSAGE_RETENTION_DAYS).toBe(30);
+	});
+
+	it("allows the fake model outside production only", () => {
+		expect(loadConfig({ AI_MODEL: "fake/tutor" }).AI_MODEL).toBe("fake/tutor");
+		expect(() => loadConfig({ NODE_ENV: "production", AI_MODEL: "fake/tutor" })).toThrow(/fake\/ models/);
+	});
+});

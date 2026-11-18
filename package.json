@@ -27,6 +27,7 @@
     "qdrant:down": "docker compose --env-file .env -f infra/qdrant/compose.yaml down"
   },
   "dependencies": {
+    "@ai-sdk/react": "4.0.177",
     "@mastra/core": "^1.83.0",
     "@tailwindcss/vite": "^4.1.18",
     "@tanstack/react-devtools": "0.10.14",

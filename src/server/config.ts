@@ -18,6 +18,7 @@ const envSchema = z
 			.default("anthropic/claude-sonnet-5-5"),
 		AI_API_KEY: z.string().optional(),
 		AI_DAILY_CALLS_PER_FAMILY: z.coerce.number().int().min(0).default(50),
+		TUTOR_MESSAGE_RETENTION_DAYS: z.coerce.number().int().min(1).max(365).default(30),
 		VISION_ENABLED: z.stringbool().default(false),
 		VISION_MODEL: z
 			.string()
@@ -87,6 +88,9 @@ const envSchema = z
 		}
 		if (env.KNOWLEDGE_INDEX === "qdrant" && !env.QDRANT_URL) {
 			ctx.addIssue({ code: "custom", path: ["QDRANT_URL"], message: "Required when KNOWLEDGE_INDEX=qdrant" });
+		}
+		if (env.NODE_ENV === "production" && env.AI_MODEL.startsWith("fake/")) {
+			ctx.addIssue({ code: "custom", path: ["AI_MODEL"], message: "fake/ models are for tests only" });
 		}
 		if ((env.AI_ENABLED || env.VISION_ENABLED) && !env.AI_API_KEY) {
 			ctx.addIssue({ code: "custom", path: ["AI_API_KEY"], message: "Required when AI_ENABLED or VISION_ENABLED" });

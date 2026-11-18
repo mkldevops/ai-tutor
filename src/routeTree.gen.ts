@@ -16,6 +16,7 @@ import { Route as SignupRouteImport } from './routes/signup'
 import { Route as AuthedDashboardRouteImport } from './routes/_authed/dashboard'
 import { Route as AuthedKnowledgeRouteImport } from './routes/_authed/knowledge'
 import { Route as AuthedSettingsRouteImport } from './routes/_authed/settings'
+import { Route as ApiTutorChatRouteImport } from './routes/api/tutor-chat'
 import { Route as AuthedLearnSessionIdRouteImport } from './routes/_authed/learn.$sessionId'
 import { Route as AuthedPrintStudentIdRouteImport } from './routes/_authed/print.$studentId'
 import { Route as AuthedStudentsStudentIdRouteImport } from './routes/_authed/students.$studentId'
@@ -57,6 +58,11 @@ const AuthedSettingsRoute = AuthedSettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
   getParentRoute: () => AuthedRoute,
+} as any)
+const ApiTutorChatRoute = ApiTutorChatRouteImport.update({
+  id: '/api/tutor-chat',
+  path: '/api/tutor-chat',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const AuthedLearnSessionIdRoute = AuthedLearnSessionIdRouteImport.update({
   id: '/learn/$sessionId',
@@ -105,6 +111,7 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof AuthedDashboardRoute
   '/knowledge': typeof AuthedKnowledgeRoute
   '/settings': typeof AuthedSettingsRoute
+  '/api/tutor-chat': typeof ApiTutorChatRoute
   '/learn/$sessionId': typeof AuthedLearnSessionIdRoute
   '/print/$studentId': typeof AuthedPrintStudentIdRoute
   '/students/$studentId': typeof AuthedStudentsStudentIdRouteWithChildren
@@ -120,6 +127,7 @@ export interface FileRoutesByTo {
   '/dashboard': typeof AuthedDashboardRoute
   '/knowledge': typeof AuthedKnowledgeRoute
   '/settings': typeof AuthedSettingsRoute
+  '/api/tutor-chat': typeof ApiTutorChatRoute
   '/learn/$sessionId': typeof AuthedLearnSessionIdRoute
   '/print/$studentId': typeof AuthedPrintStudentIdRoute
   '/students/$studentId/progress': typeof AuthedStudentsStudentIdProgressRoute
@@ -136,6 +144,7 @@ export interface FileRoutesById {
   '/_authed/dashboard': typeof AuthedDashboardRoute
   '/_authed/knowledge': typeof AuthedKnowledgeRoute
   '/_authed/settings': typeof AuthedSettingsRoute
+  '/api/tutor-chat': typeof ApiTutorChatRoute
   '/_authed/learn/$sessionId': typeof AuthedLearnSessionIdRoute
   '/_authed/print/$studentId': typeof AuthedPrintStudentIdRoute
   '/_authed/students/$studentId': typeof AuthedStudentsStudentIdRouteWithChildren
@@ -153,6 +162,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/knowledge'
     | '/settings'
+    | '/api/tutor-chat'
     | '/learn/$sessionId'
     | '/print/$studentId'
     | '/students/$studentId'
@@ -168,6 +178,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/knowledge'
     | '/settings'
+    | '/api/tutor-chat'
     | '/learn/$sessionId'
     | '/print/$studentId'
     | '/students/$studentId/progress'
@@ -183,6 +194,7 @@ export interface FileRouteTypes {
     | '/_authed/dashboard'
     | '/_authed/knowledge'
     | '/_authed/settings'
+    | '/api/tutor-chat'
     | '/_authed/learn/$sessionId'
     | '/_authed/print/$studentId'
     | '/_authed/students/$studentId'
@@ -197,6 +209,7 @@ export interface RootRouteChildren {
   AuthedRoute: typeof AuthedRouteWithChildren
   LoginRoute: typeof LoginRoute
   SignupRoute: typeof SignupRoute
+  ApiTutorChatRoute: typeof ApiTutorChatRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -249,6 +262,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/settings'
       preLoaderRoute: typeof AuthedSettingsRouteImport
       parentRoute: typeof AuthedRoute
+    }
+    '/api/tutor-chat': {
+      id: '/api/tutor-chat'
+      path: '/api/tutor-chat'
+      fullPath: '/api/tutor-chat'
+      preLoaderRoute: typeof ApiTutorChatRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/_authed/learn/$sessionId': {
       id: '/_authed/learn/$sessionId'
@@ -349,6 +369,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthedRoute: AuthedRouteWithChildren,
   LoginRoute: LoginRoute,
   SignupRoute: SignupRoute,
+  ApiTutorChatRoute: ApiTutorChatRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
