@@ -1,6 +1,9 @@
 import { expect, test } from "@playwright/test";
 import { addLearner, completeLesson, signUp } from "./lesson-helpers";
 
+const CLIENT_IP = { "x-forwarded-for": "198.51.100.31" };
+test.use({ extraHTTPHeaders: CLIENT_IP });
+
 test("a Year 3 learner completes an English lesson, kept apart from Maths and from other families", async ({
 	page,
 	browser,
@@ -42,7 +45,7 @@ test("a Year 3 learner completes an English lesson, kept apart from Maths and fr
 	await expect(page.getByTestId("subject-progress-english")).toContainText("1 / 3 secured");
 	await expect(page.getByTestId("subject-progress-maths")).toContainText(/0 \/ \d+ secured/);
 
-	const other = await browser.newContext();
+	const other = await browser.newContext({ extraHTTPHeaders: CLIENT_IP });
 	const otherPage = await other.newPage();
 	await signUp(otherPage, `other-en-${Date.now()}@example.test`);
 	await otherPage.goto(cleoUrl, { waitUntil: "networkidle" });
