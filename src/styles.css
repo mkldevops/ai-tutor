@@ -242,6 +242,15 @@
 	.badge[data-tone="link"] {
 		--tone: var(--color-link);
 	}
+	.squared-paper {
+		background-color: #fff;
+		background-image:
+			linear-gradient(to right, #d9dce6 1px, transparent 1px),
+			linear-gradient(to bottom, #d9dce6 1px, transparent 1px);
+		background-size: 5mm 5mm;
+		-webkit-print-color-adjust: exact;
+		print-color-adjust: exact;
+	}
 	.notice {
 		@apply rounded-lg border-l-4 px-3 py-2 text-sm;
 		border-color: var(--color-watch);
