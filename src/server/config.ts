@@ -40,6 +40,19 @@ const envSchema = z
 					.filter(Boolean),
 			),
 		KNOWLEDGE_AUTO_CHECK: z.stringbool().default(false),
+		ELEVENLABS_API_KEY: z
+			.string()
+			.optional()
+			.transform((v) => v?.trim() || undefined),
+		ELEVENLABS_VOICE_ID: z
+			.string()
+			.regex(/^[A-Za-z0-9]{10,40}$/)
+			.default("JBFqnCBsd6RMkjVDRZzb"),
+		ELEVENLABS_MODEL: z
+			.string()
+			.regex(/^[a-z0-9_]+$/)
+			.default("eleven_flash_v2_5"),
+		SPEECH_HOURLY_CLIPS_PER_FAMILY: z.coerce.number().int().min(1).default(200),
 	})
 	.superRefine((env, ctx) => {
 		if (env.DATA_BACKEND === "appwrite") {

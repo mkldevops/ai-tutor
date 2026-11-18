@@ -165,6 +165,38 @@ export const setStudentVoiceFn = createServerFn({ method: "POST" })
 		}),
 	);
 
+export const speakFn = createServerFn({ method: "POST" })
+	.validator(z.object({ text: z.string().min(1).max(600) }))
+	.handler(({ data }) =>
+		guard(async () => {
+			const { requireActor } = await import("./session");
+			const { getServerContext } = await import("./context");
+			const { rateLimit } = await import("./rate-limit");
+			const { synthesize } = await import("./speech/speech");
+			const { actor } = await requireActor();
+			const { config, speechCache } = getServerContext();
+			if (!config.ELEVENLABS_API_KEY) return { audio: null, status: "off" as const };
+			try {
+				const audio = await synthesize(
+					{
+						cache: speechCache,
+						apiKey: config.ELEVENLABS_API_KEY,
+						voiceId: config.ELEVENLABS_VOICE_ID,
+						modelId: config.ELEVENLABS_MODEL,
+						beforeGenerate: () =>
+							rateLimit(`speech:${actor.familyId}`, config.SPEECH_HOURLY_CLIPS_PER_FAMILY, 60 * 60_000),
+					},
+					data.text,
+				);
+				if (!audio) return { audio: null, status: "skipped" as const };
+				return { audio: Buffer.from(audio).toString("base64"), status: "ok" as const };
+			} catch (e) {
+				console.warn("[ai-tutor] speech fell back to the browser voice", e instanceof Error ? e.message : e);
+				return { audio: null, status: "busy" as const };
+			}
+		}),
+	);
+
 export const deleteStudentFn = createServerFn({ method: "POST" })
 	.validator(z.object({ studentId: idSchema, confirm: z.literal(true) }))
 	.handler(({ data }) =>

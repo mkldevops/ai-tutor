@@ -1,4 +1,4 @@
-import { Client, TablesDB, TablesDBIndexType } from "node-appwrite";
+import { Client, Storage, TablesDB, TablesDBIndexType } from "node-appwrite";
 import { ENGLAND_NC, OBJECTIVES, PREREQUISITES } from "../src/curriculum/england-nc-maths.ts";
 
 type Column =
@@ -333,7 +333,9 @@ async function main() {
 	if (!endpoint || !project || !key) {
 		throw new Error("Set APPWRITE_ENDPOINT, APPWRITE_PROJECT_ID and APPWRITE_API_KEY (server-only key).");
 	}
-	const db = new TablesDB(new Client().setEndpoint(endpoint).setProject(project).setKey(key));
+	const client = new Client().setEndpoint(endpoint).setProject(project).setKey(key);
+	const db = new TablesDB(client);
+	const storage = new Storage(client);
 
 	await ensure(`database ${databaseId}`, () => db.create({ databaseId, name: "AI Tutor" }));
 	for (const t of SCHEMA) {
@@ -356,6 +358,20 @@ async function main() {
 			);
 		}
 	}
+
+	await ensure("bucket speech", () =>
+		storage.createBucket({
+			bucketId: "speech",
+			name: "Spoken lesson text",
+			permissions: [],
+			fileSecurity: false,
+			maximumFileSize: 2_000_000,
+			allowedFileExtensions: ["mp3"],
+		}),
+	).catch((e) => {
+		if ((e as { code?: number }).code !== 401) throw e;
+		console.warn("skipped bucket speech: the API key needs buckets.write (ElevenLabs clips will not be cached)");
+	});
 
 	await upsertRow(db, databaseId, "curricula", rowId(ENGLAND_NC.code), {
 		code: ENGLAND_NC.code,
