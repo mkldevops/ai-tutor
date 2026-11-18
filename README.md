@@ -75,7 +75,7 @@ All variables are server-only; nothing is exposed to the browser. See [.env.exam
 | `KNOWLEDGE_AUTO_CHECK` | `false` | Enable the daily scheduled update check. |
 | `RATE_LIMIT_BACKEND` | `DATA_BACKEND` | `memory` (one instance) or `appwrite` (shared `rate_limits` table, needs `DATA_BACKEND=appwrite`). |
 | `RETENTION_PURGE_ENABLED` | `false` | The daily `retention:purge` task only logs what it would delete until this is `true`. |
-| `RETENTION_OPEN_SESSION_DAYS` | `30` | Unfinished lessons older than this are deleted. |
+| `RETENTION_OPEN_SESSION_DAYS` | `30` | Unfinished lessons older than this are deleted (minimum 14: lessons expire after 14 days). |
 | `RETENTION_WORKSHEET_CHECK_DAYS` | `90` | Worksheet photo check results older than this are deleted (derived answers stay). |
 | `RETENTION_AUDIT_LOG_DAYS` | `400` | Audit log retention (minimum 30). |
 | `RETENTION_EVIDENCE_DAYS` | `0` | Mastery evidence retention. `0` keeps it forever; otherwise at least 365. |
@@ -203,7 +203,7 @@ Index backends: `KNOWLEDGE_INDEX=memory` (default, rebuilt only on approval, so 
 
 ## Test status
 
-- Unit: 249 tests (mastery policy, rate limits, request size, retention purge, image header checks, lesson engine, generators self-check, tenant isolation; knowledge parser on a
+- Unit: 258 tests (mastery policy, rate limits, request size, retention purge, image header checks, lesson engine, generators self-check, tenant isolation; knowledge parser on a
   real GOV.UK extract, ingestion/approval lifecycle, retrieval scoping and citations, Qdrant adapter against a
   fake HTTP server, fetcher guards).
 - E2E (knowledge): non-admin parents cannot reach `/knowledge`; an allowlisted admin sees the registry.

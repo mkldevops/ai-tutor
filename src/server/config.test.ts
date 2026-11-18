@@ -66,3 +66,10 @@ describe("retention", () => {
 		expect(() => loadConfig({ RETENTION_AUDIT_LOG_DAYS: "7" })).toThrow(/RETENTION_AUDIT_LOG_DAYS/);
 	});
 });
+
+describe("open lesson retention", () => {
+	it("cannot be shorter than the lesson expiry", () => {
+		expect(() => loadConfig({ RETENTION_OPEN_SESSION_DAYS: "7" })).toThrow(/RETENTION_OPEN_SESSION_DAYS/);
+		expect(loadConfig({ RETENTION_OPEN_SESSION_DAYS: "14" }).RETENTION_OPEN_SESSION_DAYS).toBe(14);
+	});
+});

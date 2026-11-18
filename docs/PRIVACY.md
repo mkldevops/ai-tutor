@@ -48,6 +48,10 @@ Nitro task `retention:purge` (`src/server/tasks/retention-purge.ts`) runs daily 
 - Dry run by default: it logs the counts it would delete. It deletes only with `RETENTION_PURGE_ENABLED=true`.
 - Each real run writes one `retention.purge` audit entry with the policy, counts and truncated steps.
 - At most 5,000 rows per step per run; larger backlogs finish over the next runs.
+- Unfinished lessons cannot be continued after 14 days (a new one starts), so the open-lesson sweep
+  (minimum 14 days) never races a lesson being completed.
+- A row already deleted by another run is skipped. If a step fails, the run still writes its audit entry with
+  the counts so far and the failed step, then stops.
 - `student_competencies` are never purged. Purging evidence does not recompute statuses.
 
 ## Export and deletion

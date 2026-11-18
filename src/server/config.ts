@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+export const LESSON_EXPIRY_DAYS = 14;
+
 const envSchema = z
 	.object({
 		NODE_ENV: z.string().default("development"),
@@ -55,7 +57,7 @@ const envSchema = z
 		SPEECH_HOURLY_CLIPS_PER_FAMILY: z.coerce.number().int().min(1).default(200),
 		RATE_LIMIT_BACKEND: z.enum(["memory", "appwrite"]).optional(),
 		RETENTION_PURGE_ENABLED: z.stringbool().default(false),
-		RETENTION_OPEN_SESSION_DAYS: z.coerce.number().int().min(1).max(3650).default(30),
+		RETENTION_OPEN_SESSION_DAYS: z.coerce.number().int().min(LESSON_EXPIRY_DAYS).max(3650).default(30),
 		RETENTION_WORKSHEET_CHECK_DAYS: z.coerce.number().int().min(1).max(3650).default(90),
 		RETENTION_AUDIT_LOG_DAYS: z.coerce.number().int().min(30).max(3650).default(400),
 		RETENTION_EVIDENCE_DAYS: z.coerce.number().int().min(0).max(3650).default(0),

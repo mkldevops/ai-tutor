@@ -144,4 +144,105 @@ describe("purgeExpiredData", () => {
 		expect(real).toMatchObject({ counts: { audit_logs: 3 }, truncated: ["audit_logs"] });
 		expect(await store.audit_logs.listAll({ action: "old" })).toHaveLength(2);
 	});
+
+	it("previews the same rows a real run would delete, without double counting", async () => {
+		vi.useFakeTimers();
+		const store = createMemoryStore();
+		await seed(store);
+		const policy: RetentionPolicy = { ...DEFAULT_RETENTION, evidenceDays: 730 };
+		await at(800, () =>
+			store.learning_sessions.create({ ...ids, kind: "lesson", phase: "teach", state: {}, completedAt: null } as never),
+		);
+		vi.setSystemTime(NOW);
+		const dry = await purgeExpiredData({ store }, policy, { dryRun: true, now: NOW });
+		const real = await purgeExpiredData({ store }, policy, { dryRun: false, now: NOW });
+		expect(dry.counts).toEqual(real.counts);
+		expect(real.counts).toMatchObject({ open_sessions: 2, evidence_sessions: 1 });
+	});
+
+	it("shares one cap between done and superseded revisions", async () => {
+		vi.useFakeTimers();
+		const store = createMemoryStore();
+		vi.setSystemTime(ago(800));
+		for (const status of ["done", "done", "superseded", "superseded"] as const) {
+			await store.revision_schedules.create({ ...ids, dueAt: ago(790).toISOString(), status });
+		}
+		vi.setSystemTime(NOW);
+		const policy: RetentionPolicy = { ...DEFAULT_RETENTION, evidenceDays: 730 };
+		const report = await purgeExpiredData({ store }, policy, { dryRun: false, now: NOW, maxPerStep: 3 });
+		expect(report.counts.evidence_revision_schedules).toBe(3);
+		expect(report.truncated).toContain("evidence_revision_schedules");
+		expect(await store.revision_schedules.listAll({})).toHaveLength(1);
+	});
+
+	it("keeps a lesson completed after the sweep listed it", async () => {
+		vi.useFakeTimers();
+		const store = createMemoryStore();
+		await seed(store);
+		const table = store.learning_sessions;
+		const list = table.list.bind(table);
+		table.list = async (filter, opts) => {
+			const rows = await list(filter, opts);
+			for (const r of rows) if (r.completedAt === null) await table.update(r.id, { completedAt: NOW.toISOString() });
+			return rows;
+		};
+		const report = await purgeExpiredData({ store }, DEFAULT_RETENTION, { dryRun: false, now: NOW });
+		expect(report.counts.open_sessions).toBe(0);
+		expect(await list({}, {})).toHaveLength(4);
+	});
+
+	it("skips rows another run already deleted", async () => {
+		vi.useFakeTimers();
+		const store = createMemoryStore();
+		await seed(store);
+		const table = store.audit_logs;
+		const remove = table.delete.bind(table);
+		table.delete = async (id) => {
+			await remove(id);
+			throw Object.assign(new Error("Row not found"), { code: 404 });
+		};
+		const report = await purgeExpiredData({ store }, DEFAULT_RETENTION, { dryRun: false, now: NOW });
+		expect(report.counts.audit_logs).toBe(0);
+		expect((await store.audit_logs.listAll({ action: "retention.purge" })).length).toBe(1);
+	});
+
+	it("audits the rows deleted before a failure and rethrows the error", async () => {
+		vi.useFakeTimers();
+		const store = createMemoryStore();
+		vi.setSystemTime(ago(100));
+		for (let i = 0; i < 3; i++) {
+			await store.worksheet_checks.create({
+				...ids,
+				imageSha256: "0".repeat(64),
+				mimeType: "image/jpeg",
+				bytes: 10,
+				model: "m",
+				imageQuality: "good",
+				items: [],
+				handwriting: { note: "", confidence: "low" },
+				flags: [],
+				status: "reviewed",
+				reviewedByUserId: null,
+				reviewedAt: null,
+				parentNote: null,
+			});
+		}
+		vi.setSystemTime(NOW);
+		const table = store.worksheet_checks;
+		const remove = table.delete.bind(table);
+		let calls = 0;
+		table.delete = async (id) => {
+			calls += 1;
+			if (calls === 2) throw Object.assign(new Error("server down"), { code: 500 });
+			return remove(id);
+		};
+		await expect(purgeExpiredData({ store }, DEFAULT_RETENTION, { dryRun: false, now: NOW })).rejects.toThrow(
+			"server down",
+		);
+		const [entry] = await store.audit_logs.listAll({ action: "retention.purge" });
+		expect(entry.detail).toMatchObject({
+			counts: { open_sessions: 0, worksheet_checks: 1 },
+			failed: { step: "worksheet_checks", error: "server down" },
+		});
+	});
 });
