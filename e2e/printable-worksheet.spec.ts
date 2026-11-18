@@ -22,6 +22,9 @@ test("parent prints a worksheet and a separate answer key", async ({ page }) => 
 	await expect(page.getByText("Robin", { exact: true })).toBeVisible();
 	await expect(page.locator("article ol > li")).toHaveCount(6);
 	await expect(page.getByText(/Answer: \d/)).toHaveCount(0);
+	await expect(page.getByTestId("box-working")).toHaveCount(6);
+	const mcq = await page.locator("article ol > li:has(ul)").count();
+	await expect(page.getByTestId("box-answer")).toHaveCount(6 - mcq);
 	const questions = await page.locator("article ol > li").allInnerTexts();
 	await page.screenshot({ path: "test-results/printable-worksheet.png", fullPage: true });
 
