@@ -16,7 +16,11 @@ async function* reply() {
 }
 
 const post = (body: string, headers: Record<string, string> = { "content-type": "application/json" }) =>
-	new Request("http://localhost/api/tutor-chat", { method: "POST", body, headers });
+	new Request("http://localhost/api/tutor-chat", {
+		method: "POST",
+		body,
+		headers: { "content-length": String(new TextEncoder().encode(body).byteLength), ...headers },
+	});
 
 describe("POST /api/tutor-chat", () => {
 	let store: DataStore;
@@ -63,9 +67,18 @@ describe("POST /api/tutor-chat", () => {
 		expect(res.status).toBe(401);
 	});
 
-	it("rejects oversized and non-JSON bodies", async () => {
+	it("rejects oversized, unsized and non-JSON bodies", async () => {
 		const big = JSON.stringify({ sessionId, message: "a".repeat(MAX_BODY_BYTES) });
-		expect((await handleTutorChat(post(big), { requireActor: signedIn, deps })).status).toBe(400);
+		expect((await handleTutorChat(post(big), { requireActor: signedIn, deps })).status).toBe(413);
+		const lying = { "content-type": "application/json", "content-length": "20" };
+		expect((await handleTutorChat(post(big, lying), { requireActor: signedIn, deps })).status).toBe(413);
+		const stream = new Request("http://localhost/api/tutor-chat", {
+			method: "POST",
+			body: new Blob([big]).stream(),
+			headers: { "content-type": "application/json" },
+			duplex: "half",
+		} as RequestInit);
+		expect((await handleTutorChat(stream, { requireActor: signedIn, deps })).status).toBe(411);
 		const text = post("hi", { "content-type": "text/plain" });
 		expect((await handleTutorChat(text, { requireActor: signedIn, deps })).status).toBe(400);
 		expect((await handleTutorChat(post("{"), { requireActor: signedIn, deps })).status).toBe(400);

@@ -1,6 +1,7 @@
 import { createUIMessageStream, createUIMessageStreamResponse } from "ai";
 import { z } from "zod";
 import { AuthError } from "./auth/provider";
+import { checkRequestSize } from "./request-size";
 import { AppError, type AppErrorCode } from "./services/errors";
 import type { Actor } from "./services/family";
 import { FAILED_TEXT, startTutorChat, TUTOR_CHAT_LIMITS, type TutorChatDeps } from "./services/tutor-chat";
@@ -27,14 +28,22 @@ const textResponse = (status: number, message: string) =>
 		headers: { "content-type": "text/plain; charset=utf-8", "cache-control": "no-store" },
 	});
 
+class BodyRejected extends Error {
+	constructor(readonly response: Response) {
+		super("Request body rejected.");
+	}
+}
+
 async function readBody(request: Request): Promise<unknown> {
+	const rejected = checkRequestSize(request, MAX_BODY_BYTES);
+	if (rejected) throw new BodyRejected(rejected);
 	if (!request.headers.get("content-type")?.includes("application/json")) {
 		throw new AppError("invalid", "Expected JSON.");
 	}
-	const declared = Number(request.headers.get("content-length") ?? "0");
-	if (declared > MAX_BODY_BYTES) throw new AppError("invalid", "Message too large.");
 	const raw = await request.text();
-	if (new TextEncoder().encode(raw).byteLength > MAX_BODY_BYTES) throw new AppError("invalid", "Message too large.");
+	if (new TextEncoder().encode(raw).byteLength > MAX_BODY_BYTES) {
+		throw new BodyRejected(new Response("Payload Too Large", { status: 413 }));
+	}
 	try {
 		return JSON.parse(raw);
 	} catch {
@@ -53,6 +62,7 @@ export async function handleTutorChat(
 		if (!parsed.success) throw new AppError("invalid", "Invalid chat message.");
 		events = await startTutorChat(ctx.deps, actor, parsed.data);
 	} catch (e) {
+		if (e instanceof BodyRejected) return e.response;
 		if (e instanceof AppError) return textResponse(STATUS[e.code], e.message);
 		if (e instanceof AuthError) return textResponse(401, e.message);
 		console.error("[ai-tutor] tutor chat request failed", e instanceof Error ? e.message : e);

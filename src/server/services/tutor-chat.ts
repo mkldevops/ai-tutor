@@ -99,8 +99,8 @@ export async function startTutorChat(
 	}
 	const streamer = deps.createStreamer({ studentId: session.studentId, objectiveCode: session.objectiveCode });
 	if (!streamer) throw new AppError("forbidden", UNAVAILABLE_TEXT);
-	rateLimit(`tutor-chat:${actor.userId}`, TUTOR_CHAT_LIMITS.perMinute, 60_000, now.getTime());
-	rateLimit(`ai:${actor.familyId}`, deps.dailyCallsPerFamily, 24 * 60 * 60_000, now.getTime());
+	await rateLimit(`tutor-chat:${actor.userId}`, TUTOR_CHAT_LIMITS.perMinute, 60_000, now.getTime());
+	await rateLimit(`ai:${actor.familyId}`, deps.dailyCallsPerFamily, 24 * 60 * 60_000, now.getTime());
 
 	await pruneExpired(store, session.studentId, now);
 	const history = await listTutorMessages(store, actor, session.id, now);
