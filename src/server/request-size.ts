@@ -1,7 +1,7 @@
 export const MAX_SERVER_FN_BODY_BYTES = 6 * 1024 * 1024;
 export const MAX_PAGE_BODY_BYTES = 64 * 1024;
 
-const BODYLESS = new Set(["GET", "HEAD", "OPTIONS"]);
+const BODYLESS = new Set(["GET", "HEAD"]);
 
 export function bodyLimit(handlerType: "serverFn" | "router"): number {
 	return handlerType === "serverFn" ? MAX_SERVER_FN_BODY_BYTES : MAX_PAGE_BODY_BYTES;

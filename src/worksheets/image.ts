@@ -84,8 +84,11 @@ export function validateImage(base64: string, declaredMime: string): ValidImage 
 	if (!mimeType || mimeType !== declaredMime) throw new ImageRejected("Only JPEG, PNG or WebP photos are accepted.");
 	const size = imageDimensions(bytes, mimeType);
 	if (!size || size.width < 1 || size.height < 1) throw new ImageRejected("The photo could not be read.");
-	if (size.width > MAX_IMAGE_SIDE || size.height > MAX_IMAGE_SIDE || size.width * size.height > MAX_IMAGE_PIXELS) {
+	if (size.width > MAX_IMAGE_SIDE || size.height > MAX_IMAGE_SIDE) {
 		throw new ImageRejected("The photo is too large (max 10,000 pixels per side).");
+	}
+	if (size.width * size.height > MAX_IMAGE_PIXELS) {
+		throw new ImageRejected("The photo is too large (max 50 megapixels).");
 	}
 	return { bytes, mimeType, sha256: createHash("sha256").update(bytes).digest("hex") };
 }

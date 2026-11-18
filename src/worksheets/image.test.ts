@@ -129,6 +129,6 @@ describe("image validation", () => {
 		);
 		expect(() => validateImage(b64(png(0, 10)), "image/png")).toThrow(/could not be read/);
 		expect(() => validateImage(b64(png(MAX_IMAGE_SIDE + 1, 10)), "image/png")).toThrow(/too large/);
-		expect(() => validateImage(b64(webpVp8x(9000, 9000)), "image/webp")).toThrow(/too large/);
+		expect(() => validateImage(b64(webpVp8x(9000, 9000)), "image/webp")).toThrow(/50 megapixels/);
 	});
 });

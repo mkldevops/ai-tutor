@@ -14,6 +14,7 @@ describe("request size", () => {
 	it("ignores methods without a body", () => {
 		expect(checkRequestSize(req("GET"), 10)).toBeNull();
 		expect(checkRequestSize(req("HEAD"), 10)).toBeNull();
+		expect(checkRequestSize(req("OPTIONS"), 10)).toBeNull();
 	});
 
 	it("accepts a declared length within the limit and an empty POST", () => {
@@ -26,5 +27,6 @@ describe("request size", () => {
 		expect(checkRequestSize(req("POST", { "content-length": "abc" }, "x"), 10)?.status).toBe(400);
 		expect(checkRequestSize(req("POST", { "content-length": "-1" }, "x"), 10)?.status).toBe(400);
 		expect(checkRequestSize(req("POST", {}, "streamed"), 10)?.status).toBe(411);
+		expect(checkRequestSize(req("OPTIONS", { "content-length": "11" }, "01234567890"), 10)?.status).toBe(413);
 	});
 });
