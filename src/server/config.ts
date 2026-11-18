@@ -18,7 +18,6 @@ const envSchema = z
 			.default("anthropic/claude-sonnet-5-5"),
 		AI_API_KEY: z.string().optional(),
 		AI_DAILY_CALLS_PER_FAMILY: z.coerce.number().int().min(0).default(50),
-		TUTOR_MESSAGE_RETENTION_DAYS: z.coerce.number().int().min(1).max(365).default(30),
 		VISION_ENABLED: z.stringbool().default(false),
 		VISION_MODEL: z
 			.string()
@@ -62,6 +61,7 @@ const envSchema = z
 		RETENTION_WORKSHEET_CHECK_DAYS: z.coerce.number().int().min(1).max(3650).default(90),
 		RETENTION_AUDIT_LOG_DAYS: z.coerce.number().int().min(30).max(3650).default(400),
 		RETENTION_EVIDENCE_DAYS: z.coerce.number().int().min(0).max(3650).default(0),
+		RETENTION_SESSION_MESSAGES_DAYS: z.coerce.number().int().min(1).max(365).default(30),
 	})
 	.superRefine((env, ctx) => {
 		if (env.DATA_BACKEND === "appwrite") {

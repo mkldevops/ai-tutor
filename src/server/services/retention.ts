@@ -10,6 +10,7 @@ export type RetentionPolicy = {
 	worksheetCheckDays: number;
 	auditLogDays: number;
 	evidenceDays: number;
+	sessionMessageDays: number;
 };
 
 export const DEFAULT_RETENTION: RetentionPolicy = {
@@ -17,6 +18,7 @@ export const DEFAULT_RETENTION: RetentionPolicy = {
 	worksheetCheckDays: 90,
 	auditLogDays: 400,
 	evidenceDays: 0,
+	sessionMessageDays: 30,
 };
 
 export function retentionPolicy(config: AppConfig): RetentionPolicy {
@@ -25,12 +27,14 @@ export function retentionPolicy(config: AppConfig): RetentionPolicy {
 		worksheetCheckDays: config.RETENTION_WORKSHEET_CHECK_DAYS,
 		auditLogDays: config.RETENTION_AUDIT_LOG_DAYS,
 		evidenceDays: config.RETENTION_EVIDENCE_DAYS,
+		sessionMessageDays: config.RETENTION_SESSION_MESSAGES_DAYS,
 	};
 }
 
 export type PurgeStep =
 	| "open_sessions"
 	| "worksheet_checks"
+	| "session_messages"
 	| "audit_logs"
 	| "rate_limits"
 	| "evidence_sessions"
@@ -161,6 +165,13 @@ export async function purgeExpiredData(
 			table: store.worksheet_checks,
 			filter: {},
 			createdBefore: cutoff(now, policy.worksheetCheckDays),
+			max,
+		});
+
+		await run("session_messages", {
+			table: store.session_messages,
+			filter: {},
+			createdBefore: cutoff(now, policy.sessionMessageDays),
 			max,
 		});
 

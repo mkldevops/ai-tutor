@@ -69,6 +69,17 @@ async function seed(store: DataStore) {
 	await at(800, () => schedule("pending"));
 	await at(800, () => schedule("done"));
 	await at(800, () => schedule("superseded"));
+	const message = (text: string) =>
+		store.session_messages.create({
+			familyId: "f",
+			studentId: "s",
+			sessionId: "x",
+			role: "child",
+			text,
+			expiresAt: NOW.toISOString(),
+		});
+	await at(40, () => message("old chat"));
+	await at(5, () => message("recent chat"));
 	await at(500, () =>
 		store.audit_logs.create({ familyId: "f", actorUserId: null, action: "old", target: "t", detail: {} }),
 	);
@@ -86,9 +97,10 @@ describe("purgeExpiredData", () => {
 		const store = createMemoryStore();
 		await seed(store);
 		const report = await purgeExpiredData({ store }, DEFAULT_RETENTION, { dryRun: true, now: NOW });
-		expect(report.counts).toEqual({ open_sessions: 1, worksheet_checks: 1, audit_logs: 1 });
+		expect(report.counts).toEqual({ open_sessions: 1, worksheet_checks: 1, session_messages: 1, audit_logs: 1 });
 		expect(report.truncated).toEqual([]);
 		expect(await store.learning_sessions.listAll({})).toHaveLength(4);
+		expect(await store.session_messages.listAll({})).toHaveLength(2);
 		expect(await store.audit_logs.listAll({ action: "retention.purge" })).toHaveLength(0);
 	});
 
@@ -99,7 +111,14 @@ describe("purgeExpiredData", () => {
 		await rateLimiter.hit("k", 60_000, NOW.getTime() - DAY);
 		await seed(store);
 		const report = await purgeExpiredData({ store, rateLimiter }, DEFAULT_RETENTION, { dryRun: false, now: NOW });
-		expect(report.counts).toEqual({ open_sessions: 1, worksheet_checks: 1, audit_logs: 1, rate_limits: 1 });
+		expect(report.counts).toEqual({
+			open_sessions: 1,
+			worksheet_checks: 1,
+			session_messages: 1,
+			audit_logs: 1,
+			rate_limits: 1,
+		});
+		expect((await store.session_messages.listAll({})).map((m) => m.text)).toEqual(["recent chat"]);
 		const sessions = await store.learning_sessions.listAll({});
 		expect(sessions).toHaveLength(3);
 		expect(sessions.filter((s) => s.completedAt === null)).toHaveLength(1);
@@ -111,6 +130,19 @@ describe("purgeExpiredData", () => {
 		expect(logs.map((l) => l.action)).toEqual(["new", "retention.purge"]);
 		expect(logs[1]).toMatchObject({ familyId: null, actorUserId: null, target: "retention" });
 		expect(logs[1].detail).toMatchObject({ counts: report.counts, truncated: [] });
+		expect(JSON.stringify(logs[1].detail)).not.toContain("chat");
+	});
+
+	it("follows the configured chat message window", async () => {
+		vi.useFakeTimers();
+		const store = createMemoryStore();
+		await seed(store);
+		const policy: RetentionPolicy = { ...DEFAULT_RETENTION, sessionMessageDays: 3 };
+		const report = await purgeExpiredData({ store }, policy, { dryRun: false, now: NOW });
+		expect(report.counts.session_messages).toBe(2);
+		expect(await store.session_messages.listAll({})).toHaveLength(0);
+		const [entry] = await store.audit_logs.listAll({ action: "retention.purge" });
+		expect(entry.detail).toMatchObject({ policy: { sessionMessageDays: 3 }, counts: { session_messages: 2 } });
 	});
 
 	it("purges old evidence only when an evidence window is set, keeping pending revisions", async () => {

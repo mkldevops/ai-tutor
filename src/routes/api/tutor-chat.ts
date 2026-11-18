@@ -14,7 +14,7 @@ export const Route = createFileRoute("/api/tutor-chat")({
 					deps: {
 						store,
 						dailyCallsPerFamily: config.AI_DAILY_CALLS_PER_FAMILY,
-						retentionDays: config.TUTOR_MESSAGE_RETENTION_DAYS,
+						retentionDays: config.RETENTION_SESSION_MESSAGES_DAYS,
 						createStreamer: (scope) => createTutorStreamer(config, store, scope, { index, embedder }),
 					},
 				});
