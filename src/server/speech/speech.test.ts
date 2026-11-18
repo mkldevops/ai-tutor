@@ -65,6 +65,19 @@ describe("speech synthesis", () => {
 		expect(beforeGenerate).toHaveBeenCalledTimes(1);
 	});
 
+	it("gives up without calling ElevenLabs when the budget check stalls", async () => {
+		vi.useFakeTimers();
+		try {
+			const { deps: d, fetch } = deps({ beforeGenerate: () => new Promise<void>(() => {}) });
+			const pending = expect(synthesize(d, "Hello")).rejects.toThrow(/rate limit check took over/);
+			await vi.advanceTimersByTimeAsync(3_000);
+			await pending;
+			expect(fetch).not.toHaveBeenCalled();
+		} finally {
+			vi.useRealTimers();
+		}
+	});
+
 	it("fails on an ElevenLabs error without caching it", async () => {
 		const { deps: d } = deps({ fetch: vi.fn(async () => new Response("no", { status: 401 })) });
 		await expect(synthesize(d, "Hello")).rejects.toThrow("401");

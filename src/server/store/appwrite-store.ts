@@ -81,6 +81,7 @@ class AppwriteTable<T extends BaseRecord> implements Table<T> {
 
 	async list(filter: Filter<T>, opts: ListOptions = {}) {
 		const queries = this.filterQueries(filter);
+		if (opts.createdBefore) queries.push(Query.lessThan("$createdAt", opts.createdBefore));
 		queries.push(
 			opts.latest ? Query.orderDesc("$createdAt") : Query.orderAsc("$createdAt"),
 			Query.limit(opts.limit ?? 500),

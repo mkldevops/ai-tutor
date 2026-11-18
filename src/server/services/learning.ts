@@ -16,6 +16,7 @@ import {
 } from "#/learning-engine/lesson";
 import { DEFAULT_POLICY, evaluateMastery, type MasteryPolicy } from "#/learning-engine/mastery";
 import { nextReviewDate } from "#/learning-engine/scheduling";
+import { LESSON_EXPIRY_DAYS } from "../config";
 import type { CompetencyRecord, DataStore, LearningSessionRecord } from "../store/types";
 import { AppError, notFound } from "./errors";
 import { type Actor, audit, requireStudent } from "./family";
@@ -48,6 +49,19 @@ export function printableObjectives(yearGroup: 3 | 5): string[] {
 async function requireSession(store: DataStore, actor: Actor, sessionId: string) {
 	const session = await store.learning_sessions.get(sessionId);
 	if (!session || session.familyId !== actor.familyId) throw notFound("Session");
+	return session;
+}
+
+export function isExpiredSession(session: Pick<LearningSessionRecord, "createdAt" | "completedAt">, now: Date) {
+	const expiresAt = new Date(session.createdAt).getTime() + LESSON_EXPIRY_DAYS * 24 * 60 * 60_000;
+	return session.completedAt === null && now.getTime() >= expiresAt;
+}
+
+async function requireOpenSession(store: DataStore, actor: Actor, sessionId: string, now: Date) {
+	const session = await requireSession(store, actor, sessionId);
+	if (isExpiredSession(session, now)) {
+		throw new AppError("invalid", "This mission has expired. Start a new one.");
+	}
 	return session;
 }
 
@@ -98,12 +112,13 @@ export async function startSession(
 	input: { studentId: string; objectiveCode: string; kind: SessionKind },
 ): Promise<SessionResponse> {
 	const { store } = deps;
+	const now = deps.now?.() ?? new Date();
 	const student = await requireStudent(store, actor, input.studentId);
 	if (!allowedObjectives(student.yearGroup).includes(input.objectiveCode)) {
 		throw new AppError("invalid", "Objective not available for this student's year group");
 	}
 	const open = (await store.learning_sessions.list({ studentId: student.id, objectiveCode: input.objectiveCode }))
-		.filter((s) => s.completedAt === null && s.kind === input.kind)
+		.filter((s) => s.completedAt === null && s.kind === input.kind && !isExpiredSession(s, now))
 		.at(-1);
 	if (open) return respond(store, open);
 
@@ -157,21 +172,23 @@ async function saveState(store: DataStore, session: LearningSessionRecord, state
 }
 
 export async function continueSession(deps: Deps, actor: Actor, sessionId: string) {
-	const session = await requireSession(deps.store, actor, sessionId);
+	const now = deps.now?.() ?? new Date();
+	const session = await requireOpenSession(deps.store, actor, sessionId, now);
 	const state = wrapLesson(() => continueToPractice(session.state));
-	return respond(deps.store, await saveState(deps.store, session, state, deps.now?.() ?? new Date()));
+	return respond(deps.store, await saveState(deps.store, session, state, now));
 }
 
 export async function hintSession(deps: Deps, actor: Actor, sessionId: string) {
-	const session = await requireSession(deps.store, actor, sessionId);
+	const now = deps.now?.() ?? new Date();
+	const session = await requireOpenSession(deps.store, actor, sessionId, now);
 	const { state, hint } = wrapLesson(() => requestHint(session.state));
-	return respond(deps.store, await saveState(deps.store, session, state, deps.now?.() ?? new Date()), { hint });
+	return respond(deps.store, await saveState(deps.store, session, state, now), { hint });
 }
 
 export async function answerSession(deps: Deps, actor: Actor, sessionId: string, response: string) {
 	const { store } = deps;
 	const now = deps.now?.() ?? new Date();
-	const session = await requireSession(store, actor, sessionId);
+	const session = await requireOpenSession(store, actor, sessionId, now);
 	const item = currentItem(session.state);
 	const { state, entry, feedback } = wrapLesson(() => submitAnswer(session.state, response));
 	if (!item) throw new AppError("invalid", "No question is waiting for an answer.");
@@ -213,7 +230,7 @@ export async function rateConfidence(
 	actor: Actor,
 	input: { sessionId: string; moment: ConfidenceMoment; value: number },
 ) {
-	const session = await requireSession(deps.store, actor, input.sessionId);
+	const session = await requireOpenSession(deps.store, actor, input.sessionId, deps.now?.() ?? new Date());
 	if (!CONFIDENCE_PHASES[input.moment].includes(session.phase)) {
 		throw new AppError("invalid", `Confidence "${input.moment}" cannot be recorded at this point of the mission.`);
 	}

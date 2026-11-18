@@ -14,7 +14,9 @@ import {
 } from "./worksheets";
 
 const prefs = { readingSupport: false, theme: "calm" as const };
-const JPEG = Buffer.from([0xff, 0xd8, 0xff, 0xe0, 1, 2, 3, 4]).toString("base64");
+const JPEG = Buffer.from([
+	0xff, 0xd8, 0xff, 0xe0, 0, 4, 1, 2, 0xff, 0xc0, 0, 0x11, 8, 0x03, 0x20, 0x04, 0xb0, 3, 0, 0, 0, 0, 0, 0,
+]).toString("base64");
 
 const reading = (items: { question: string; childAnswer: string; legibility?: string }[], note = "Tidy digits.") =>
 	JSON.stringify({

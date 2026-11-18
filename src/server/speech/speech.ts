@@ -13,7 +13,7 @@ export type SpeechDeps = {
 	voiceId: string;
 	modelId: string;
 	fetch?: typeof fetch;
-	beforeGenerate?: () => void;
+	beforeGenerate?: () => void | Promise<void>;
 };
 
 export function speechKey(voiceId: string, modelId: string, text: string): string {
@@ -24,10 +24,10 @@ export async function synthesize(deps: SpeechDeps, raw: string): Promise<Uint8Ar
 	const text = raw.replace(/\s+/g, " ").trim();
 	if (!deps.apiKey || !text || text.length > MAX_SPEECH_CHARS) return null;
 	const key = speechKey(deps.voiceId, deps.modelId, text);
-	const cached = await within(deps.cache.get(key), CACHE_WAIT_MS).catch(() => null);
+	const cached = await within(deps.cache.get(key), CACHE_WAIT_MS, "speech cache").catch(() => null);
 	if (cached) return cached;
 
-	deps.beforeGenerate?.();
+	if (deps.beforeGenerate) await within(Promise.resolve(deps.beforeGenerate()), LIMIT_WAIT_MS, "rate limit check");
 	const res = await (deps.fetch ?? fetch)(
 		`https://api.elevenlabs.io/v1/text-to-speech/${encodeURIComponent(deps.voiceId)}?output_format=mp3_44100_64`,
 		{
@@ -39,18 +39,19 @@ export async function synthesize(deps: SpeechDeps, raw: string): Promise<Uint8Ar
 	);
 	if (!res.ok) throw new Error(`ElevenLabs returned ${res.status}`);
 	const audio = new Uint8Array(await res.arrayBuffer());
-	await within(deps.cache.put(key, audio), CACHE_WAIT_MS).catch((e) =>
+	await within(deps.cache.put(key, audio), CACHE_WAIT_MS, "speech cache").catch((e) =>
 		console.warn("[ai-tutor] speech cache write failed", e instanceof Error ? e.message : e),
 	);
 	return audio;
 }
 
 const CACHE_WAIT_MS = 3_000;
+const LIMIT_WAIT_MS = 3_000;
 
-function within<T>(work: Promise<T>, ms: number): Promise<T> {
+function within<T>(work: Promise<T>, ms: number, what: string): Promise<T> {
 	let timer: ReturnType<typeof setTimeout> | undefined;
 	const late = new Promise<never>((_, reject) => {
-		timer = setTimeout(() => reject(new Error(`speech cache took over ${ms} ms`)), ms);
+		timer = setTimeout(() => reject(new Error(`${what} took over ${ms} ms`)), ms);
 	});
 	return Promise.race([work, late]).finally(() => clearTimeout(timer));
 }

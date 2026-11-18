@@ -55,8 +55,8 @@ export const signUp = createServerFn({ method: "POST" })
 			const { setSessionCookie, clientKey } = await import("./session");
 			const { rateLimit } = await import("./rate-limit");
 			const { createFamilyForUser } = await import("./services/family");
-			rateLimit(`signup:${clientKey()}`, 5, 60 * 60_000);
 			const { auth, store } = getServerContext();
+			await rateLimit(`signup:${clientKey()}`, 5, 60 * 60_000);
 			const res = await auth.signUp(data.email, data.password, data.name);
 			await createFamilyForUser(store, res.user.id, data.familyName);
 			setSessionCookie(res.sessionSecret);
@@ -72,9 +72,9 @@ export const signIn = createServerFn({ method: "POST" })
 			const { setSessionCookie, clientKey } = await import("./session");
 			const { rateLimit } = await import("./rate-limit");
 			const { audit } = await import("./services/family");
-			rateLimit(`signin:${clientKey()}`, 10, 15 * 60_000);
-			rateLimit(`signin:${data.email.toLowerCase()}`, 10, 15 * 60_000);
 			const { auth, store } = getServerContext();
+			await rateLimit(`signin:${clientKey()}`, 10, 15 * 60_000);
+			await rateLimit(`signin:${data.email.toLowerCase()}`, 10, 15 * 60_000);
 			const res = await auth.signIn(data.email, data.password);
 			setSessionCookie(res.sessionSecret);
 			await audit(store, { userId: res.user.id, familyId: null }, "auth.sign_in", `users/${res.user.id}`);
@@ -333,7 +333,7 @@ export const askTutorFn = createServerFn({ method: "POST" })
 				{ index, embedder },
 			);
 			if (!agent) return { available: false as const, text: null };
-			rateLimit(`ai:${actor.familyId}`, config.AI_DAILY_CALLS_PER_FAMILY, 24 * 60 * 60_000);
+			await rateLimit(`ai:${actor.familyId}`, config.AI_DAILY_CALLS_PER_FAMILY, 24 * 60 * 60_000);
 			const started = Date.now();
 			let usage: unknown[] = [];
 			const res = await generateCheckedAnswer(async (prompt) => {
@@ -390,7 +390,7 @@ export const checkWorksheetPhotoFn = createServerFn({ method: "POST" })
 			const { config, store } = getServerContext();
 			const reader = createWorksheetReader(config);
 			if (!reader) throw new AppError("invalid", "Worksheet photo checks are turned off.");
-			rateLimit(`vision:${actor.familyId}`, config.VISION_DAILY_CHECKS_PER_FAMILY, 24 * 60 * 60_000);
+			await rateLimit(`vision:${actor.familyId}`, config.VISION_DAILY_CHECKS_PER_FAMILY, 24 * 60 * 60_000);
 			const started = Date.now();
 			const check = await checkWorksheetPhoto({ store, reader }, actor, data);
 			console.info("[ai-tutor] worksheet check", { familyId: actor.familyId, ms: Date.now() - started });
@@ -467,7 +467,7 @@ export const runIngestionFn = createServerFn({ method: "POST" })
 			const { runIngestion } = await import("#/knowledge/ingestion");
 			const { createSafeJsonFetcher } = await import("#/knowledge/fetcher");
 			const user = await requireKnowledgeAdmin();
-			rateLimit(`ingest:${data.sourceKey}`, 6, 60 * 60_000);
+			await rateLimit(`ingest:${data.sourceKey}`, 6, 60 * 60_000);
 			const { store, index, embedder } = getServerContext();
 			const job = await runIngestion({ store, index, embedder, fetchJson: createSafeJsonFetcher() }, data.sourceKey, {
 				trigger: "manual",
