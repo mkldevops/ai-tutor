@@ -33,3 +33,13 @@ describe("memory store list", () => {
 		expect(all.at(-1)?.objectiveCode).toBe("OBJ-501");
 	});
 });
+
+describe("memory store createdBefore", () => {
+	it("returns only rows created strictly before the cutoff", async () => {
+		const store = createMemoryStore();
+		await store.mastery_events.create(event(1));
+		const cutoff = new Date(Date.now() + 1000).toISOString();
+		expect(await store.mastery_events.list({}, { createdBefore: cutoff })).toHaveLength(1);
+		expect(await store.mastery_events.list({}, { createdBefore: "2000-01-01T00:00:00.000Z" })).toHaveLength(0);
+	});
+});

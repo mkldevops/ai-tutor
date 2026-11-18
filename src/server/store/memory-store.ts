@@ -14,6 +14,7 @@ class MemoryTable<T extends BaseRecord> implements Table<T> {
 		const limit = opts.limit ?? 500;
 		const rows = [...this.rows.values()]
 			.filter((r) => entries.every(([k, v]) => r[k] === v))
+			.filter((r) => !opts.createdBefore || r.createdAt < opts.createdBefore)
 			.sort((a, b) => a.createdAt.localeCompare(b.createdAt));
 		return (opts.latest ? rows.slice(-limit) : rows.slice(0, limit)).map((r) => structuredClone(r));
 	}

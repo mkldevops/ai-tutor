@@ -19,8 +19,11 @@ const config = defineConfig({
 				"knowledge:check": {
 					handler: fileURLToPath(new URL("./src/server/tasks/knowledge-check.ts", import.meta.url)),
 				},
+				"retention:purge": {
+					handler: fileURLToPath(new URL("./src/server/tasks/retention-purge.ts", import.meta.url)),
+				},
 			},
-			scheduledTasks: { "17 3 * * *": ["knowledge:check"] },
+			scheduledTasks: { "17 3 * * *": ["knowledge:check"], "41 3 * * *": ["retention:purge"] },
 		}),
 		tailwindcss(),
 		tanstackStart(),

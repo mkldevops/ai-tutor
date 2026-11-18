@@ -182,7 +182,7 @@ export type Filter<T> = Partial<
 	Pick<T, { [K in keyof T]: T[K] extends string | number | boolean | null ? K : never }[keyof T]>
 >;
 
-export type ListOptions = { limit?: number; latest?: boolean };
+export type ListOptions = { limit?: number; latest?: boolean; createdBefore?: string };
 
 export interface Table<T extends BaseRecord> {
 	get(id: string): Promise<T | null>;
