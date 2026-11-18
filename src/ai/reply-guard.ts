@@ -10,6 +10,12 @@ export const STOP_NOTICES: Record<GuardStop, string> = {
 	too_long: "That's a lot of talking from me. What do you think so far?",
 };
 
+export class ReplyCutError extends Error {
+	constructor(readonly finishReason: string) {
+		super(`reply cut: ${finishReason}`);
+	}
+}
+
 const BOUNDARY = /[.!?](?=\s)|\n/g;
 const NUMBER = new RegExp(NUM, "g");
 

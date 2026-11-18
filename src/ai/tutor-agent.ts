@@ -3,6 +3,7 @@ import { Agent } from "@mastra/core/agent";
 import { createTool } from "@mastra/core/tools";
 import type { ModelMessage } from "ai";
 import { z } from "zod";
+import { ReplyCutError } from "#/ai/reply-guard";
 import { getObjective, getPrerequisiteCodes } from "#/curriculum/england-nc";
 import { type RetrievalDeps, retrieveApprovedKnowledge } from "#/knowledge/retrieval";
 import type { AppConfig } from "#/server/config";
@@ -141,11 +142,13 @@ export function buildTutorTools(store: DataStore, scope: TutorScope, knowledge?:
 
 async function resolveModel(config: AppConfig) {
 	if (config.AI_MODEL.startsWith("fake/") && config.NODE_ENV !== "production") {
-		const { createFakeTutorModel } = await import("./fake-model");
-		return createFakeTutorModel();
+		const { createFakeTutorModel, FAKE_CUT_REPLY } = await import("./fake-model");
+		return config.AI_MODEL === "fake/cut" ? createFakeTutorModel(FAKE_CUT_REPLY, 40, "length") : createFakeTutorModel();
 	}
 	return { id: config.AI_MODEL as `${string}/${string}`, apiKey: config.AI_API_KEY };
 }
+
+export const TUTOR_CHAT_MAX_OUTPUT_TOKENS = 1500;
 
 export function createTutorStreamer(
 	config: AppConfig,
@@ -168,9 +171,13 @@ export function createTutorStreamer(
 		const out = await agent.stream(messages, {
 			system: context,
 			maxSteps: 4,
-			modelSettings: { maxOutputTokens: 400 },
+			modelSettings: { maxOutputTokens: TUTOR_CHAT_MAX_OUTPUT_TOKENS },
 		});
-		return out.textStream;
+		return (async function* () {
+			for await (const text of out.textStream) yield text;
+			const reason = await out.finishReason;
+			if (reason && reason !== "stop") throw new ReplyCutError(reason);
+		})();
 	};
 }
 

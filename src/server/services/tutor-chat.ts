@@ -1,4 +1,4 @@
-import { type GuardEvent, guardReply, leaksAnswer } from "#/ai/reply-guard";
+import { type GuardEvent, guardReply, leaksAnswer, ReplyCutError } from "#/ai/reply-guard";
 import { getObjective } from "#/curriculum/england-nc";
 import { currentItem } from "#/learning-engine/lesson";
 import { rateLimit } from "../rate-limit";
@@ -30,6 +30,7 @@ export type TutorChatDeps = {
 export type TutorChatEvent = GuardEvent | { type: "failed"; text: string };
 
 export const UNAVAILABLE_TEXT = "The AI tutor is not switched on for this family.";
+export const CUT_TEXT = "Oops, I lost my words there. Can you ask me again?";
 export const FAILED_TEXT = "Sorry, I can't answer right now. Please try again in a moment.";
 
 async function requireTutoringSession(store: DataStore, actor: Actor, sessionId: string) {
@@ -145,9 +146,11 @@ export async function startTutorChat(
 				yield event;
 			}
 		} catch (e) {
-			outcome = "error";
+			const cut = e instanceof ReplyCutError;
+			outcome = cut ? "cut" : "error";
 			console.error("[ai-tutor] tutor chat failed", e instanceof Error ? e.message : e);
-			const text = reply ? ` ${FAILED_TEXT}` : FAILED_TEXT;
+			const notice = cut ? CUT_TEXT : FAILED_TEXT;
+			const text = reply ? ` ${notice}` : notice;
 			reply += text;
 			yield { type: "failed", text };
 		} finally {
