@@ -261,7 +261,9 @@ function LessonPage() {
 								<input
 									ref={inputRef}
 									className="input text-lg"
-									inputMode="decimal"
+									{...(view.item.type === "written"
+										? { inputMode: "text", spellCheck: false, autoCorrect: "off", autoCapitalize: "off" }
+										: { inputMode: "decimal" })}
 									autoComplete="off"
 									aria-label="Your answer"
 									value={answer}
