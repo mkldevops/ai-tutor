@@ -83,4 +83,8 @@ describe("printable sheets", () => {
 		await expect(sheet({}, bob)).rejects.toThrow();
 		await expect(sheet({ objectiveCode: "MA-Y5-MD-POWERS10" })).rejects.toBeInstanceOf(AppError);
 	});
+
+	it("keeps English objectives off paper sheets", async () => {
+		await expect(sheet({ objectiveCode: "EN-Y3-SP-PREFIXES" })).rejects.toBeInstanceOf(AppError);
+	});
 });

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { OBJECTIVES } from "#/curriculum/england-nc-maths";
+import { OBJECTIVES } from "#/curriculum/england-nc";
 import { createRng, generateItem, hasGenerator, supportedTypes } from "#/curriculum/generators";
 import { gradeResponse, normaliseNumeric } from "./grading";
 import {

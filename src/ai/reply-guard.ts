@@ -13,7 +13,15 @@ export const STOP_NOTICES: Record<GuardStop, string> = {
 const BOUNDARY = /[.!?](?=\s)|\n/g;
 const NUMBER = new RegExp(NUM, "g");
 
-const normalise = (s: string) => s.trim().toLowerCase().replace(/,/g, "").replace(/\s+/g, " ");
+const normalise = (s: string) =>
+	s
+		.normalize("NFKC")
+		.replace(/[\u201C\u201D\u201E\u00AB\u00BB]/g, '"')
+		.replace(/[\u2018\u2019]/g, "'")
+		.trim()
+		.toLowerCase()
+		.replace(/,/g, "")
+		.replace(/\s+/g, " ");
 
 export function leaksAnswer(sentence: string, answers: string[]): boolean {
 	const numbers = new Set([...sentence.matchAll(NUMBER)].map((m) => Number(m[0].replace(/,/g, ""))));

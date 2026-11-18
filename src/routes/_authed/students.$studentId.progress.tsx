@@ -1,7 +1,9 @@
 import { createFileRoute, useRouter } from "@tanstack/react-router";
 import { ErrorBox, useAction } from "#/components/form";
+import { SUBJECTS } from "#/components/lesson-visual";
 import { formatDate, STATUS_LABELS, StatusBadge } from "#/components/status";
 import { DONE, type Objective, type Progress, useProgress } from "#/components/student-progress";
+import { subjectsIn } from "#/components/subject-switch";
 import type { CompetencyStatus } from "#/domain/types";
 import { overrideCompetencyFn } from "#/server/functions";
 
@@ -33,6 +35,15 @@ function ProgressTab() {
 	const secured = objectives.filter((o) => DONE.includes(o.status)).length;
 	const due = objectives.filter((o) => o.review?.isDue).length;
 	const title = (code: string) => objectives.find((o) => o.code === code)?.title ?? code;
+	const bySubject = subjectsIn(objectives).map((subject) => {
+		const own = objectives.filter((o) => o.subject === subject);
+		return {
+			subject,
+			total: own.length,
+			secured: own.filter((o) => DONE.includes(o.status)).length,
+			due: own.filter((o) => o.review?.isDue).length,
+		};
+	});
 	const stats = [
 		{ label: "Secured", value: secured, of: objectives.length },
 		{ label: "Learning now", value: started.length - secured },
@@ -53,6 +64,21 @@ function ProgressTab() {
 						</div>
 					))}
 				</div>
+				{bySubject.length > 1 && (
+					<ul className="grid grid-cols-2 gap-3" aria-label="Progress by subject">
+						{bySubject.map((s) => (
+							<li key={s.subject} className="stat" data-testid={`subject-progress-${s.subject}`}>
+								<p className="text-sm text-ink-mute">{SUBJECTS[s.subject]}</p>
+								<p className="font-semibold">
+									{s.secured} / {s.total} secured
+								</p>
+								<p className="text-sm text-ink-soft">
+									{s.due === 0 ? "No review due" : `${s.due} review${s.due > 1 ? "s" : ""} due`}
+								</p>
+							</li>
+						))}
+					</ul>
+				)}
 				<p className="text-ink-soft">
 					{started.length === 0
 						? `${student.displayName} has not done a mission yet. Start one from the Missions tab.`

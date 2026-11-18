@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { getObjective } from "#/curriculum/england-nc-maths";
+import { getObjective } from "#/curriculum/england-nc";
 import { splitStep } from "./explanation-step";
 
 describe("splitStep", () => {

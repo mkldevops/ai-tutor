@@ -1,6 +1,6 @@
 import type { Subject } from "#/domain/types";
 
-const SUBJECTS: Record<Subject, string> = { maths: "Maths", english: "English" };
+export const SUBJECTS: Record<Subject, string> = { maths: "Maths", english: "English" };
 
 const STRANDS: { match: string; label: string; image: string }[] = [
 	{ match: "addition and subtraction", label: "Addition & subtraction", image: "/lessons/addition-subtraction.webp" },
@@ -11,7 +11,9 @@ const STRANDS: { match: string; label: string; image: string }[] = [
 
 export function strandVisual(strand: string): { label: string; image: string | null } {
 	const found = STRANDS.find((s) => strand.toLowerCase().includes(s.match));
-	return found ? { label: found.label, image: found.image } : { label: strand.replace(/^.*–\s*/, ""), image: null };
+	if (found) return { label: found.label, image: found.image };
+	const label = strand.replace(/^.*–\s*/, "");
+	return { label: label.charAt(0).toUpperCase() + label.slice(1), image: null };
 }
 
 export function SubjectTag({ subject, strand }: { subject: Subject; strand: string }) {
@@ -27,7 +29,13 @@ export function LessonArt({ strand, size = 88 }: { strand: string; size?: number
 	const { image } = strandVisual(strand);
 	return (
 		<div className="lesson-art" style={{ width: size, height: size }} aria-hidden="true">
-			{image && <img src={image} alt="" width={size} height={size} loading="lazy" />}
+			{image ? (
+				<img src={image} alt="" width={size} height={size} loading="lazy" />
+			) : (
+				<span className="lesson-art__glyph" style={{ fontSize: size * 0.38 }}>
+					Aa
+				</span>
+			)}
 		</div>
 	);
 }

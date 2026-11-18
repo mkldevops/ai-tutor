@@ -1,4 +1,4 @@
-import { getObjective } from "#/curriculum/england-nc-maths";
+import { getObjective } from "#/curriculum/england-nc";
 import { buildPrintableItems, type Difficulty, difficultyFor, type PrintableItem } from "#/worksheets/printable";
 import type { DataStore } from "../store/types";
 import { AppError } from "./errors";

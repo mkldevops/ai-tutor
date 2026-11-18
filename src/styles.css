@@ -298,7 +298,8 @@
 	.tab:hover {
 		color: var(--ui-fg);
 	}
-	.tab[aria-current="page"] {
+	.tab[aria-current="page"],
+	.tab[aria-selected="true"] {
 		color: var(--ui-fg);
 		border-color: var(--color-accent);
 		@apply font-bold;
@@ -616,6 +617,10 @@
 	.lesson-art {
 		@apply shrink-0 overflow-hidden rounded-[10px];
 		background: radial-gradient(circle at 50% 50%, #1c2550 0%, #0d1330 60%, #070a1c 100%);
+	}
+	.lesson-art__glyph {
+		@apply flex size-full items-center justify-center font-display font-semibold;
+		color: var(--color-watch);
 	}
 	.lesson-art img {
 		@apply size-full object-cover;

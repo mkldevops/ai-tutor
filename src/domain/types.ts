@@ -12,7 +12,7 @@ export type FamilyRole = z.infer<typeof familyRoleSchema>;
 export const evidenceModeSchema = z.enum(["diagnostic", "guided", "independent", "review"]);
 export type EvidenceMode = z.infer<typeof evidenceModeSchema>;
 
-export const itemTypeSchema = z.enum(["numeric", "multiple_choice", "missing_number", "word_problem"]);
+export const itemTypeSchema = z.enum(["numeric", "multiple_choice", "missing_number", "word_problem", "written"]);
 export type ItemType = z.infer<typeof itemTypeSchema>;
 
 export const competencyStatusSchema = z.enum([
