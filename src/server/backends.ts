@@ -1,8 +1,10 @@
-import { Client } from "node-appwrite";
+import { Client, TablesDB } from "node-appwrite";
 import { createHashEmbedder, type Embedder } from "#/knowledge/embedding";
 import { createMemoryIndex, createQdrantIndex, type VectorIndex } from "#/knowledge/vector-index";
 import { type AuthProvider, createAppwriteAuth, createMemoryAuth } from "./auth/provider";
 import { type AppConfig, loadConfig } from "./config";
+import { createMemoryRateLimiter, type RateLimiter, setRateLimiter } from "./rate-limit";
+import { createAppwriteRateLimiter } from "./rate-limit-appwrite";
 import { createAppwriteSpeechCache, createMemorySpeechCache } from "./speech/cache";
 import type { SpeechCache } from "./speech/speech";
 import { createAppwriteStore } from "./store/appwrite-store";
@@ -16,6 +18,7 @@ export type ServerContext = {
 	index: VectorIndex;
 	embedder: Embedder;
 	speechCache: SpeechCache;
+	rateLimiter: RateLimiter;
 };
 
 function buildIndex(config: AppConfig, embedder: Embedder): VectorIndex {
@@ -40,6 +43,10 @@ export function buildServerContext(config: AppConfig = loadConfig()): ServerCont
 			apiKey: config.APPWRITE_API_KEY as string,
 		};
 		const admin = new Client().setEndpoint(opts.endpoint).setProject(opts.projectId).setKey(opts.apiKey);
+		const rateLimiter =
+			config.RATE_LIMIT_BACKEND === "appwrite"
+				? createAppwriteRateLimiter(new TablesDB(admin), config.APPWRITE_DATABASE_ID)
+				: createMemoryRateLimiter();
 		return {
 			config,
 			store: createAppwriteStore(admin, config.APPWRITE_DATABASE_ID),
@@ -47,6 +54,7 @@ export function buildServerContext(config: AppConfig = loadConfig()): ServerCont
 			index,
 			embedder,
 			speechCache: createAppwriteSpeechCache(admin),
+			rateLimiter,
 		};
 	}
 	console.warn("[ai-tutor] DATA_BACKEND=memory: data is lost on restart. Use only for development and tests.");
@@ -57,6 +65,7 @@ export function buildServerContext(config: AppConfig = loadConfig()): ServerCont
 		index,
 		embedder,
 		speechCache: createMemorySpeechCache(),
+		rateLimiter: createMemoryRateLimiter(),
 	};
 }
 
@@ -65,6 +74,9 @@ type Holder = { [KEY]?: ServerContext };
 
 export function sharedServerContext(): ServerContext {
 	const holder = globalThis as Holder;
-	holder[KEY] ??= buildServerContext();
+	if (!holder[KEY]) {
+		holder[KEY] = buildServerContext();
+		setRateLimiter(holder[KEY].rateLimiter);
+	}
 	return holder[KEY];
 }

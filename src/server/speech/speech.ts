@@ -13,7 +13,7 @@ export type SpeechDeps = {
 	voiceId: string;
 	modelId: string;
 	fetch?: typeof fetch;
-	beforeGenerate?: () => void;
+	beforeGenerate?: () => void | Promise<void>;
 };
 
 export function speechKey(voiceId: string, modelId: string, text: string): string {
@@ -27,7 +27,7 @@ export async function synthesize(deps: SpeechDeps, raw: string): Promise<Uint8Ar
 	const cached = await within(deps.cache.get(key), CACHE_WAIT_MS).catch(() => null);
 	if (cached) return cached;
 
-	deps.beforeGenerate?.();
+	await deps.beforeGenerate?.();
 	const res = await (deps.fetch ?? fetch)(
 		`https://api.elevenlabs.io/v1/text-to-speech/${encodeURIComponent(deps.voiceId)}?output_format=mp3_44100_64`,
 		{

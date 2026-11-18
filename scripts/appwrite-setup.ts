@@ -234,6 +234,14 @@ export const SCHEMA: TableSpec[] = [
 		],
 	},
 	{
+		id: "rate_limits",
+		columns: [
+			{ kind: "integer", key: "count", required: true, min: 0 },
+			{ kind: "datetime", key: "expiresAt", required: true },
+		],
+		indexes: [{ key: "by_expires", columns: ["expiresAt"] }],
+	},
+	{
 		id: "curricula",
 		columns: [
 			{ kind: "string", key: "code", size: 40, required: true },
