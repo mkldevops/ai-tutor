@@ -144,17 +144,33 @@ describe("tenant isolation", () => {
 			"MA-Y3-AS-MENTAL",
 			"MA-Y3-PV-MORE-LESS",
 			"MA-Y3-MD-TABLES-348",
+			"MA-Y3-PV-DIGIT-VALUE",
+			"MA-Y3-AS-COLUMN",
+			"MA-Y3-MD-WRITTEN",
+			"MA-Y3-FR-OF-AMOUNT",
 			"EN-Y3-SP-PREFIXES",
 			"EN-Y3-GR-PRESENT-PERFECT",
 			"EN-Y3-PU-INVERTED-COMMAS",
+			"EN-Y3-GR-A-AN",
+			"EN-Y3-GR-CONJUNCTIONS",
+			"EN-Y3-SP-NOUN-PREFIXES",
+			"EN-Y3-SP-WORD-FAMILIES",
 		]);
 		expect(pb.objectives.map((o) => o.code)).toEqual([
 			"MA-Y5-MD-POWERS10",
 			"MA-Y5-PV-ROUND",
 			"MA-Y5-MD-FACTORS",
+			"MA-Y5-PV-DIGIT-VALUE",
+			"MA-Y5-AS-COLUMN",
+			"MA-Y5-MD-PRIMES",
+			"MA-Y5-MD-SQUARES",
 			"EN-Y5-SP-VERB-PREFIXES",
 			"EN-Y5-GR-RELATIVE-CLAUSES",
 			"EN-Y5-GR-POSSIBILITY",
+			"EN-Y5-SP-VERB-SUFFIXES",
+			"EN-Y5-PU-PARENTHESIS",
+			"EN-Y5-GR-ADVERBIALS",
+			"EN-Y5-SP-HOMOPHONES",
 		]);
 		expect(pa.objectives[0]?.review).not.toBeNull();
 

@@ -99,6 +99,77 @@ export const ENGLISH_OBJECTIVES: CurriculumObjective[] = [
 	},
 	{
 		...base,
+		code: "EN-Y3-GR-A-AN",
+		yearGroup: 3,
+		strand: "Grammar – a or an",
+		title: "Choose a or an",
+		statement:
+			"Use of the forms a or an according to whether the next word begins with a consonant or a vowel [for example, a rock, an open box]",
+		assessmentCriteria: [
+			"Uses an before a word that begins with a vowel",
+			"Uses a before a word that begins with a consonant, even when the noun after it begins with a vowel",
+		],
+		explanation: [
+			"Look at the very next word. If it begins with a vowel (a, e, i, o, u), use an: an apple, an open box.",
+			"If it begins with a consonant, use a: a rock, a big orange. Only the next word matters.",
+		],
+		source: appendix2,
+	},
+	{
+		...base,
+		code: "EN-Y3-GR-CONJUNCTIONS",
+		yearGroup: 3,
+		strand: "Grammar – time, place and cause",
+		title: "Show when, where and why",
+		statement:
+			"Expressing time, place and cause using conjunctions [for example, when, before, after, while, so, because], adverbs [for example, then, next, soon, therefore], or prepositions [for example, before, after, during, in, because of]",
+		assessmentCriteria: [
+			"Chooses a conjunction, adverb or preposition that shows time, place or cause",
+			"Uses because before a clause and because of or during before a noun",
+		],
+		explanation: [
+			"Some words show when (before, after, while, during, then), where (in) or why (because, so, therefore).",
+			"because and while join a clause with a verb: because it was raining. because of and during go before a noun: during the film.",
+		],
+		source: appendix2,
+	},
+	{
+		...base,
+		code: "EN-Y3-SP-NOUN-PREFIXES",
+		yearGroup: 3,
+		strand: "Spelling – noun prefixes",
+		title: "Make nouns with super–, anti– and auto–",
+		statement: "Formation of nouns using a range of prefixes [for example super–, anti–, auto–]",
+		assessmentCriteria: [
+			"Adds super–, anti– or auto– to a word without changing its spelling",
+			"Matches each prefix to its meaning: above or very, against, self",
+		],
+		explanation: [
+			"A prefix goes at the start of a word to make a new noun: super + market = supermarket.",
+			"super– means above, more than or very. anti– means against. auto– means self or own.",
+		],
+		source: appendix2,
+	},
+	{
+		...base,
+		code: "EN-Y3-SP-WORD-FAMILIES",
+		yearGroup: 3,
+		strand: "Spelling – word families",
+		title: "Spot word families",
+		statement:
+			"Word families based on common words, showing how words are related in form and meaning [for example, solve, solution, solver, dissolve, insoluble]",
+		assessmentCriteria: [
+			"Finds words that share a root word and a meaning",
+			"Rejects words that only look or sound similar",
+		],
+		explanation: [
+			"A word family is a group of words built from the same root word: help, helpful, helpless.",
+			"The words must share a meaning too. Hello looks like help, but it is not in the same family.",
+		],
+		source: appendix2,
+	},
+	{
+		...base,
 		code: "EN-Y5-SP-VERB-PREFIXES",
 		yearGroup: 5,
 		strand: "Spelling – verb prefixes",
@@ -149,14 +220,101 @@ export const ENGLISH_OBJECTIVES: CurriculumObjective[] = [
 		],
 		source: appendix2,
 	},
+	{
+		...base,
+		code: "EN-Y5-SP-VERB-SUFFIXES",
+		yearGroup: 5,
+		strand: "Spelling – verb suffixes",
+		title: "Make verbs with –ise, –ify and –ate",
+		statement: "Converting nouns or adjectives into verbs using suffixes [for example, –ate; –ise; –ify]",
+		assessmentCriteria: [
+			"Turns a noun or adjective into a verb with –ise, –ify or –ate",
+			"Drops a final e or y before the suffix when needed",
+		],
+		explanation: [
+			"Adding –ise, –ify or –ate can turn a noun or an adjective into a verb: real → realise, pure → purify, origin → originate.",
+			"If the word ends in e or y, drop that letter first: apology → apologise, intense → intensify.",
+		],
+		source: appendix2,
+	},
+	{
+		...base,
+		code: "EN-Y5-PU-PARENTHESIS",
+		yearGroup: 5,
+		strand: "Punctuation – parenthesis",
+		title: "Use brackets, dashes or commas for parenthesis",
+		statement: "Brackets, dashes or commas to indicate parenthesis",
+		assessmentCriteria: [
+			"Puts a pair of brackets, dashes or commas around the extra information",
+			"Checks that the sentence still makes sense without the parenthesis",
+		],
+		explanation: [
+			"Parenthesis is extra information added to a sentence: My uncle (who lives in Wales) is a farmer.",
+			"Put a pair of brackets, dashes or commas around it. If you take it out, the sentence still makes sense.",
+		],
+		source: appendix2,
+	},
+	{
+		...base,
+		code: "EN-Y5-GR-ADVERBIALS",
+		yearGroup: 5,
+		strand: "Grammar – linking adverbials",
+		title: "Link ideas with adverbials",
+		statement:
+			"Linking ideas across paragraphs using adverbials of time [for example, later], place [for example, nearby] and number [for example, secondly] or tense choices [for example, he had seen her before]",
+		assessmentCriteria: [
+			"Finds the fronted adverbial at the start of a sentence",
+			"Tells adverbials of time, place and number apart",
+		],
+		explanation: [
+			"An adverbial can link ideas. Time: later, the next morning. Place: nearby, in the forest. Number: firstly, secondly.",
+			"A fronted adverbial comes at the start of a sentence and is followed by a comma: Later, we went home.",
+		],
+		source: appendix2,
+	},
+	{
+		...base,
+		code: "EN-Y5-SP-HOMOPHONES",
+		yearGroup: 5,
+		strand: "Spelling – homophones",
+		title: "Choose the right homophone",
+		statement: "continue to distinguish between homophones and other words which are often confused",
+		assessmentCriteria: [
+			"Chooses the homophone whose meaning fits the sentence",
+			"Spells often confused words such as advice and advise correctly",
+		],
+		explanation: [
+			"Homophones sound the same but have different spellings and meanings: heard (listened) and herd (a group of animals).",
+			"Read the whole sentence and think about the meaning. With advice/advise and practice/practise, the c word is the noun and the s word is the verb.",
+		],
+		source: programmeOfStudy,
+	},
 ];
 
 export const ENGLISH_PREREQUISITES: PrerequisiteEdge[] = [
 	{ objectiveCode: "EN-Y3-GR-PRESENT-PERFECT", prerequisiteCode: "EN-Y2-GR-TENSE" },
 	{ objectiveCode: "EN-Y5-SP-VERB-PREFIXES", prerequisiteCode: "EN-Y3-SP-PREFIXES" },
+	{ objectiveCode: "EN-Y5-SP-VERB-SUFFIXES", prerequisiteCode: "EN-Y3-SP-WORD-FAMILIES" },
+	{ objectiveCode: "EN-Y5-GR-ADVERBIALS", prerequisiteCode: "EN-Y3-GR-CONJUNCTIONS" },
 ];
 
 export const ENGLISH_LESSON_OBJECTIVES_BY_YEAR: Record<3 | 5, string[]> = {
-	3: ["EN-Y3-SP-PREFIXES", "EN-Y3-GR-PRESENT-PERFECT", "EN-Y3-PU-INVERTED-COMMAS"],
-	5: ["EN-Y5-SP-VERB-PREFIXES", "EN-Y5-GR-RELATIVE-CLAUSES", "EN-Y5-GR-POSSIBILITY"],
+	3: [
+		"EN-Y3-SP-PREFIXES",
+		"EN-Y3-GR-PRESENT-PERFECT",
+		"EN-Y3-PU-INVERTED-COMMAS",
+		"EN-Y3-GR-A-AN",
+		"EN-Y3-GR-CONJUNCTIONS",
+		"EN-Y3-SP-NOUN-PREFIXES",
+		"EN-Y3-SP-WORD-FAMILIES",
+	],
+	5: [
+		"EN-Y5-SP-VERB-PREFIXES",
+		"EN-Y5-GR-RELATIVE-CLAUSES",
+		"EN-Y5-GR-POSSIBILITY",
+		"EN-Y5-SP-VERB-SUFFIXES",
+		"EN-Y5-PU-PARENTHESIS",
+		"EN-Y5-GR-ADVERBIALS",
+		"EN-Y5-SP-HOMOPHONES",
+	],
 };

@@ -34,7 +34,7 @@ test("a Year 3 learner completes an English lesson, kept apart from Maths and fr
 	await expect(result.getByTestId("status-badge")).toHaveAttribute("data-status", "secure");
 	await result.getByRole("link", { name: "Back to progress" }).click();
 	await expect(english).toHaveAttribute("aria-selected", "true");
-	await expect(english).toContainText("1/3");
+	await expect(english).toContainText("1/7");
 	await expect(objective.getByTestId("status-badge")).toHaveAttribute("data-status", "secure");
 	await maths.click();
 	await expect(page.getByTestId("objective-MA-Y3-AS-MENTAL").getByTestId("status-badge")).toHaveAttribute(
@@ -43,7 +43,7 @@ test("a Year 3 learner completes an English lesson, kept apart from Maths and fr
 	);
 
 	await page.getByRole("link", { name: "Progress", exact: true }).click();
-	await expect(page.getByTestId("subject-progress-english")).toContainText("1 / 3 secured");
+	await expect(page.getByTestId("subject-progress-english")).toContainText("1 / 7 secured");
 	await expect(page.getByTestId("subject-progress-maths")).toContainText(/0 \/ \d+ secured/);
 
 	const other = await browser.newContext({ extraHTTPHeaders: CLIENT_IP });

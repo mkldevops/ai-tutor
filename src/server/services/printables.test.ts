@@ -38,12 +38,23 @@ describe("printable sheets", () => {
 			"MA-Y2-AS-MENTAL",
 			"MA-Y3-PV-MORE-LESS",
 			"MA-Y3-MD-TABLES-348",
+			"MA-Y3-PV-DIGIT-VALUE",
+			"MA-Y3-AS-COLUMN",
+			"MA-Y3-MD-WRITTEN",
+			"MA-Y3-FR-OF-AMOUNT",
 		]);
 		expect(printableObjectives(5)).toEqual([
 			"MA-Y5-MD-POWERS10",
 			"MA-Y4-FR-DIV10-100",
 			"MA-Y5-PV-ROUND",
 			"MA-Y5-MD-FACTORS",
+			"MA-Y5-PV-DIGIT-VALUE",
+			"MA-Y3-PV-DIGIT-VALUE",
+			"MA-Y5-AS-COLUMN",
+			"MA-Y3-AS-COLUMN",
+			"MA-Y5-MD-PRIMES",
+			"MA-Y5-MD-SQUARES",
+			"MA-Y3-MD-TABLES-348",
 		]);
 	});
 
