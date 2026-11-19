@@ -1,6 +1,9 @@
 import { expect, test } from "@playwright/test";
 import { addLearner, completeLesson, signUp } from "./lesson-helpers";
 
+const CLIENT_IP = { "x-forwarded-for": "198.51.100.52" };
+test.use({ extraHTTPHeaders: CLIENT_IP });
+
 test("parent sees deterministic learning outcomes, other families and signed-out visitors do not", async ({
 	page,
 	browser,
@@ -40,7 +43,7 @@ test("parent sees deterministic learning outcomes, other families and signed-out
 	await page.getByText("How these are counted", { exact: true }).click();
 	await expect(page.getByTestId("outcomes-summary")).toContainText("secure for at least 7 days");
 
-	const other = await browser.newContext();
+	const other = await browser.newContext({ extraHTTPHeaders: CLIENT_IP });
 	const otherPage = await other.newPage();
 	await signUp(otherPage, `outcomes-other-${Date.now()}@example.test`);
 	await otherPage.goto(outcomesUrl, { waitUntil: "networkidle" });
@@ -49,7 +52,7 @@ test("parent sees deterministic learning outcomes, other families and signed-out
 	await expect(otherPage.getByTestId("outcome-MA-Y3-AS-MENTAL")).toHaveCount(0);
 	await other.close();
 
-	const anon = await browser.newContext();
+	const anon = await browser.newContext({ extraHTTPHeaders: CLIENT_IP });
 	const anonPage = await anon.newPage();
 	await anonPage.goto(outcomesUrl, { waitUntil: "networkidle" });
 	await expect(anonPage).toHaveURL(/\/login/);
