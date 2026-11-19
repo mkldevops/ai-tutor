@@ -6,7 +6,8 @@ import { loadConfig } from "../config";
 import { resetRateLimits } from "../rate-limit";
 import { createMemoryStore } from "../store/memory-store";
 import type { DataStore } from "../store/types";
-import { type Actor, createFamilyForUser, createStudent, deleteStudent, exportStudentData } from "./family";
+import { deleteStudent } from "./deletion";
+import { type Actor, createFamilyForUser, createStudent, exportStudentData } from "./family";
 import { answerSession, continueSession, startSession } from "./learning";
 import {
 	type ChatTurn,
@@ -241,7 +242,7 @@ describe("tutor chat", () => {
 		await drain(await startTutorChat(deps(), alice, { sessionId, message: "hello" }));
 		const exported = await exportStudentData(store, alice, studentId);
 		expect(JSON.stringify(exported)).toContain("hello");
-		await deleteStudent(store, alice, studentId);
+		await deleteStudent(store, alice, studentId, "QA Test");
 		expect(await store.session_messages.list({ studentId })).toHaveLength(0);
 	});
 

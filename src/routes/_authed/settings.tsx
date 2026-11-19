@@ -1,8 +1,10 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { listStudentsFn } from "#/server/functions";
+import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
+import { useState } from "react";
+import { ErrorBox, useAction } from "#/components/form";
+import { deleteAccountFn, listStudentsFn } from "#/server/functions";
 
 export const Route = createFileRoute("/_authed/settings")({
-	loader: () => listStudentsFn(),
+	loader: ({ context }) => (context.me.familyId ? listStudentsFn() : []),
 	component: AccountSettings,
 });
 
@@ -56,6 +58,60 @@ function AccountSettings() {
 					</ul>
 				)}
 			</section>
+
+			<DeleteAccount email={me.user.email} canDelete={me.role === "owner" || me.familyId === null} />
 		</main>
+	);
+}
+
+function DeleteAccount({ email, canDelete }: { email: string; canDelete: boolean }) {
+	const router = useRouter();
+	const [confirmEmail, setConfirmEmail] = useState("");
+	const remove = useAction(async () => {
+		await deleteAccountFn({ data: { confirmEmail } });
+		await router.invalidate();
+		await router.navigate({ to: "/" });
+	});
+	const matches = confirmEmail.trim().toLowerCase() === email.toLowerCase();
+	return (
+		<section aria-labelledby="delete-account-heading" className="card space-y-3 border-focus/40">
+			<h2 id="delete-account-heading" className="font-display text-2xl text-[#b8432a]">
+				Delete family and account
+			</h2>
+			{canDelete ? (
+				<>
+					<p className="text-sm text-ink-soft">This permanently deletes:</p>
+					<ul className="list-disc space-y-1 pl-5 text-sm text-ink-soft">
+						<li>every learner in your family, with their lessons, answers, chat messages and progress</li>
+						<li>their review schedules and worksheet checks</li>
+						<li>your family and your parent account (you are signed out and cannot sign in again)</li>
+					</ul>
+					<p className="text-sm text-ink-soft">
+						It cannot be undone. Export each learner's data first if you want a copy. Type your account email{" "}
+						<strong className="break-all">{email}</strong> to confirm.
+					</p>
+					<div className="flex flex-wrap gap-2">
+						<input
+							className="input max-w-xs"
+							aria-label="Confirm account email"
+							autoComplete="off"
+							value={confirmEmail}
+							onChange={(e) => setConfirmEmail(e.target.value)}
+						/>
+						<button
+							type="button"
+							className="btn-danger"
+							disabled={!matches || remove.pending}
+							onClick={() => void remove.run()}
+						>
+							Delete everything
+						</button>
+					</div>
+					<ErrorBox error={remove.error} />
+				</>
+			) : (
+				<p className="text-sm text-ink-soft">Only the family owner can delete the family and its learners.</p>
+			)}
+		</section>
 	);
 }

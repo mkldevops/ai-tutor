@@ -25,7 +25,7 @@ function SettingsTab() {
 	});
 
 	const remove = useAction(async () => {
-		await deleteStudentFn({ data: { studentId: student.id, confirm: true } });
+		await deleteStudentFn({ data: { studentId: student.id, confirmName } });
 		await router.navigate({ to: "/dashboard" });
 	});
 
@@ -51,8 +51,16 @@ function SettingsTab() {
 			<section className="card space-y-3 border-focus/40">
 				<h2 className="h2 text-[#b8432a]">Delete learner</h2>
 				<p className="text-sm text-ink-soft">
-					Delete this learner and all their sessions, answers and progress. This cannot be undone. Type{" "}
-					<strong>{student.displayName}</strong> to confirm.
+					This permanently deletes {student.displayName}'s profile and everything stored about them:
+				</p>
+				<ul className="list-disc space-y-1 pl-5 text-sm text-ink-soft">
+					<li>lessons, answers and Nova chat messages</li>
+					<li>progress, mastery history and review schedule</li>
+					<li>worksheet checks</li>
+				</ul>
+				<p className="text-sm text-ink-soft">
+					It cannot be undone. Export the data first if you want a copy. Type <strong>{student.displayName}</strong> to
+					confirm.
 				</p>
 				<div className="flex flex-wrap gap-2">
 					<input

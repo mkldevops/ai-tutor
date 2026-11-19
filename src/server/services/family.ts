@@ -77,7 +77,7 @@ export async function setStudentVoice(store: DataStore, actor: Actor, studentId:
 	return preferences;
 }
 
-const STUDENT_OWNED: TableName[] = [
+export const STUDENT_OWNED: TableName[] = [
 	"learning_sessions",
 	"assessment_attempts",
 	"student_competencies",
@@ -95,18 +95,4 @@ export async function exportStudentData(store: DataStore, actor: Actor, studentI
 	}
 	await audit(store, actor, "student.export", `students/${studentId}`);
 	return data;
-}
-
-export async function deleteStudent(store: DataStore, actor: Actor, studentId: string) {
-	await requireStudent(store, actor, studentId);
-	for (const table of STUDENT_OWNED) {
-		const t = store[table] as DataStore["assessment_attempts"];
-		for (;;) {
-			const rows = await t.list({ studentId }, { limit: 100 });
-			if (rows.length === 0) break;
-			for (const r of rows) await t.delete(r.id);
-		}
-	}
-	await store.students.delete(studentId);
-	await audit(store, actor, "student.delete", `students/${studentId}`);
 }
