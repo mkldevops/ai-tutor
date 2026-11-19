@@ -9,6 +9,7 @@ export const Route = createFileRoute("/_authed/students/$studentId")({
 const TABS = [
 	{ to: "/students/$studentId", label: "Missions", exact: true },
 	{ to: "/students/$studentId/progress", label: "Progress", exact: false },
+	{ to: "/students/$studentId/outcomes", label: "Outcomes", exact: false },
 	{ to: "/students/$studentId/worksheets", label: "Worksheets", exact: false },
 	{ to: "/students/$studentId/settings", label: "Settings", exact: false },
 ] as const;
