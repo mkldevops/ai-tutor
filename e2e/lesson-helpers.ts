@@ -52,6 +52,7 @@ export async function completeLesson(page: Page, { wrongInGuided = 0 } = {}) {
 			while (!(await ready.isVisible())) await page.getByRole("button", { name: "Next" }).click();
 			await ready.click();
 			await expect(page.getByTestId("phase")).not.toHaveAttribute("data-phase", "instruction");
+			await expect(page.getByTestId("explanation")).toHaveCount(0);
 			continue;
 		}
 		const position = (await page.getByTestId("phase").textContent()) ?? "";

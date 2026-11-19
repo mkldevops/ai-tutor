@@ -201,7 +201,7 @@ function LessonPage() {
 
 				{view.phase === "instruction" && view.explanationSteps && view.explanationSteps.length > 0 && (
 					<ExplanationStepper
-						key={session.sessionId}
+						key={`explain:${session.sessionId}`}
 						steps={view.explanationSteps}
 						onStep={speaker.speak}
 						onReady={() => void act.run({ action: "continue" })}
@@ -307,7 +307,7 @@ function LessonPage() {
 				)}
 
 				{(view.phase === "instruction" || view.phase === "guided") && (
-					<TutorChat key={session.sessionId} sessionId={session.sessionId} />
+					<TutorChat key={`chat:${session.sessionId}`} sessionId={session.sessionId} />
 				)}
 
 				{view.phase === "complete" && session.result && (
