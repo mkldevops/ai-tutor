@@ -4,7 +4,7 @@ import { createMemoryAuth } from "../auth/provider";
 import { createMemoryStore } from "../store/memory-store";
 import type { DataStore, TableName } from "../store/types";
 import { deleteAccount, deleteFamily, deleteStudent } from "./deletion";
-import { type Actor, createFamilyForUser, createStudent, STUDENT_OWNED } from "./family";
+import { type Actor, createFamilyForUser, createStudent, resolveActor, STUDENT_OWNED } from "./family";
 import { answerSession, continueSession, overrideCompetency, startSession } from "./learning";
 
 const prefs = { readingSupport: false, theme: "calm" as const };
@@ -196,16 +196,16 @@ describe("family deletion", () => {
 	it("resumes after a failure midway", async () => {
 		const members = store.family_members;
 		const realDelete = members.delete.bind(members);
-		let fail = true;
+		let calls = 0;
 		members.delete = async (id) => {
-			if (fail) {
-				fail = false;
-				throw new Error("network down");
-			}
+			calls += 1;
+			if (calls === 2) throw new Error("network down");
 			return realDelete(id);
 		};
+		await store.family_members.create({ familyId: alice.familyId, userId: "user-carol", role: "parent" });
 		await expect(deleteFamily(store, alice)).rejects.toThrow("network down");
 		expect(await store.families.get(alice.familyId)).toBeNull();
+		expect((await resolveActor(store, alice.userId))?.role).toBe("owner");
 		await deleteFamily(store, alice);
 		const after = await familyRowCounts(store, alice.familyId);
 		for (const [table, n] of Object.entries(after)) expect(n, table).toBe(0);

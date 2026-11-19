@@ -76,7 +76,13 @@ export async function deleteFamily(store: DataStore, actor: Actor) {
 		await removeRow(store.families, family.id);
 		add(counts, "families", 1);
 	}
-	add(counts, "family_members", await sweep(store.family_members, { familyId: actor.familyId }));
+	const members = await store.family_members.listAll({ familyId: actor.familyId });
+	const ordered = [
+		...members.filter((m) => m.userId !== actor.userId),
+		...members.filter((m) => m.userId === actor.userId),
+	];
+	for (const m of ordered) await removeRow(store.family_members, m.id);
+	add(counts, "family_members", ordered.length);
 	await audit(store, actor, "family.delete", target, { counts });
 	return counts;
 }
