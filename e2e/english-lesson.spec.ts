@@ -29,6 +29,7 @@ test("a Year 3 learner completes an English lesson, kept apart from Maths and fr
 	await expect(page.getByTestId("phase")).toHaveAttribute("data-phase", "diagnostic");
 	await completeLesson(page, { wrongInGuided: 1 });
 
+	await expect(page.getByTestId("explanation")).toHaveCount(0);
 	const result = page.getByTestId("result");
 	await expect(result.getByTestId("status-badge")).toHaveAttribute("data-status", "secure");
 	await result.getByRole("link", { name: "Back to progress" }).click();
