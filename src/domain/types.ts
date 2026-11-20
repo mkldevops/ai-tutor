@@ -71,6 +71,7 @@ export type Item = {
 	prompt: string;
 	choices?: string[];
 	answer: string;
+	accept?: string[];
 	hint: string;
 	workedSolution: string;
 };

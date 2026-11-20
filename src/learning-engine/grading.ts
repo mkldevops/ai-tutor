@@ -23,7 +23,8 @@ export type GradeResult = { correct: boolean; parsed: boolean };
 export function gradeResponse(item: Item, response: string): GradeResult {
 	if (item.type === "written") {
 		const given = normaliseText(response);
-		return { correct: given !== "" && given === normaliseText(item.answer), parsed: given !== "" };
+		const expected = [item.answer, ...(item.accept ?? [])].map(normaliseText);
+		return { correct: given !== "" && expected.includes(given), parsed: given !== "" };
 	}
 	const expected = normaliseNumeric(item.answer);
 	const given = normaliseNumeric(response);

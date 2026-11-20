@@ -13,6 +13,7 @@ import {
 	Y3_PREFIX_WORDS,
 	Y5_PREFIX_WORDS,
 } from "./english-bank";
+import { usSpellingVariants } from "./english-helpers";
 import { createRng, generateItem, supportedTypes } from "./generators";
 
 const sample = (code: string, type: ItemType): Item[] =>
@@ -153,6 +154,14 @@ describe("written answers", () => {
 		expect(isAmericanSpelling(item("realise"), "Realize.")).toBe(true);
 		expect(isAmericanSpelling(item("realise"), "realise")).toBe(false);
 		expect(isAmericanSpelling(item("realise"), "relize")).toBe(false);
+	});
+
+	it("accepts the US spelling only where the strand is not about spelling", () => {
+		const speech = { ...item('"Can we go now?" asked Mum.'), accept: ['"Can we go now?" asked Mom.'] };
+		expect(gradeResponse(speech, '"Can we go now?" asked Mom').correct).toBe(true);
+		expect(usSpellingVariants("our neighbour, Mr Lee")).toEqual({ accept: ["our neighbor, Mr Lee"] });
+		expect(usSpellingVariants("Mum said")).toEqual({ accept: ["Mom said"] });
+		expect(usSpellingVariants("realise")).toEqual({});
 	});
 
 	it("still marks wrong spelling and missing punctuation as wrong", () => {

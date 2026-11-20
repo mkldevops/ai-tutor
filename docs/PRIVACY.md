@@ -104,10 +104,10 @@ Spoken answers use on-device browser recognition (`processLocally = true`); no a
   privacy notice and parental consent flow.
 - Data processing agreements and transfer assessments for OpenRouter (and its upstream model providers) and
   ElevenLabs; confirm their retention and training settings.
-- Backups: as of 2026-11-20 no backup is configured for the Appwrite service in Coolify (no scheduled task; the
-  PostgreSQL data and uploads live only in Docker volumes on the single production VPS). A disk or server loss loses
-  all learner history. Once backups exist, deletions and the purge will not reach copies already taken: they stay
-  until those backups rotate out, and the retention period must be stated here.
+- Backups: as of 2026-11-20 the Coolify API shows no scheduled task for the Appwrite service, and the PostgreSQL
+  data and uploads live in Docker volumes on the single production VPS. Service-database backups in the Coolify UI and
+  Hostinger VPS snapshots are unchecked; confirm both before stating a retention period. Deletions and the purge do
+  not reach copies already taken: they stay until those backups rotate out.
 - Server logs (Coolify) may hold IP addresses and request paths; their retention is not configured by the app.
 - The client IP used for rate limits is the last `X-Forwarded-For` entry, the one the reverse proxy appends, and
   falls back to the socket address. Production Traefik does not trust client-sent forwarded headers; adding a CDN or
