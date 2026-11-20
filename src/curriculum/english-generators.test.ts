@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Item, ItemType } from "#/domain/types";
-import { gradeResponse, normaliseText } from "#/learning-engine/grading";
+import { gradeResponse, isAmericanSpelling, normaliseText } from "#/learning-engine/grading";
 import { continueToPractice, currentItem, startLesson, submitAnswer } from "#/learning-engine/lesson";
 import { evaluateMastery } from "#/learning-engine/mastery";
 import { getPrerequisiteCodes, LESSON_OBJECTIVES_BY_YEAR } from "./england-nc";
@@ -146,6 +146,13 @@ describe("written answers", () => {
 		expect(normaliseText("  “Can we go now?”   asked ELLA.  ")).toBe('"can we go now?" asked ella');
 		expect(gradeResponse(item('"Can we go now?" asked Ella.'), "“Can we go now?” asked Ella").correct).toBe(true);
 		expect(gradeResponse(item("has finished"), "Has  finished.").correct).toBe(true);
+	});
+
+	it("keeps British –ise spelling required but recognises the American form", () => {
+		expect(gradeResponse(item("realise"), "realize").correct).toBe(false);
+		expect(isAmericanSpelling(item("realise"), "Realize.")).toBe(true);
+		expect(isAmericanSpelling(item("realise"), "realise")).toBe(false);
+		expect(isAmericanSpelling(item("realise"), "relize")).toBe(false);
 	});
 
 	it("still marks wrong spelling and missing punctuation as wrong", () => {
