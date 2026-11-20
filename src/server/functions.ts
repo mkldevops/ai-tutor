@@ -256,6 +256,18 @@ export const getProgressFn = createServerFn({ method: "GET" })
 		}),
 	);
 
+export const getOutcomesFn = createServerFn({ method: "GET" })
+	.validator(z.object({ studentId: idSchema }))
+	.handler(({ data }) =>
+		guard(async () => {
+			const { requireActor } = await import("./session");
+			const { getServerContext } = await import("./context");
+			const { getStudentOutcomes } = await import("./services/longitudinal");
+			const { actor } = await requireActor();
+			return getStudentOutcomes({ store: getServerContext().store }, actor, data.studentId);
+		}),
+	);
+
 export const overrideCompetencyFn = createServerFn({ method: "POST" })
 	.validator(
 		z.object({

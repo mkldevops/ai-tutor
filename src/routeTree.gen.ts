@@ -21,6 +21,7 @@ import { Route as AuthedLearnSessionIdRouteImport } from './routes/_authed/learn
 import { Route as AuthedPrintStudentIdRouteImport } from './routes/_authed/print.$studentId'
 import { Route as AuthedStudentsStudentIdRouteImport } from './routes/_authed/students.$studentId'
 import { Route as AuthedStudentsStudentIdIndexRouteImport } from './routes/_authed/students.$studentId.index'
+import { Route as AuthedStudentsStudentIdOutcomesRouteImport } from './routes/_authed/students.$studentId.outcomes'
 import { Route as AuthedStudentsStudentIdProgressRouteImport } from './routes/_authed/students.$studentId.progress'
 import { Route as AuthedStudentsStudentIdSettingsRouteImport } from './routes/_authed/students.$studentId.settings'
 import { Route as AuthedStudentsStudentIdWorksheetsRouteImport } from './routes/_authed/students.$studentId.worksheets'
@@ -85,6 +86,12 @@ const AuthedStudentsStudentIdIndexRoute =
     path: '/',
     getParentRoute: () => AuthedStudentsStudentIdRoute,
   } as any)
+const AuthedStudentsStudentIdOutcomesRoute =
+  AuthedStudentsStudentIdOutcomesRouteImport.update({
+    id: '/outcomes',
+    path: '/outcomes',
+    getParentRoute: () => AuthedStudentsStudentIdRoute,
+  } as any)
 const AuthedStudentsStudentIdProgressRoute =
   AuthedStudentsStudentIdProgressRouteImport.update({
     id: '/progress',
@@ -115,6 +122,7 @@ export interface FileRoutesByFullPath {
   '/learn/$sessionId': typeof AuthedLearnSessionIdRoute
   '/print/$studentId': typeof AuthedPrintStudentIdRoute
   '/students/$studentId': typeof AuthedStudentsStudentIdRouteWithChildren
+  '/students/$studentId/outcomes': typeof AuthedStudentsStudentIdOutcomesRoute
   '/students/$studentId/progress': typeof AuthedStudentsStudentIdProgressRoute
   '/students/$studentId/settings': typeof AuthedStudentsStudentIdSettingsRoute
   '/students/$studentId/worksheets': typeof AuthedStudentsStudentIdWorksheetsRoute
@@ -130,6 +138,7 @@ export interface FileRoutesByTo {
   '/api/tutor-chat': typeof ApiTutorChatRoute
   '/learn/$sessionId': typeof AuthedLearnSessionIdRoute
   '/print/$studentId': typeof AuthedPrintStudentIdRoute
+  '/students/$studentId/outcomes': typeof AuthedStudentsStudentIdOutcomesRoute
   '/students/$studentId/progress': typeof AuthedStudentsStudentIdProgressRoute
   '/students/$studentId/settings': typeof AuthedStudentsStudentIdSettingsRoute
   '/students/$studentId/worksheets': typeof AuthedStudentsStudentIdWorksheetsRoute
@@ -148,6 +157,7 @@ export interface FileRoutesById {
   '/_authed/learn/$sessionId': typeof AuthedLearnSessionIdRoute
   '/_authed/print/$studentId': typeof AuthedPrintStudentIdRoute
   '/_authed/students/$studentId': typeof AuthedStudentsStudentIdRouteWithChildren
+  '/_authed/students/$studentId/outcomes': typeof AuthedStudentsStudentIdOutcomesRoute
   '/_authed/students/$studentId/progress': typeof AuthedStudentsStudentIdProgressRoute
   '/_authed/students/$studentId/settings': typeof AuthedStudentsStudentIdSettingsRoute
   '/_authed/students/$studentId/worksheets': typeof AuthedStudentsStudentIdWorksheetsRoute
@@ -166,6 +176,7 @@ export interface FileRouteTypes {
     | '/learn/$sessionId'
     | '/print/$studentId'
     | '/students/$studentId'
+    | '/students/$studentId/outcomes'
     | '/students/$studentId/progress'
     | '/students/$studentId/settings'
     | '/students/$studentId/worksheets'
@@ -181,6 +192,7 @@ export interface FileRouteTypes {
     | '/api/tutor-chat'
     | '/learn/$sessionId'
     | '/print/$studentId'
+    | '/students/$studentId/outcomes'
     | '/students/$studentId/progress'
     | '/students/$studentId/settings'
     | '/students/$studentId/worksheets'
@@ -198,6 +210,7 @@ export interface FileRouteTypes {
     | '/_authed/learn/$sessionId'
     | '/_authed/print/$studentId'
     | '/_authed/students/$studentId'
+    | '/_authed/students/$studentId/outcomes'
     | '/_authed/students/$studentId/progress'
     | '/_authed/students/$studentId/settings'
     | '/_authed/students/$studentId/worksheets'
@@ -298,6 +311,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthedStudentsStudentIdIndexRouteImport
       parentRoute: typeof AuthedStudentsStudentIdRoute
     }
+    '/_authed/students/$studentId/outcomes': {
+      id: '/_authed/students/$studentId/outcomes'
+      path: '/outcomes'
+      fullPath: '/students/$studentId/outcomes'
+      preLoaderRoute: typeof AuthedStudentsStudentIdOutcomesRouteImport
+      parentRoute: typeof AuthedStudentsStudentIdRoute
+    }
     '/_authed/students/$studentId/progress': {
       id: '/_authed/students/$studentId/progress'
       path: '/progress'
@@ -323,6 +343,7 @@ declare module '@tanstack/react-router' {
 }
 
 interface AuthedStudentsStudentIdRouteChildren {
+  AuthedStudentsStudentIdOutcomesRoute: typeof AuthedStudentsStudentIdOutcomesRoute
   AuthedStudentsStudentIdProgressRoute: typeof AuthedStudentsStudentIdProgressRoute
   AuthedStudentsStudentIdSettingsRoute: typeof AuthedStudentsStudentIdSettingsRoute
   AuthedStudentsStudentIdWorksheetsRoute: typeof AuthedStudentsStudentIdWorksheetsRoute
@@ -331,6 +352,7 @@ interface AuthedStudentsStudentIdRouteChildren {
 
 const AuthedStudentsStudentIdRouteChildren: AuthedStudentsStudentIdRouteChildren =
   {
+    AuthedStudentsStudentIdOutcomesRoute: AuthedStudentsStudentIdOutcomesRoute,
     AuthedStudentsStudentIdProgressRoute: AuthedStudentsStudentIdProgressRoute,
     AuthedStudentsStudentIdSettingsRoute: AuthedStudentsStudentIdSettingsRoute,
     AuthedStudentsStudentIdWorksheetsRoute:

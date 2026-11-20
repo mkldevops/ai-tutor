@@ -158,6 +158,10 @@ Key rules enforced in code:
   ownership of the learner/session. Another family's ids return `not found` (no enumeration).
 - **Answers never reach the browser.** The client gets `PublicItem` (prompt, choices); grading happens server-side.
 - **Mastery is deterministic** (`src/learning-engine/mastery.ts`). Guided answers alone cap at `developing`.
+- **Learning outcomes are deterministic** (`src/learning-engine/longitudinal.ts`). The parent-only Outcomes tab
+  replays stored answers, status changes and pending reviews: spaced review pass rate, retention at the 1st, 2nd
+  and 3rd review after securing, time since securing, regressions and overdue reviews. No model computes or words
+  them, parent overrides are left out, and a percentage is shown only from 5 reviews (counts otherwise).
   `secure` needs an independent set (≥5 items, ≥80 %, ≥2 item types, no hints).
   `mastered` needs a later review (≥7 days after secure, ≥4 items, ≥80 %). A failed check gives `needs_review`.
   Parents can override with a mandatory reason; the computed status and an audit event are kept.
