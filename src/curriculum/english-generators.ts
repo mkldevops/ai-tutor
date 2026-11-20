@@ -8,7 +8,6 @@ import {
 	PLURAL_SUBJECTS,
 	POSSIBLE_WORDS,
 	PRESENT_MARKERS,
-	type PrefixWord,
 	RELATIVE_PRONOUNS,
 	RELATIVE_SENTENCES,
 	relativeClause,
@@ -26,16 +25,13 @@ import {
 	Y5_PREFIX_WORDS,
 	Y5_PREFIXES,
 } from "./english-bank";
+import { ENGLISH_GPS_GENERATORS } from "./english-gps-generators";
+import { options, prefixGenerator } from "./english-helpers";
 import type { Generator } from "./generators";
-import { pick, type Rng, shuffle } from "./rng";
+import { pick, shuffle } from "./rng";
 
 const ENGLISH_TYPES: ItemType[] = ["multiple_choice", "written"];
 const TENSE_NAMES = ["Mia", "Leo", "Amira", "Ben"] as const;
-
-function options(rng: Rng, answer: string, distractors: readonly string[]): string[] {
-	const unique = [...new Set(distractors.filter((d) => d !== answer))].slice(0, 3);
-	return shuffle(rng, [answer, ...unique]);
-}
 
 const y2Tense: Generator = ({ rng, difficulty, type, id }) => {
 	const verb = pick(rng, TENSE_VERBS);
@@ -57,39 +53,6 @@ const y2Tense: Generator = ({ rng, difficulty, type, id }) => {
 		workedSolution: `"${marker}" means the ${tense} tense, so the verb is "${answer}".`,
 	};
 };
-
-function prefixGenerator(
-	objectiveCode: string,
-	bank: readonly PrefixWord[],
-	rules: Record<string, string>,
-	distractors: (rng: Rng, w: PrefixWord) => readonly string[],
-): Generator {
-	return ({ rng, difficulty, type, id }) => {
-		const w = pick(rng, bank);
-		const mc = type === "multiple_choice";
-		return {
-			id,
-			objectiveCode,
-			type: mc ? "multiple_choice" : "written",
-			difficulty,
-			prompt: mc
-				? `Which word means "${w.meaning}"?`
-				: `Add a prefix to "${w.root}" to make a word that means "${w.meaning}".`,
-			...(mc
-				? {
-						choices: options(
-							rng,
-							w.word,
-							distractors(rng, w).map((p) => `${p}${w.root}`),
-						),
-					}
-				: {}),
-			answer: w.word,
-			hint: rules[w.prefix] ?? "",
-			workedSolution: `${w.prefix}– + ${w.root} = ${w.word}. ${rules[w.prefix] ?? ""}`.trim(),
-		};
-	};
-}
 
 const y3Prefixes = prefixGenerator(
 	"EN-Y3-SP-PREFIXES",
@@ -224,4 +187,5 @@ export const ENGLISH_GENERATORS: Record<string, { gen: Generator; types: ItemTyp
 	"EN-Y5-SP-VERB-PREFIXES": { gen: y5VerbPrefixes, types: ENGLISH_TYPES },
 	"EN-Y5-GR-RELATIVE-CLAUSES": { gen: y5RelativeClauses, types: ENGLISH_TYPES },
 	"EN-Y5-GR-POSSIBILITY": { gen: y5Possibility, types: ENGLISH_TYPES },
+	...ENGLISH_GPS_GENERATORS,
 };

@@ -1,21 +1,11 @@
 import type { Item, ItemType } from "#/domain/types";
 
 import { ENGLISH_GENERATORS } from "./english-generators";
+import { MATHS_KS2_GENERATORS } from "./maths-generators";
+import { choicesFor, formatNumber } from "./number-format";
 import { createRng, hashSeed, int, pick, type Rng, shuffle } from "./rng";
 
-export { createRng, hashSeed, type Rng };
-
-export function formatNumber(n: number): string {
-	const rounded = Math.round(n * 1e6) / 1e6;
-	const [whole, frac] = String(rounded).split(".");
-	const withCommas = (whole ?? "0").replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-	return frac ? `${withCommas}.${frac}` : withCommas;
-}
-
-function choicesFor(rng: Rng, answer: number, distractors: number[]): string[] {
-	const unique = [...new Set(distractors.filter((d) => d !== answer && d >= 0))].slice(0, 3);
-	return shuffle(rng, [answer, ...unique].map(formatNumber));
-}
+export { createRng, formatNumber, hashSeed, type Rng };
 
 export type GenArgs = { rng: Rng; difficulty: 1 | 2 | 3; type: ItemType; id: string };
 export type Generator = (args: GenArgs) => Item;
@@ -416,6 +406,7 @@ const GENERATORS: Record<string, { gen: Generator; types: ItemType[] }> = {
 		gen: y5Factors,
 		types: ["numeric", "multiple_choice", "missing_number", "word_problem"],
 	},
+	...MATHS_KS2_GENERATORS,
 	...ENGLISH_GENERATORS,
 };
 

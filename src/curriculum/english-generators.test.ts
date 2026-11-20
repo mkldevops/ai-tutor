@@ -31,10 +31,10 @@ describe("English curriculum", () => {
 		}
 	});
 
-	it("offers three English lessons per year next to Maths", () => {
+	it("offers seven English lessons per year next to Maths", () => {
 		for (const year of [3, 5] as const) {
 			const english = LESSON_OBJECTIVES_BY_YEAR[year].filter((c) => c.startsWith("EN-"));
-			expect(english).toHaveLength(3);
+			expect(english).toHaveLength(7);
 			for (const code of english) expect(code).toContain(`-Y${year}-`);
 		}
 	});
