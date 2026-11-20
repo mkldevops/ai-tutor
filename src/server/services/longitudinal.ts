@@ -10,13 +10,16 @@ import type { DataStore } from "../store/types";
 import { type Actor, requireStudent } from "./family";
 import { allowedObjectives } from "./learning";
 
-type Deps = { store: DataStore; now?: () => Date; policy?: MasteryPolicy };
+type Deps = { store: DataStore; now?: () => Date; policy?: MasteryPolicy; maxRows?: number };
+
+export const OUTCOMES_MAX_ROWS = 5000;
 
 export type ObjectiveOutcome = ObjectiveLongitudinal & { title: string; subject: string };
 
 export type StudentOutcomes = Omit<LearnerLongitudinal, "objectives"> & {
 	student: { id: string; displayName: string; yearGroup: number };
 	objectives: ObjectiveOutcome[];
+	truncated: boolean;
 	policy: { reviewMinAccuracy: number; reviewMinDelayDays: number; reviewMinItems: number };
 };
 
@@ -32,11 +35,14 @@ export async function getStudentOutcomes(deps: Deps, actor: Actor, studentId: st
 	const now = deps.now?.() ?? new Date();
 	const policy = deps.policy ?? DEFAULT_POLICY;
 	const scope = { studentId: student.id, familyId: actor.familyId };
-	const [attempts, events, pending] = await Promise.all([
-		store.assessment_attempts.listAll(scope),
-		store.mastery_events.listAll(scope),
-		store.revision_schedules.listAll({ ...scope, status: "pending" }),
+	const max = deps.maxRows ?? OUTCOMES_MAX_ROWS;
+	const reads = await Promise.all([
+		store.assessment_attempts.listLatest(scope, max),
+		store.mastery_events.listLatest(scope, max),
+		store.revision_schedules.listLatest({ ...scope, status: "pending" }, max),
 	]);
+	const [attempts, events, pending] = [reads[0].rows, reads[1].rows, reads[2].rows];
+	const truncated = reads.some((r) => r.truncated);
 	const attemptsBy = groupBy(attempts);
 	const eventsBy = groupBy(events);
 	const pendingBy = groupBy(pending);
@@ -72,6 +78,7 @@ export async function getStudentOutcomes(deps: Deps, actor: Actor, studentId: st
 		...summary,
 		student: { id: student.id, displayName: student.displayName, yearGroup: student.yearGroup },
 		objectives,
+		truncated,
 		policy: {
 			reviewMinAccuracy: policy.reviewMinAccuracy,
 			reviewMinDelayDays: policy.reviewMinDelayDays,

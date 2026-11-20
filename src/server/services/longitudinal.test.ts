@@ -52,6 +52,13 @@ describe("getStudentOutcomes", () => {
 		const o = await getStudentOutcomes({ store }, alice, sam);
 		expect(o.objectives).toEqual([]);
 		expect(o.passRate).toEqual({ passed: 0, total: 0, rate: null });
+		expect(o.truncated).toBe(false);
+	});
+
+	it("flags outcomes built from a capped history", async () => {
+		await complete(store, alice, sam, "lesson");
+		const o = await getStudentOutcomes({ store, maxRows: 2 }, alice, sam);
+		expect(o.truncated).toBe(true);
 	});
 
 	it("follows a held review, a slip and an overdue review from stored evidence", async () => {

@@ -79,6 +79,23 @@ class AppwriteTable<T extends BaseRecord> implements Table<T> {
 		}
 	}
 
+	async listLatest(filter: Filter<T>, max: number) {
+		const out: T[] = [];
+		const page = 500;
+		let cursor: string | null = null;
+		while (out.length <= max) {
+			const size = Math.min(page, max + 1 - out.length);
+			const queries = [...this.filterQueries(filter), Query.orderDesc("$createdAt"), Query.limit(size)];
+			if (cursor) queries.push(Query.cursorAfter(cursor));
+			const res = await this.db.listRows({ databaseId: this.databaseId, tableId: this.tableId, queries });
+			out.push(...res.rows.map((r) => this.fromRow(r)));
+			if (res.rows.length < size) break;
+			cursor = res.rows[res.rows.length - 1].$id;
+		}
+		const truncated = out.length > max;
+		return { rows: out.slice(0, max).reverse(), truncated };
+	}
+
 	async list(filter: Filter<T>, opts: ListOptions = {}) {
 		const queries = this.filterQueries(filter);
 		if (opts.createdBefore) queries.push(Query.lessThan("$createdAt", opts.createdBefore));

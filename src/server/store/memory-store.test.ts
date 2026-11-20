@@ -32,6 +32,17 @@ describe("memory store list", () => {
 		expect(all).toHaveLength(501);
 		expect(all.at(-1)?.objectiveCode).toBe("OBJ-501");
 	});
+
+	it("listLatest keeps the newest rows oldest first and flags truncation", async () => {
+		const store = createMemoryStore();
+		for (let n = 1; n <= 4; n++) await store.mastery_events.create(event(n));
+		const capped = await store.mastery_events.listLatest({ studentId: "s" }, 3);
+		expect(capped.truncated).toBe(true);
+		expect(capped.rows.map((r) => r.objectiveCode)).toEqual(["OBJ-2", "OBJ-3", "OBJ-4"]);
+		const exact = await store.mastery_events.listLatest({ studentId: "s" }, 4);
+		expect(exact).toMatchObject({ truncated: false });
+		expect(exact.rows).toHaveLength(4);
+	});
 });
 
 describe("memory store createdBefore", () => {
