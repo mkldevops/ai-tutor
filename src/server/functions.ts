@@ -36,6 +36,7 @@ export const getMe = createServerFn({ method: "GET" }).handler(async () => {
 	return {
 		user: { id: user.id, email: user.email, name: user.name },
 		familyId: actor?.familyId ?? null,
+		role: actor?.role ?? null,
 		isKnowledgeAdmin: isKnowledgeAdmin(user),
 	};
 });
@@ -198,14 +199,35 @@ export const speakFn = createServerFn({ method: "POST" })
 	);
 
 export const deleteStudentFn = createServerFn({ method: "POST" })
-	.validator(z.object({ studentId: idSchema, confirm: z.literal(true) }))
+	.validator(z.object({ studentId: idSchema, confirmName: z.string().max(60) }))
 	.handler(({ data }) =>
 		guard(async () => {
 			const { requireActor } = await import("./session");
 			const { getServerContext } = await import("./context");
-			const { deleteStudent } = await import("./services/family");
+			const { rateLimit } = await import("./rate-limit");
+			const { deleteStudent } = await import("./services/deletion");
 			const { actor } = await requireActor();
-			await deleteStudent(getServerContext().store, actor, data.studentId);
+			await rateLimit(`delete-student:${actor.userId}`, 10, 60 * 60_000);
+			await deleteStudent(getServerContext().store, actor, data.studentId, data.confirmName);
+			return { ok: true };
+		}),
+	);
+
+export const deleteAccountFn = createServerFn({ method: "POST" })
+	.validator(z.object({ confirmEmail: z.string().max(254) }))
+	.handler(({ data }) =>
+		guard(async () => {
+			const { currentUser, clearSessionCookie } = await import("./session");
+			const { getServerContext } = await import("./context");
+			const { rateLimit } = await import("./rate-limit");
+			const { AppError } = await import("./services/errors");
+			const { deleteAccount } = await import("./services/deletion");
+			const user = await currentUser();
+			if (!user) throw new AppError("unauthenticated", "Please sign in.");
+			await rateLimit(`delete-account:${user.id}`, 5, 60 * 60_000);
+			const { store, auth } = getServerContext();
+			await deleteAccount({ store, auth }, user, data.confirmEmail);
+			clearSessionCookie();
 			return { ok: true };
 		}),
 	);

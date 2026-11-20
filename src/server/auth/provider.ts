@@ -19,6 +19,7 @@ export interface AuthProvider {
 	signIn(email: string, password: string): Promise<AuthResult>;
 	getUser(sessionSecret: string): Promise<AuthUser | null>;
 	signOut(sessionSecret: string): Promise<void>;
+	deleteUser(userId: string): Promise<void>;
 }
 
 const scryptAsync = promisify(scrypt) as (pw: string, salt: Buffer, len: number) => Promise<Buffer>;
@@ -57,6 +58,10 @@ export function createMemoryAuth(): AuthProvider {
 		},
 		async signOut(secret) {
 			sessions.delete(secret);
+		},
+		async deleteUser(userId) {
+			users.delete(userId);
+			for (const [secret, id] of sessions) if (id === userId) sessions.delete(secret);
 		},
 	};
 }
@@ -103,6 +108,13 @@ export function createAppwriteAuth(opts: { endpoint: string; projectId: string; 
 			try {
 				await new Account(asSession(secret)).deleteSession({ sessionId: "current" });
 			} catch {}
+		},
+		async deleteUser(userId) {
+			try {
+				await new Users(admin()).delete({ userId });
+			} catch (e) {
+				if ((e as { code?: number }).code !== 404) throw e;
+			}
 		},
 	};
 }

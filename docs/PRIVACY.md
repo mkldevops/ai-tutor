@@ -19,7 +19,7 @@ Every student read or write goes through a server function that checks the paren
 
 | Table | Content | Purpose | Lawful basis | Retention |
 | --- | --- | --- | --- | --- |
-| `families` | Family name, owner user id | Group parents and learners | _TBD_ | Until deleted (no family delete flow yet) |
+| `families` | Family name, owner user id | Group parents and learners | _TBD_ | Until the owner deletes the family (settings) |
 | `family_members` | Family id, user id, role | Authorization | _TBD_ | Same as family |
 | `students` | Display name, year group, preferences (voice on/off, etc.) | Run lessons for the right year | _TBD_ | Until the parent deletes the learner |
 | `learning_sessions` | Objective, lesson state (items shown, answers so far), completion time, self-rated confidence | Run a lesson; completed lessons feed progress | _TBD_ | Unfinished: `RETENTION_OPEN_SESSION_DAYS` (30). Completed: evidence, see below |
@@ -63,11 +63,28 @@ Nitro task `retention:purge` (`src/server/tasks/retention-purge.ts`) runs daily 
   `learning_sessions`, `assessment_attempts`, `student_competencies`, `mastery_events`, `revision_schedules`
   `worksheet_checks` and `session_messages` for that learner (full history, paged). Audited as
   `student.export`.
-- **Delete a learner**: removes the learner and all rows in the tables above. Audited as `student.delete`.
-  Audit entries that reference the learner's id stay until their own retention ends.
+Deletion code: `src/server/services/deletion.ts`. Both flows need a typed confirmation that the server checks,
+are rate limited per user, and resolve the family from the session, never from a client-sent id.
+
+- **Delete a learner** (learner settings, type the learner's name): removes every row of the learner in
+  `learning_sessions`, `assessment_attempts`, `student_competencies`, `mastery_events`, `revision_schedules`,
+  `worksheet_checks` and `session_messages`, then the `students` row. Audited as `student.delete_requested`
+  and `student.delete` (row counts per table only; no name, answer or message).
+- **Delete the family and account** (account settings, owner only, type the account email): deletes every
+  learner as above, sweeps any remaining row with the family id in those tables, then `families`,
+  `family_members` (all members of the family) and the owner's Appwrite user, which also ends its sessions.
+  Audited as `family.delete_requested`, `family.delete` (counts) and `account.delete`. A parent who is not the
+  owner cannot delete the family.
+- **Resumable**: the learner row, the family row and the membership are deleted after the rows that depend on
+  them, and a row already gone is skipped. If a step fails, the parent runs the same action again; a signed-in
+  user left without a family can still delete their account from settings.
+- **Audit entries** that reference a deleted learner, family or user id stay until their own retention ends.
+  They hold ids and counts only, never a display name, email, answer or message.
+- **Rate limits** are not keyed by learner. Buckets keyed by the user or family id are stored as hashes and
+  expire within 24 hours; the purge task removes them.
+- **Storage**: no file is tied to a learner or family. The `speech` bucket holds lesson-text clips shared by
+  everyone (no child input), and worksheet photos are never stored, so deletion touches no bucket.
 - **Delete a worksheet check**: parents can remove a single check. Audited as `worksheet.delete`.
-- **Not available yet**: deleting a parent account or a whole family from the app. It is a manual Appwrite
-  console operation today.
 
 ## Processors
 
@@ -85,11 +102,9 @@ Spoken answers use on-device browser recognition (`processLocally = true`); no a
 
 - Decide the data controller, the lawful basis per table and the retention values; write a user-facing
   privacy notice and parental consent flow.
-- Self-service deletion of a parent account and family.
 - Data processing agreements and transfer assessments for OpenRouter (and its upstream model providers) and
   ElevenLabs; confirm their retention and training settings.
 - Backups: Appwrite backups are not described here; deletions and the purge do not reach existing backups.
 - Server logs (Coolify) may hold IP addresses and request paths; their retention is not configured by the app.
 - The client IP used for rate limits comes from the first `X-Forwarded-For` entry; the proxy must overwrite it.
-- Enable `RETENTION_PURGE_ENABLED` in production after reviewing a dry-run report.
 - No age verification: the app assumes a parent creates and supervises every learner.

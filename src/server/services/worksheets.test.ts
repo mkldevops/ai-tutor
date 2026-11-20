@@ -2,8 +2,9 @@ import { beforeEach, describe, expect, it } from "vitest";
 import type { VisionGenerate } from "#/ai/worksheet-reader";
 import { createMemoryStore } from "../store/memory-store";
 import type { DataStore } from "../store/types";
+import { deleteStudent } from "./deletion";
 import { AppError } from "./errors";
-import { type Actor, createFamilyForUser, createStudent, deleteStudent, exportStudentData } from "./family";
+import { type Actor, createFamilyForUser, createStudent, exportStudentData } from "./family";
 import { allowedObjectives } from "./learning";
 import {
 	checkWorksheetPhoto,
@@ -194,7 +195,7 @@ describe("worksheet photo checks", () => {
 		await check(readerOf(reading([{ question: "1 + 1 =", childAnswer: "2" }])));
 		const data = await exportStudentData(store, alice, sam);
 		expect(data.worksheet_checks).toHaveLength(1);
-		await deleteStudent(store, alice, sam);
+		await deleteStudent(store, alice, sam, "Sam");
 		expect(await store.worksheet_checks.list({ studentId: sam })).toHaveLength(0);
 	});
 });

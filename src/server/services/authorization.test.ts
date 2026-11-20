@@ -2,12 +2,12 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { currentItem } from "#/learning-engine/lesson";
 import { createMemoryStore } from "../store/memory-store";
 import type { DataStore } from "../store/types";
+import { deleteStudent } from "./deletion";
 import { AppError } from "./errors";
 import {
 	type Actor,
 	createFamilyForUser,
 	createStudent,
-	deleteStudent,
 	exportStudentData,
 	listStudents,
 	resolveActor,
@@ -74,7 +74,7 @@ describe("tenant isolation", () => {
 		await expectNotFound(getStudentProgress({ store }, alice, bobY5));
 		await expectNotFound(updateStudent(store, alice, bobY5, { displayName: "X" }));
 		await expectNotFound(exportStudentData(store, alice, bobY5));
-		await expectNotFound(deleteStudent(store, alice, bobY5));
+		await expectNotFound(deleteStudent(store, alice, bobY5, "Kai"));
 		expect(await store.students.get(bobY5)).not.toBeNull();
 	});
 
@@ -201,7 +201,7 @@ describe("tenant isolation", () => {
 
 	it("deletes all of a student's data", async () => {
 		await completeLesson(store, alice, aliceY3, "MA-Y3-AS-MENTAL");
-		await deleteStudent(store, alice, aliceY3);
+		await deleteStudent(store, alice, aliceY3, "Sam");
 		expect(await store.students.get(aliceY3)).toBeNull();
 		expect(await store.assessment_attempts.list({ studentId: aliceY3 })).toHaveLength(0);
 		expect(await store.learning_sessions.list({ studentId: aliceY3 })).toHaveLength(0);
