@@ -44,16 +44,22 @@ export function OrbitMap({ core, skills }: { core: string; skills: Skill[] }) {
 				<ul className="flex flex-wrap gap-x-5 gap-y-2" aria-label="Legend">
 					{PLANET_LEGEND.map((l) => (
 						<li key={l.kind} className="flex items-center gap-2 font-mono text-xs uppercase tracking-wider text-soft">
-							<svg viewBox="0 0 24 24" className="size-4" aria-hidden="true">
-								<g data-kind={l.kind} className="planet">
-									<circle cx={12} cy={12} r={8} />
-								</g>
-							</svg>
+							<PlanetDot kind={l.kind} />
 							{l.label}
 						</li>
 					))}
 				</ul>
 			</figcaption>
 		</figure>
+	);
+}
+
+export function PlanetDot({ kind, className = "size-4" }: { kind: PlanetKind; className?: string }) {
+	return (
+		<svg viewBox="0 0 24 24" className={`shrink-0 ${className}`} aria-hidden="true">
+			<g data-kind={kind} className="planet">
+				<circle cx={12} cy={12} r={8} />
+			</g>
+		</svg>
 	);
 }

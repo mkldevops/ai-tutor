@@ -97,3 +97,10 @@ export async function placeOnStep(page: Page, objectiveCode: string) {
 	}
 	await page.goto(back, { waitUntil: "networkidle" });
 }
+
+export async function startMission(page: Page, objectiveCode: string) {
+	const mission = page.getByTestId("mission");
+	await expect(mission).toHaveAttribute("data-objective", objectiveCode);
+	await expect(page.getByTestId(`step-${objectiveCode}`)).toHaveAttribute("data-state", "current");
+	await mission.getByRole("button", { name: "Launch mission" }).click();
+}

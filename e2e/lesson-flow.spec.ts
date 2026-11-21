@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { addLearner, completeLesson, placeOnStep, signUp } from "./lesson-helpers";
+import { addLearner, completeLesson, placeOnStep, signUp, startMission } from "./lesson-helpers";
 
 test("two learners complete separate lessons with isolated progress", async ({ page, browser }) => {
 	const email = `parent-${Date.now()}@example.test`;
@@ -11,9 +11,9 @@ test("two learners complete separate lessons with isolated progress", async ({ p
 	await expect(page.getByTestId("student-name")).toContainText("Year 3");
 	const avaUrl = page.url();
 	await placeOnStep(page, "MA-Y3-AS-MENTAL");
-	const avaObjective = page.getByTestId("objective-MA-Y3-AS-MENTAL");
-	await expect(avaObjective.getByTestId("status-badge")).toHaveAttribute("data-status", "not_started");
-	await avaObjective.getByRole("button", { name: "Start lesson" }).click();
+	const avaStep = page.getByTestId("step-MA-Y3-AS-MENTAL");
+	await expect(page.getByTestId("step-MA-Y3-AS-COLUMN")).toHaveAttribute("data-state", "locked");
+	await startMission(page, "MA-Y3-AS-MENTAL");
 	await expect(page.getByTestId("phase")).toHaveAttribute("data-phase", "diagnostic");
 	await expect(page.getByTestId("flight-plan").locator('[aria-current="step"]')).toContainText("Recall");
 	await page
@@ -41,10 +41,12 @@ test("two learners complete separate lessons with isolated progress", async ({ p
 	);
 	await expect(result.getByTestId("status-badge")).toHaveAttribute("data-status", "secure");
 	await expect(result).toContainText(/review/i);
-	await result.getByRole("link", { name: "Back to progress" }).click();
-	await expect(avaObjective.getByTestId("status-badge")).toHaveAttribute("data-status", "secure");
-	await expect(avaObjective.getByRole("button", { name: /Review due/ })).toBeDisabled();
-	await expect(page.getByTestId("objective-MA-Y3-MD-TABLES-348")).toBeVisible();
+	await result.getByRole("link", { name: "Back to course" }).click();
+	await expect(avaStep).toHaveAttribute("data-state", "done");
+	await expect(avaStep.getByTestId("status-badge")).toHaveAttribute("data-status", "secure");
+	await expect(page.getByTestId("step-MA-Y3-AS-COLUMN")).toHaveAttribute("data-state", "current");
+	await expect(page.getByTestId("mission")).toHaveAttribute("data-objective", "MA-Y3-AS-COLUMN");
+	await expect(page.getByRole("button", { name: "Start lesson" })).toHaveCount(0);
 
 	await page.getByRole("link", { name: "Progress", exact: true }).click();
 	await page.getByTestId("evidence-MA-Y3-AS-MENTAL").getByText("Details", { exact: true }).click();
@@ -66,10 +68,8 @@ test("two learners complete separate lessons with isolated progress", async ({ p
 	await page.getByRole("link", { name: "Open Ben" }).click();
 	await expect(page.getByTestId("student-name")).toContainText("Year 5");
 	await placeOnStep(page, "MA-Y5-MD-POWERS10");
-	await expect(page.getByTestId("objective-MA-Y3-AS-MENTAL")).toHaveCount(0);
-	const benObjective = page.getByTestId("objective-MA-Y5-MD-POWERS10");
-	await expect(benObjective.getByTestId("status-badge")).toHaveAttribute("data-status", "not_started");
-	await benObjective.getByRole("button", { name: "Start lesson" }).click();
+	await expect(page.getByTestId("step-MA-Y3-AS-MENTAL")).toHaveCount(0);
+	await startMission(page, "MA-Y5-MD-POWERS10");
 	await completeLesson(page);
 	await expect(page.getByTestId("result").getByTestId("status-badge")).toHaveAttribute("data-status", "secure");
 

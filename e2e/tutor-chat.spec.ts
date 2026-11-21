@@ -1,5 +1,5 @@
 import { expect, type Page, test } from "@playwright/test";
-import { placeOnStep } from "./lesson-helpers";
+import { placeOnStep, startMission } from "./lesson-helpers";
 import { normalise, solve } from "./solver";
 
 test.use({ extraHTTPHeaders: { "x-forwarded-for": "198.51.100.41" } });
@@ -52,7 +52,7 @@ test("Nova chats during tutoring and stays silent during the check", async ({ pa
 	await page.getByRole("button", { name: "Add learner" }).click();
 	await page.getByRole("link", { name: "Open QA Test" }).click();
 	await placeOnStep(page, "MA-Y3-AS-MENTAL");
-	await page.getByTestId("objective-MA-Y3-AS-MENTAL").getByRole("button", { name: "Start lesson" }).click();
+	await startMission(page, "MA-Y3-AS-MENTAL");
 
 	await expect(page.getByTestId("phase")).toHaveAttribute("data-phase", "diagnostic");
 	await page
