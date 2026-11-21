@@ -69,6 +69,11 @@ test("two learners complete separate lessons with isolated progress", async ({ p
 	await expect(avaCard.getByTestId("overview-secure")).toContainText(/^7/);
 	await expect(avaCard.getByTestId("overview-week")).not.toContainText(/^0 /);
 	await expect(avaCard.getByTestId("overview-review")).toContainText("Next review");
+	await expect(avaCard.getByTestId("overview-position")).toHaveText(/^Unit \d+ of \d+ · step 8 of \d+$/);
+	await expect(avaCard.getByTestId("overview-attention")).toHaveCount(0);
+	await expect(page.getByTestId("learner-Ben").getByTestId("overview-position")).toHaveText(
+		/^Unit 1 of \d+ · step 1 of \d+$/,
+	);
 	await expect(page.getByTestId("learner-Ben")).toContainText("No missions yet");
 	await page.getByRole("link", { name: "Open Ben" }).click();
 	await expect(page.getByTestId("student-name")).toContainText("Year 5");

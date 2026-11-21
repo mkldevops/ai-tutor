@@ -1,9 +1,14 @@
 import { getObjective } from "#/curriculum/england-nc";
 import { PROGRAMME_BY_YEAR, programmeSteps } from "#/curriculum/programme";
-import type { Subject } from "#/domain/types";
+import type { CompetencyStatus, Subject, YearGroup } from "#/domain/types";
 import { type Rate, rate } from "#/learning-engine/longitudinal";
 import { DEFAULT_POLICY, type MasteryPolicy, summariseSessions } from "#/learning-engine/mastery";
-import { countFailedAssessments, programmePosition, type StepPosition } from "#/learning-engine/programme";
+import {
+	countFailedAssessments,
+	type ProgrammePosition,
+	programmePosition,
+	type StepPosition,
+} from "#/learning-engine/programme";
 import type { DataStore } from "../store/types";
 import { type Actor, requireStudent } from "./family";
 import { getStudentOutcomes, OUTCOMES_MAX_ROWS } from "./longitudinal";
@@ -65,6 +70,25 @@ async function failedAssessmentsOn(
 	return countFailedAssessments(summariseSessions(attempts.filter((a) => completed.has(a.sessionId))), policy);
 }
 
+export async function programmeStanding(
+	store: DataStore,
+	scope: { studentId: string; familyId: string },
+	yearGroup: YearGroup,
+	competencies: readonly { objectiveCode: string; status: CompetencyStatus }[],
+	policy: MasteryPolicy = DEFAULT_POLICY,
+): Promise<{ position: ProgrammePosition; failed: number }> {
+	const sequence = programmeSteps(yearGroup);
+	const currentCode = programmePosition(sequence, competencies).current?.objectiveCode;
+	const failed = currentCode ? await failedAssessmentsOn(store, scope, currentCode, policy) : 0;
+	const statusOf = new Map(competencies.map((c) => [c.objectiveCode, c.status]));
+	const stepCompetencies = [...new Set([...statusOf.keys(), ...(currentCode ? [currentCode] : [])])].map((code) => ({
+		objectiveCode: code,
+		status: statusOf.get(code) ?? ("not_started" as const),
+		failedAssessments: code === currentCode ? failed : 0,
+	}));
+	return { position: programmePosition(sequence, stepCompetencies), failed };
+}
+
 export async function getProgrammeReport(deps: Deps, actor: Actor, studentId: string): Promise<ProgrammeReport> {
 	const { store } = deps;
 	const student = await requireStudent(store, actor, studentId);
@@ -80,17 +104,7 @@ export async function getProgrammeReport(deps: Deps, actor: Actor, studentId: st
 		store.assessment_attempts.list(scope, { limit: 1, latest: true }),
 	]);
 
-	const sequence = programmeSteps(student.yearGroup);
-	const draft = programmePosition(sequence, competencies);
-	const currentCode = draft.current?.objectiveCode;
-	const failed = currentCode ? await failedAssessmentsOn(store, scope, currentCode, policy) : 0;
-	const statusOf = new Map(competencies.map((c) => [c.objectiveCode, c.status]));
-	const stepCompetencies = [...new Set([...statusOf.keys(), ...(currentCode ? [currentCode] : [])])].map((code) => ({
-		objectiveCode: code,
-		status: statusOf.get(code) ?? ("not_started" as const),
-		failedAssessments: code === currentCode ? failed : 0,
-	}));
-	const position = programmePosition(sequence, stepCompetencies);
+	const { position, failed } = await programmeStanding(store, scope, student.yearGroup, competencies, policy);
 
 	const units = PROGRAMME_BY_YEAR[student.yearGroup];
 	const current = position.current;
