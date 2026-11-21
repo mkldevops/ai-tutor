@@ -114,8 +114,14 @@ export async function startSession(
 	if (!allowedObjectives(student.yearGroup).includes(input.objectiveCode)) {
 		throw new AppError("invalid", "Objective not available for this student's year group");
 	}
-	const open = (await store.learning_sessions.list({ studentId: student.id, objectiveCode: input.objectiveCode }))
-		.filter((s) => s.completedAt === null && s.kind === input.kind && !isExpiredSession(s, now))
+	const open = (
+		await store.learning_sessions.listAll({
+			studentId: student.id,
+			objectiveCode: input.objectiveCode,
+			completedAt: null,
+		})
+	)
+		.filter((s) => s.kind === input.kind && !isExpiredSession(s, now))
 		.at(-1);
 	if (open) return respond(store, open);
 
