@@ -13,6 +13,11 @@ test("two learners complete separate lessons with isolated progress", async ({ p
 	await placeOnStep(page, "MA-Y3-AS-MENTAL");
 	const avaStep = page.getByTestId("step-MA-Y3-AS-MENTAL");
 	await expect(page.getByTestId("step-MA-Y3-AS-COLUMN")).toHaveAttribute("data-state", "locked");
+	await expect(page.getByTestId("step-MA-Y3-AS-COLUMN")).toContainText(/Step \d+ of \d+: .*Locked/);
+	await expect(avaStep).toContainText(/Step \d+ of \d+: .*Current/);
+	await expect(avaStep).toHaveAttribute("aria-current", "step");
+	await expect(page.getByTestId("course").getByRole("button")).toHaveCount(0);
+	await expect(page.getByTestId("course").getByRole("link")).toHaveCount(0);
 	await startMission(page, "MA-Y3-AS-MENTAL");
 	await expect(page.getByTestId("phase")).toHaveAttribute("data-phase", "diagnostic");
 	await expect(page.getByTestId("flight-plan").locator('[aria-current="step"]')).toContainText("Recall");

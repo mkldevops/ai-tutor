@@ -193,7 +193,6 @@ function CoursePath({ course, name }: { course: Course; name: string }) {
 						<ol className="space-y-2" aria-label={`${unit.title} steps`}>
 							{unit.steps.map((step) => {
 								n += 1;
-								const label = `Step ${n} of ${course.total}: ${step.title}. ${STATE_LABEL[step.state]}.`;
 								return (
 									<li
 										key={step.code}
@@ -201,12 +200,14 @@ function CoursePath({ course, name }: { course: Course; name: string }) {
 										data-testid={`step-${step.code}`}
 										data-state={step.state}
 										aria-current={step.state === "current" ? "step" : undefined}
-										aria-label={label}
 									>
 										<PlanetDot kind={stepPlanet(step)} className="size-5" />
 										<LessonArt strand={step.strand} size={44} />
 										<div className="min-w-0 flex-1">
-											<p className={step.state === "locked" ? "text-soft" : "font-semibold"}>{step.title}</p>
+											<p className={step.state === "locked" ? "text-soft" : "font-semibold"}>
+												<span className="sr-only">{`Step ${n} of ${course.total}: `}</span>
+												{step.title}
+											</p>
 											<div className="mt-1 flex flex-wrap items-center gap-2">
 												<span className="chip" data-testid="step-state">
 													{STATE_LABEL[step.state]}
