@@ -33,6 +33,7 @@ Create a family account, add a learner, open them and start a lesson.
 | `pnpm appwrite:bootstrap` | Create the local console admin, project and server key, write `.env`, run `appwrite:setup` |
 | `pnpm check` | Biome lint + format check |
 | `pnpm appwrite:setup` | Create/upgrade the Appwrite database, tables, indexes and seed the curriculum (idempotent) |
+| `pnpm programme:placement` | Read-only: print each learner's derived programme position (Appwrite backend) for owner review before release |
 
 First Playwright run: `pnpm exec playwright install chromium`.
 
