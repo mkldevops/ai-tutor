@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { addLearner, completeLesson, signUp } from "./lesson-helpers";
+import { addLearner, completeLesson, placeOnStep, signUp } from "./lesson-helpers";
 
 test("two learners complete separate lessons with isolated progress", async ({ page, browser }) => {
 	const email = `parent-${Date.now()}@example.test`;
@@ -10,6 +10,7 @@ test("two learners complete separate lessons with isolated progress", async ({ p
 	await page.getByRole("link", { name: "Open Ava" }).click();
 	await expect(page.getByTestId("student-name")).toContainText("Year 3");
 	const avaUrl = page.url();
+	await placeOnStep(page, "MA-Y3-AS-MENTAL");
 	const avaObjective = page.getByTestId("objective-MA-Y3-AS-MENTAL");
 	await expect(avaObjective.getByTestId("status-badge")).toHaveAttribute("data-status", "not_started");
 	await avaObjective.getByRole("button", { name: "Start lesson" }).click();
@@ -58,12 +59,13 @@ test("two learners complete separate lessons with isolated progress", async ({ p
 
 	await page.getByRole("link", { name: "← All learners" }).click();
 	const avaCard = page.getByTestId("learner-Ava");
-	await expect(avaCard.getByTestId("overview-secure")).toContainText(/^1/);
+	await expect(avaCard.getByTestId("overview-secure")).toContainText(/^7/);
 	await expect(avaCard.getByTestId("overview-week")).not.toContainText(/^0 /);
 	await expect(avaCard.getByTestId("overview-review")).toContainText("Next review");
 	await expect(page.getByTestId("learner-Ben")).toContainText("No missions yet");
 	await page.getByRole("link", { name: "Open Ben" }).click();
 	await expect(page.getByTestId("student-name")).toContainText("Year 5");
+	await placeOnStep(page, "MA-Y5-MD-POWERS10");
 	await expect(page.getByTestId("objective-MA-Y3-AS-MENTAL")).toHaveCount(0);
 	const benObjective = page.getByTestId("objective-MA-Y5-MD-POWERS10");
 	await expect(benObjective.getByTestId("status-badge")).toHaveAttribute("data-status", "not_started");

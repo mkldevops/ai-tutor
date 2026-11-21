@@ -1,4 +1,11 @@
-export type AppErrorCode = "unauthenticated" | "not_found" | "forbidden" | "invalid" | "conflict" | "rate_limited";
+export type AppErrorCode =
+	| "unauthenticated"
+	| "not_found"
+	| "forbidden"
+	| "invalid"
+	| "conflict"
+	| "rate_limited"
+	| "off_programme";
 
 export class AppError extends Error {
 	constructor(

@@ -16,12 +16,14 @@ import {
 } from "#/learning-engine/lesson";
 import { DEFAULT_POLICY, evaluateMastery, type MasteryPolicy } from "#/learning-engine/mastery";
 import { nextReviewDate } from "#/learning-engine/scheduling";
-import { LESSON_EXPIRY_DAYS } from "../config";
 import type { CompetencyRecord, DataStore, LearningSessionRecord } from "../store/types";
 import { AppError, notFound } from "./errors";
 import { type Actor, audit, requireStudent } from "./family";
 import { objectiveHistory } from "./history";
+import { isExpiredSession, missionFor } from "./mission";
 import { learningOutcomes } from "./outcomes";
+
+export { isExpiredSession };
 
 export type SessionResponse = {
 	sessionId: string;
@@ -50,11 +52,6 @@ async function requireSession(store: DataStore, actor: Actor, sessionId: string)
 	const session = await store.learning_sessions.get(sessionId);
 	if (!session || session.familyId !== actor.familyId) throw notFound("Session");
 	return session;
-}
-
-export function isExpiredSession(session: Pick<LearningSessionRecord, "createdAt" | "completedAt">, now: Date) {
-	const expiresAt = new Date(session.createdAt).getTime() + LESSON_EXPIRY_DAYS * 24 * 60 * 60_000;
-	return session.completedAt === null && now.getTime() >= expiresAt;
 }
 
 async function requireOpenSession(store: DataStore, actor: Actor, sessionId: string, now: Date) {
@@ -117,18 +114,30 @@ export async function startSession(
 	if (!allowedObjectives(student.yearGroup).includes(input.objectiveCode)) {
 		throw new AppError("invalid", "Objective not available for this student's year group");
 	}
-	const open = (await store.learning_sessions.list({ studentId: student.id, objectiveCode: input.objectiveCode }))
-		.filter((s) => s.completedAt === null && s.kind === input.kind && !isExpiredSession(s, now))
+	const open = (
+		await store.learning_sessions.listAll({
+			studentId: student.id,
+			objectiveCode: input.objectiveCode,
+			completedAt: null,
+		})
+	)
+		.filter((s) => s.kind === input.kind && !isExpiredSession(s, now))
 		.at(-1);
 	if (open) return respond(store, open);
 
-	if (input.kind === "review") {
-		const pending = await store.revision_schedules.list({
-			studentId: student.id,
+	const mission = await missionFor(store, student, now);
+	const onProgramme =
+		mission.reason !== "complete" &&
+		mission.objectiveCode === input.objectiveCode &&
+		mission.sessionKind === input.kind;
+	if (!onProgramme) {
+		await audit(store, actor, "session.off_programme", `students/${student.id}`, {
 			objectiveCode: input.objectiveCode,
-			status: "pending",
+			kind: input.kind,
+			mission:
+				mission.reason === "complete" ? null : { objectiveCode: mission.objectiveCode, kind: mission.sessionKind },
 		});
-		if (pending.length === 0) throw new AppError("invalid", "No review is scheduled for this objective");
+		throw new AppError("off_programme", "This is not the next step on the learning path.");
 	}
 
 	const state = startLesson({

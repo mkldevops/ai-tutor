@@ -5,11 +5,13 @@ import type { DataStore } from "../store/types";
 import { type Actor, createFamilyForUser, createStudent } from "./family";
 import { answerSession, continueSession, type SessionResponse, startSession } from "./learning";
 import { getStudentOutcomes } from "./longitudinal";
+import { placeAt } from "./programme-fixtures";
 
 const DAY = 86_400_000;
 const CODE = "MA-Y3-AS-MENTAL";
 
 async function complete(store: DataStore, actor: Actor, studentId: string, kind: "lesson" | "review", wrong = 0) {
+	if (kind === "lesson") await placeAt(store, studentId, CODE);
 	let res: SessionResponse = await startSession({ store }, actor, { studentId, objectiveCode: CODE, kind });
 	let wrongLeft = wrong;
 	while (res.view.phase !== "complete") {

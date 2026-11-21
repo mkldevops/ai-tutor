@@ -1,4 +1,5 @@
 import { expect, type Page, test } from "@playwright/test";
+import { placeOnStep } from "./lesson-helpers";
 import { normalise, solve } from "./solver";
 
 test.use({ extraHTTPHeaders: { "x-forwarded-for": "198.51.100.7" } });
@@ -80,6 +81,7 @@ async function startVoiceLesson(page: Page, family: string) {
 	const settingsUrl = page.url();
 	await page.getByRole("link", { name: "Missions" }).click();
 
+	await placeOnStep(page, "MA-Y3-AS-MENTAL");
 	await page.getByTestId("objective-MA-Y3-AS-MENTAL").getByRole("button", { name: "Start lesson" }).click();
 	await expect(page.getByTestId("phase")).toHaveAttribute("data-phase", "diagnostic");
 	await page

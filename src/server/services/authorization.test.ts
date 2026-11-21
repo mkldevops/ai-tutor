@@ -23,10 +23,12 @@ import {
 	rateConfidence,
 	startSession,
 } from "./learning";
+import { placeAt } from "./programme-fixtures";
 
 const prefs = { readingSupport: false, theme: "calm" as const };
 
 async function completeLesson(store: DataStore, actor: Actor, studentId: string, objectiveCode: string) {
+	await placeAt(store, studentId, objectiveCode);
 	let res = await startSession({ store }, actor, { studentId, objectiveCode, kind: "lesson" });
 	while (res.view.phase !== "complete") {
 		if (res.view.phase === "instruction") {
@@ -103,6 +105,7 @@ describe("tenant isolation", () => {
 	});
 
 	it("forbids reading or answering another family's session", async () => {
+		await placeAt(store, bobY5, "MA-Y5-MD-POWERS10");
 		const s = await startSession({ store }, bob, {
 			studentId: bobY5,
 			objectiveCode: "MA-Y5-MD-POWERS10",
@@ -222,6 +225,7 @@ describe("confidence check-in", () => {
 	});
 
 	it("stores before and after on the session and reports them in progress", async () => {
+		await placeAt(store, studentId, "MA-Y3-AS-MENTAL");
 		const start = await startSession({ store }, alice, { studentId, objectiveCode: "MA-Y3-AS-MENTAL", kind: "lesson" });
 		expect(start.confidence).toEqual({});
 		const rated = await rateConfidence({ store }, alice, { sessionId: start.sessionId, moment: "before", value: 2 });
@@ -244,6 +248,7 @@ describe("confidence check-in", () => {
 	});
 
 	it("refuses another family's session", async () => {
+		await placeAt(store, studentId, "MA-Y3-AS-MENTAL");
 		const start = await startSession({ store }, alice, { studentId, objectiveCode: "MA-Y3-AS-MENTAL", kind: "lesson" });
 		await expectNotFound(rateConfidence({ store }, bob, { sessionId: start.sessionId, moment: "before", value: 3 }));
 	});

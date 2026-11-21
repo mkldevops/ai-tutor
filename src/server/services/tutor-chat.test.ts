@@ -9,6 +9,7 @@ import type { DataStore } from "../store/types";
 import { deleteStudent } from "./deletion";
 import { type Actor, createFamilyForUser, createStudent, exportStudentData } from "./family";
 import { answerSession, continueSession, startSession } from "./learning";
+import { placeAt } from "./programme-fixtures";
 import {
 	type ChatTurn,
 	CUT_TEXT,
@@ -60,6 +61,7 @@ describe("tutor chat", () => {
 	});
 
 	async function lessonAt(phase: "instruction" | "guided" | "independent", objectiveCode = OBJECTIVE) {
+		await placeAt(store, studentId, objectiveCode);
 		let res = await startSession({ store }, alice, { studentId, objectiveCode, kind: "lesson" });
 		while (res.view.phase !== phase) {
 			if (res.view.phase === "complete") throw new Error(`never reached ${phase}`);

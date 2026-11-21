@@ -3,6 +3,7 @@ import { AuthError } from "./auth/provider";
 import { resetRateLimits } from "./rate-limit";
 import { type Actor, createFamilyForUser, createStudent } from "./services/family";
 import { startSession } from "./services/learning";
+import { placeAt } from "./services/programme-fixtures";
 import type { TutorChatDeps } from "./services/tutor-chat";
 import { createMemoryStore } from "./store/memory-store";
 import type { DataStore } from "./store/types";
@@ -39,6 +40,7 @@ describe("POST /api/tutor-chat", () => {
 		actor = await createFamilyForUser(store, "user-qa", "QA family");
 		const studentId = (await createStudent(store, actor, { displayName: "QA Test", yearGroup: 5, preferences: prefs }))
 			.id;
+		await placeAt(store, studentId, "MA-Y5-MD-POWERS10");
 		sessionId = (
 			await startSession({ store }, actor, { studentId, objectiveCode: "MA-Y5-MD-POWERS10", kind: "lesson" })
 		).sessionId;

@@ -6,11 +6,13 @@ import type { DataStore, TableName } from "../store/types";
 import { deleteAccount, deleteFamily, deleteStudent } from "./deletion";
 import { type Actor, createFamilyForUser, createStudent, resolveActor, STUDENT_OWNED } from "./family";
 import { answerSession, continueSession, overrideCompetency, startSession } from "./learning";
+import { placeAt } from "./programme-fixtures";
 
 const prefs = { readingSupport: false, theme: "calm" as const };
 const OBJECTIVE = "MA-Y3-AS-MENTAL";
 
 async function completeLesson(store: DataStore, actor: Actor, studentId: string) {
+	await placeAt(store, studentId, OBJECTIVE);
 	let res = await startSession({ store }, actor, { studentId, objectiveCode: OBJECTIVE, kind: "lesson" });
 	while (res.view.phase !== "complete") {
 		if (res.view.phase === "instruction") {
