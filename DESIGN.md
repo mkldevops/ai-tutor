@@ -22,7 +22,7 @@ https://claude.ai/artifact/8gTR3keLUXEd1W4YjbH9rg (`V3-OrbiHome`, `V3-OrbiQuesti
 | **Learner** | Child | Dark "deep space" | Immersive, focused, glowing accents |
 | **Parent** | Adult | Light "paper" + navy rail | Editorial, factual, calm |
 
-The parent surface reuses the same fonts, Nova and the orbit skill map (on a navy card), so both feel like
+The parent surface reuses the same fonts, Nova and the course path (units and steps), so both feel like
 one product.
 
 ## 3. Colour tokens
@@ -157,7 +157,8 @@ hint > speaking > ready. Nova never cries, frowns or looks disappointed. "Not qu
 | `SpeechBubble` | Glass strong, radius with squared corner toward Nova. Bold + state colour on the key word. |
 | `StatusChip` | Mono 11–12, radius 6, 1px `rgba(255,255,255,.14)` or tinted fill for state (`HINT 1 OF 2`). |
 | `FlightPlan` | Lesson steps: Recall → Explain → Practise → Solo flight. Vertical timeline on home, horizontal progress rail in-lesson. Solo flight is a square marker. |
-| `OrbitMap` | Skills as planets on concentric ellipses around a core topic. Filled `--star` = Lasting, ring = Secure, accent = today/new, dashed `--rim` = not reached. Always with a legend. |
+| `CoursePath` | The year's programme as an ordered list of unit cards (`Unit n · subject`, title, state chip: In progress / Complete / Locked), each listing its steps in order. A step row = `PlanetDot` (filled `--star` = Lasting, ring = Secure, accent = current, `--hint` = to rework, dashed `--rim` = not reached) + `LessonArt` 44 + title + state chip (Done / Current / Locked / To rework). Only the current step is actionable, through the mission panel; steps are never links. |
+| `ProgrammeReport` (parent) | Top of the Progress tab: one position sentence (unit X of Y, step n of N), secured count with % only above the minimum sample, last activity; a unit timeline (progress bar per unit, current unit marked "Now"); then three cards "Acquired", "To rework" (with the reason in words), "Coming next", each item linking to its objective evidence below. Every list has an empty state. |
 | `MasteryArc` | Met → Practised → Secure → Lasting on a single arc; current = accent with halo ring. |
 | `NumberLine` | Drawn as a shallow arc (an orbit), endpoints `--star`, midpoint `--rim`, current value amber with halo. |
 | `PlaceValueTiles` | One tile per digit, display 44 + mono place label; the deciding digit gets accent border, others fade to 45%. |
@@ -176,7 +177,7 @@ hint > speaking > ready. Nova never cries, frowns or looks disappointed. "Not qu
   input at the bottom). In `solo`, the panel collapses to the dimmed Nova only.
 - **Results:** huge display score left, Nova centre, progress cards stacked right, primary action last.
 - **Parent:** 240px navy rail (sections + child switcher), editorial headline, 4 stat tiles, then
-  OrbitMap (navy card) + "One thing to practise together", recall, Nova settings.
+  course path / programme report + "One thing to practise together", recall, Nova settings.
 - **Mobile:** single column, Nova shrinks to 96–120px above the bubble, primary button sticky bottom,
   16px gutter, no horizontal scroll.
 

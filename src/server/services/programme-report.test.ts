@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { programmeSteps } from "#/curriculum/programme";
+import { PROGRAMME_BY_YEAR, programmeSteps } from "#/curriculum/programme";
 import type { EvidenceMode } from "#/domain/types";
 import { currentItem } from "#/learning-engine/lesson";
 import { createMemoryStore } from "../store/memory-store";
@@ -108,6 +108,9 @@ describe("getProgrammeReport", () => {
 		expect(r.acquired[1]?.securedAt).toBeNull();
 		expect(r.position.unit).toMatchObject({ id: "Y3-U4", title: "Addition and subtraction", number: 4 });
 		expect(r.position.step).toMatchObject({ code: CODE, number: 7 });
+		expect(r.units.map((u) => [u.id, u.done, u.total, u.current])).toEqual(
+			PROGRAMME_BY_YEAR[3].map((u, i) => [u.id, i < 3 ? u.objectiveCodes.length : 0, u.objectiveCodes.length, i === 3]),
+		);
 		expect(r.position.done).toBe(6);
 		expect(r.next.map((s) => s.code)).toEqual(y3.slice(6, 9));
 	});

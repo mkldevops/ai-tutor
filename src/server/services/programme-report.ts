@@ -23,6 +23,16 @@ export type ReworkReason = "needs_review" | "regression" | "stuck" | "overdue_re
 
 export type ReportStep = { code: string; title: string; unitId: string; index: number };
 
+export type ReportUnit = {
+	id: string;
+	title: string;
+	subject: Subject;
+	number: number;
+	done: number;
+	total: number;
+	current: boolean;
+};
+
 export type ProgrammeReport = {
 	student: { id: string; displayName: string; yearGroup: number };
 	position: {
@@ -47,6 +57,7 @@ export type ProgrammeReport = {
 	lastActivityAt: string | null;
 	missionsLast7Days: number;
 	truncated: boolean;
+	units: ReportUnit[];
 };
 
 const reportStep = (s: StepPosition): ReportStep => ({
@@ -175,5 +186,17 @@ export async function getProgrammeReport(deps: Deps, actor: Actor, studentId: st
 		lastActivityAt: latestAttempt[0]?.createdAt ?? null,
 		missionsLast7Days,
 		truncated: outcomes.truncated || sessions.truncated,
+		units: units.map((u, i) => {
+			const own = position.steps.filter((s) => s.unitIndex === i);
+			return {
+				id: u.id,
+				title: u.title,
+				subject: u.subject,
+				number: i + 1,
+				done: own.filter((s) => s.state === "done").length,
+				total: own.length,
+				current: current?.unitIndex === i,
+			};
+		}),
 	};
 }
