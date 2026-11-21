@@ -14,6 +14,7 @@ import {
 	startSession,
 } from "./learning";
 import { getMission } from "./mission";
+import { openLegacySession } from "./programme-fixtures";
 
 const DAY = 86_400_000;
 const NOW = new Date("2026-11-21T12:00:00.000Z");
@@ -66,6 +67,8 @@ describe("getMission", () => {
 	it("gives the same mission whatever subject was last used", async () => {
 		const maths = await addLearner("Maths fan");
 		const english = await addLearner("Reader");
+		await openLegacySession(store, maths, "MA-Y3-AS-MENTAL");
+		await openLegacySession(store, english, "EN-Y3-GR-PRESENT-PERFECT");
 		await completeLesson(store, alice, maths, "MA-Y3-AS-MENTAL");
 		await completeLesson(store, alice, english, "EN-Y3-GR-PRESENT-PERFECT");
 		const a = await getMission(at(0), alice, maths);
@@ -76,14 +79,10 @@ describe("getMission", () => {
 
 	it("resumes an open session, then forgets it once expired", async () => {
 		const sam = await addLearner("Sam");
-		const open = await startSession({ store, now: () => NOW }, alice, {
-			studentId: sam,
-			objectiveCode: "MA-Y3-AS-MENTAL",
-			kind: "lesson",
-		});
+		const open = await openLegacySession(store, sam, "MA-Y3-AS-MENTAL");
 		expect(await getMission(at(DAY), alice, sam)).toMatchObject({
 			reason: "continue",
-			sessionId: open.sessionId,
+			sessionId: open.id,
 			objectiveCode: "MA-Y3-AS-MENTAL",
 		});
 		expect(await getMission(at(15 * DAY), alice, sam)).toMatchObject({

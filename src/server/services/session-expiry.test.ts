@@ -4,6 +4,7 @@ import { createMemoryStore } from "../store/memory-store";
 import type { DataStore } from "../store/types";
 import { type Actor, createFamilyForUser, createStudent } from "./family";
 import { answerSession, startSession } from "./learning";
+import { placeAt } from "./programme-fixtures";
 
 const DAY = 86_400_000;
 const T0 = new Date("2026-11-01T09:00:00.000Z");
@@ -26,6 +27,7 @@ describe("unfinished lesson expiry", () => {
 				preferences: { readingSupport: false, theme: "calm" },
 			})
 		).id;
+		await placeAt(store, studentId, CODE);
 	});
 
 	afterEach(() => vi.useRealTimers());

@@ -20,6 +20,7 @@ const STATUS: Record<AppErrorCode, number> = {
 	invalid: 400,
 	conflict: 409,
 	rate_limited: 429,
+	off_programme: 409,
 };
 
 const textResponse = (status: number, message: string) =>

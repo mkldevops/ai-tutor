@@ -4,6 +4,7 @@ import type { DataStore } from "../store/types";
 import { AppError } from "./errors";
 import { type Actor, createFamilyForUser, createStudent, setStudentVoice } from "./family";
 import { getSession, startSession } from "./learning";
+import { placeAt } from "./programme-fixtures";
 
 const prefs = { readingSupport: true, theme: "bright" as const };
 
@@ -21,6 +22,7 @@ describe("voice pilot preference", () => {
 	});
 
 	it("is off by default and reaches the lesson once switched on", async () => {
+		await placeAt(store, sam, "MA-Y3-AS-MENTAL");
 		const started = await startSession({ store }, alice, {
 			studentId: sam,
 			objectiveCode: "MA-Y3-AS-MENTAL",

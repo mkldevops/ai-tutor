@@ -3,9 +3,9 @@ import { programmeSteps } from "#/curriculum/programme";
 import type { Subject } from "#/domain/types";
 import { type Mission, todaysMission } from "#/learning-engine/mission";
 import { programmePosition } from "#/learning-engine/programme";
-import type { DataStore } from "../store/types";
+import { LESSON_EXPIRY_DAYS } from "../config";
+import type { DataStore, LearningSessionRecord, StudentRecord } from "../store/types";
 import { type Actor, requireStudent } from "./family";
-import { isExpiredSession } from "./learning";
 
 type Deps = { store: DataStore; now?: () => Date };
 
@@ -13,21 +13,32 @@ export type MissionResponse = Mission & {
 	objective: { code: string; title: string; subject: Subject; strand: string } | null;
 };
 
-export async function getMission(deps: Deps, actor: Actor, studentId: string): Promise<MissionResponse> {
-	const { store } = deps;
-	const student = await requireStudent(store, actor, studentId);
-	const now = deps.now?.() ?? new Date();
+export function isExpiredSession(session: Pick<LearningSessionRecord, "createdAt" | "completedAt">, now: Date) {
+	const expiresAt = new Date(session.createdAt).getTime() + LESSON_EXPIRY_DAYS * 24 * 60 * 60_000;
+	return session.completedAt === null && now.getTime() >= expiresAt;
+}
+
+export async function missionFor(
+	store: DataStore,
+	student: Pick<StudentRecord, "id" | "yearGroup">,
+	now: Date,
+): Promise<Mission> {
 	const [competencies, pendingReviews, openSessions] = await Promise.all([
-		store.student_competencies.listAll({ studentId }),
-		store.revision_schedules.listAll({ studentId, status: "pending" }),
-		store.learning_sessions.listAll({ studentId, completedAt: null }),
+		store.student_competencies.listAll({ studentId: student.id }),
+		store.revision_schedules.listAll({ studentId: student.id, status: "pending" }),
+		store.learning_sessions.listAll({ studentId: student.id, completedAt: null }),
 	]);
-	const mission = todaysMission({
+	return todaysMission({
 		position: programmePosition(programmeSteps(student.yearGroup), competencies),
 		openSessions: openSessions.filter((s) => !isExpiredSession(s, now)),
 		pendingReviews,
 		now,
 	});
+}
+
+export async function getMission(deps: Deps, actor: Actor, studentId: string): Promise<MissionResponse> {
+	const student = await requireStudent(deps.store, actor, studentId);
+	const mission = await missionFor(deps.store, student, deps.now?.() ?? new Date());
 	if (mission.reason === "complete") return { ...mission, objective: null };
 	const o = getObjective(mission.objectiveCode);
 	return {
