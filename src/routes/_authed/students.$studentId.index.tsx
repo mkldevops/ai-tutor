@@ -5,25 +5,16 @@ import { LessonArt, SubjectTag } from "#/components/lesson-visual";
 import { Nova } from "#/components/nova";
 import { OrbitMap } from "#/components/orbit-map";
 import { formatDate, StatusBadge } from "#/components/status";
-import { DONE, type Objective, type Progress, useProgress } from "#/components/student-progress";
+import { DONE, type Progress, useProgress } from "#/components/student-progress";
 import { SubjectSwitch, subjectsIn } from "#/components/subject-switch";
 import type { Subject } from "#/domain/types";
-import { startSessionFn } from "#/server/functions";
+import { getMissionFn, startSessionFn } from "#/server/functions";
+import type { MissionResponse } from "#/server/services/mission";
 
 export const Route = createFileRoute("/_authed/students/$studentId/")({
+	loader: ({ params }) => getMissionFn({ data: { studentId: params.studentId } }),
 	component: MissionsTab,
 });
-
-type Mission = { objective: Objective; kind: "continue" | "review" | "lesson" };
-
-function nextMission(objectives: Objective[]): Mission | null {
-	const open = objectives.find((o) => o.openSessionId);
-	if (open) return { objective: open, kind: "continue" };
-	const due = objectives.find((o) => o.review?.isDue);
-	if (due) return { objective: due, kind: "review" };
-	const todo = objectives.find((o) => !DONE.includes(o.status));
-	return todo ? { objective: todo, kind: "lesson" } : null;
-}
 
 function MissionsTab() {
 	const progress = useProgress();
@@ -43,53 +34,20 @@ function MissionsTab() {
 		const res = await startSessionFn({ data: { studentId: student.id, objectiveCode, kind } });
 		await router.navigate({ to: "/learn/$sessionId", params: { sessionId: res.sessionId } });
 	});
-	const mission = nextMission(objectives);
+	const mission = Route.useLoaderData();
 
 	return (
 		<div className="space-y-6">
+			<MissionHero
+				mission={mission}
+				name={student.displayName}
+				yearGroup={student.yearGroup}
+				pending={start.pending}
+				onStart={(code, kind) => void start.run(code, kind)}
+			/>
+			<ErrorBox error={start.error} />
 			<SubjectSwitch subjects={subjects} value={subject} onChange={setSubject} counts={counts} />
 			<div id="subject-panel" role="tabpanel" aria-labelledby={`subject-tab-${subject}`} className="space-y-6">
-				<section className="panel-space surface-space grid items-center gap-5 sm:grid-cols-[auto_1fr]">
-					<Nova state={mission ? "ready" : "proud"} size={150} priority className="mx-auto shrink-0" />
-					<div className="space-y-4">
-						<p className="meta">
-							{mission ? (mission.kind === "review" ? "Review check due" : "Next mission") : "All missions secure"}
-						</p>
-						{mission ? (
-							<div className="bubble flex items-center gap-4">
-								<LessonArt strand={mission.objective.strand} size={72} />
-								<div className="min-w-0 space-y-1.5">
-									<SubjectTag subject={mission.objective.subject} strand={mission.objective.strand} />
-									<p className="font-display text-xl leading-snug font-semibold">{mission.objective.title}</p>
-								</div>
-							</div>
-						) : (
-							<p className="bubble text-lg">
-								{`${student.displayName} has secured every ${subject === "english" ? "English" : "Maths"} objective here. Nova will call them back for review checks.`}
-							</p>
-						)}
-						{mission &&
-							(mission.kind === "continue" && mission.objective.openSessionId ? (
-								<Link to="/learn/$sessionId" params={{ sessionId: mission.objective.openSessionId }} className="btn">
-									Resume mission
-								</Link>
-							) : (
-								<button
-									type="button"
-									className="btn"
-									disabled={start.pending}
-									onClick={() =>
-										void start.run(mission.objective.code, mission.kind === "review" ? "review" : "lesson")
-									}
-								>
-									Launch mission
-								</button>
-							))}
-					</div>
-				</section>
-
-				<ErrorBox error={start.error} />
-
 				<section aria-labelledby="objectives-title" className="space-y-3">
 					<h2 id="objectives-title" className="h2">
 						{subject === "english" ? "English" : "Maths"} objectives
@@ -170,4 +128,71 @@ function lastSubject({ objectives, recentSessions }: Progress): Subject | undefi
 	if (open) return open.subject;
 	const last = recentSessions[0]?.objectiveCode;
 	return objectives.find((o) => o.code === last)?.subject;
+}
+
+const MISSION_LABEL = {
+	continue: "Mission in progress",
+	review: "Review check due",
+	rework: "Rework mission",
+	current: "Next mission",
+	complete: "Programme complete",
+} as const;
+
+function MissionHero({
+	mission,
+	name,
+	yearGroup,
+	pending,
+	onStart,
+}: {
+	mission: MissionResponse;
+	name: string;
+	yearGroup: number;
+	pending: boolean;
+	onStart: (objectiveCode: string, kind: "lesson" | "review") => void;
+}) {
+	const active = mission.reason !== "complete" && mission.objective ? mission : null;
+	return (
+		<section
+			className="panel-space surface-space grid items-center gap-5 sm:grid-cols-[auto_1fr]"
+			data-testid="mission"
+			data-reason={mission.reason}
+		>
+			<Nova state={active ? "ready" : "proud"} size={150} priority className="mx-auto shrink-0" />
+			<div className="space-y-4">
+				<p className="meta">{MISSION_LABEL[mission.reason]}</p>
+				{active?.objective ? (
+					<div className="bubble flex items-center gap-4">
+						<LessonArt strand={active.objective.strand} size={72} />
+						<div className="min-w-0 space-y-1.5">
+							<SubjectTag subject={active.objective.subject} strand={active.objective.strand} />
+							<p className="font-display text-xl leading-snug font-semibold">{active.objective.title}</p>
+						</div>
+					</div>
+				) : (
+					<p className="bubble text-lg">
+						{`${name} has secured every step of the Year ${yearGroup} programme. `}
+						{mission.reason === "complete" && mission.nextReviewAt
+							? `Next review check ${formatDate(mission.nextReviewAt)}.`
+							: "Nova will call them back for review checks."}
+					</p>
+				)}
+				{active &&
+					(active.sessionId ? (
+						<Link to="/learn/$sessionId" params={{ sessionId: active.sessionId }} className="btn">
+							Resume mission
+						</Link>
+					) : (
+						<button
+							type="button"
+							className="btn"
+							disabled={pending}
+							onClick={() => onStart(active.objectiveCode, active.sessionKind)}
+						>
+							Launch mission
+						</button>
+					))}
+			</div>
+		</section>
+	);
 }

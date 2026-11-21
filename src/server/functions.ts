@@ -256,6 +256,18 @@ export const getProgressFn = createServerFn({ method: "GET" })
 		}),
 	);
 
+export const getMissionFn = createServerFn({ method: "GET" })
+	.validator(z.object({ studentId: idSchema }))
+	.handler(({ data }) =>
+		guard(async () => {
+			const { requireActor } = await import("./session");
+			const { getServerContext } = await import("./context");
+			const { getMission } = await import("./services/mission");
+			const { actor } = await requireActor();
+			return getMission({ store: getServerContext().store }, actor, data.studentId);
+		}),
+	);
+
 export const getOutcomesFn = createServerFn({ method: "GET" })
 	.validator(z.object({ studentId: idSchema }))
 	.handler(({ data }) =>
