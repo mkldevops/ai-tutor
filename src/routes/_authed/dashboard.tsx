@@ -3,7 +3,13 @@ import { AddLearnerDialog } from "#/components/add-learner-dialog";
 import { Nova } from "#/components/nova";
 import { formatDate } from "#/components/status";
 import { getFamilyOverviewFn } from "#/server/functions";
-import type { LearnerOverview } from "#/server/services/overview";
+import type { AttentionFlag, LearnerOverview } from "#/server/services/overview";
+
+const ATTENTION_LABEL: Record<AttentionFlag, string> = {
+	stuck: "Stuck on a step",
+	overdue_reviews: "Overdue reviews",
+	inactive: "Inactive 7+ days",
+};
 
 export const Route = createFileRoute("/_authed/dashboard")({
 	loader: () => getFamilyOverviewFn(),
@@ -51,6 +57,9 @@ function Dashboard() {
 									<div className="min-w-0 flex-1">
 										<p className="truncate font-display text-2xl leading-tight">{s.displayName}</p>
 										<p className="meta mt-1">Year {s.yearGroup}</p>
+										<p className="mt-1 text-sm text-ink-soft" data-testid="overview-position">
+											{positionLabel(s.position)}
+										</p>
 									</div>
 									<Link
 										to="/students/$studentId"
@@ -61,6 +70,7 @@ function Dashboard() {
 										Open
 									</Link>
 								</div>
+								<AttentionFlags learner={s} />
 								<LearnerStats learner={s} />
 							</li>
 						))}
@@ -68,6 +78,30 @@ function Dashboard() {
 				)}
 			</section>
 		</main>
+	);
+}
+
+function positionLabel(p: LearnerOverview["position"]): string {
+	if (p.complete) return "Programme complete";
+	if (!p.unit || !p.step) return "No programme yet";
+	return `Unit ${p.unit.number} of ${p.unit.total} · step ${p.step.number} of ${p.step.total}`;
+}
+
+function AttentionFlags({ learner: s }: { learner: LearnerOverview }) {
+	if (s.attention.length === 0) return null;
+	return (
+		<div className="flex flex-wrap items-center gap-2" data-testid="overview-attention">
+			<span className="text-sm font-medium">Needs attention:</span>
+			<ul className="flex flex-wrap gap-2" aria-label={`${s.displayName} needs attention`}>
+				{s.attention.map((flag) => (
+					<li key={flag} className="badge" data-tone="focus" data-flag={flag}>
+						{flag === "overdue_reviews"
+							? `${s.overdueReviews} overdue ${s.overdueReviews === 1 ? "review" : "reviews"}`
+							: ATTENTION_LABEL[flag]}
+					</li>
+				))}
+			</ul>
+		</div>
 	);
 }
 
