@@ -23,7 +23,8 @@ export type GradeResult = { correct: boolean; parsed: boolean };
 export function gradeResponse(item: Item, response: string): GradeResult {
 	if (item.type === "written") {
 		const given = normaliseText(response);
-		return { correct: given !== "" && given === normaliseText(item.answer), parsed: given !== "" };
+		const expected = [item.answer, ...(item.accept ?? [])].map(normaliseText);
+		return { correct: given !== "" && expected.includes(given), parsed: given !== "" };
 	}
 	const expected = normaliseNumeric(item.answer);
 	const given = normaliseNumeric(response);
@@ -32,4 +33,11 @@ export function gradeResponse(item: Item, response: string): GradeResult {
 	}
 	if (given === null) return { correct: false, parsed: false };
 	return { correct: Math.abs(expected - given) < 1e-9, parsed: true };
+}
+
+export function isAmericanSpelling(item: Item, response: string): boolean {
+	if (item.type !== "written") return false;
+	const given = normaliseText(response);
+	const expected = normaliseText(item.answer);
+	return given !== expected && /iz/.test(given) && given.replace(/iz/g, "is") === expected;
 }

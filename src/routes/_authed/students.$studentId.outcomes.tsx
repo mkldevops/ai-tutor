@@ -37,6 +37,11 @@ function OutcomesTab() {
 	}
 	return (
 		<div className="space-y-6">
+			{o.truncated && (
+				<p className="card text-sm text-ink-soft" data-testid="outcomes-truncated">
+					{name} has a long history. These figures use the most recent answers only, so older results may be missing.
+				</p>
+			)}
 			<section aria-labelledby="lasting-title" className="card space-y-4" data-testid="outcomes-summary">
 				<h2 id="lasting-title" className="h2">
 					Does learning last?

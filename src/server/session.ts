@@ -1,15 +1,15 @@
 import "@tanstack/react-start/server-only";
-import { deleteCookie, getCookie, getRequestHeader, setCookie } from "@tanstack/react-start/server";
+import { deleteCookie, getCookie, getRequestHeader, getRequestIP, setCookie } from "@tanstack/react-start/server";
 import type { AuthUser } from "./auth/provider";
 import { getServerContext } from "./context";
-import { rateLimit } from "./rate-limit";
+import { clientIp, rateLimit } from "./rate-limit";
 import { AppError } from "./services/errors";
 import { type Actor, resolveActor } from "./services/family";
 
 export const SESSION_COOKIE = "ait_session";
 
 export function clientKey(): string {
-	return getRequestHeader("x-forwarded-for")?.split(",")[0]?.trim() || "local";
+	return clientIp(getRequestHeader("x-forwarded-for"), getRequestIP());
 }
 
 export function setSessionCookie(secret: string) {

@@ -1,6 +1,14 @@
 import { createHash } from "node:crypto";
 import { AppError } from "./services/errors";
 
+export function clientIp(forwardedFor: string | undefined, socketIp: string | undefined): string {
+	const hops = (forwardedFor ?? "")
+		.split(",")
+		.map((h) => h.trim())
+		.filter(Boolean);
+	return hops.at(-1) || socketIp || "local";
+}
+
 export type RateLimiter = {
 	readonly kind: "memory" | "appwrite";
 	hit(key: string, windowMs: number, now: number): Promise<number>;

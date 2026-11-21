@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it } from "vitest";
 import {
 	bucketId,
+	clientIp,
 	createMemoryRateLimiter,
 	currentRateLimiter,
 	rateLimit,
@@ -72,5 +73,17 @@ describe("rateLimit", () => {
 		resetRateLimits();
 		expect(currentRateLimiter().kind).toBe("memory");
 		await expect(rateLimit("shared", 5, MIN, T0)).resolves.toBeUndefined();
+	});
+});
+
+describe("clientIp", () => {
+	it("keys on the hop the proxy appended, not a client-supplied one", () => {
+		expect(clientIp("6.6.6.6, 203.0.113.9", "10.0.0.2")).toBe("203.0.113.9");
+		expect(clientIp(" 203.0.113.9 ", undefined)).toBe("203.0.113.9");
+	});
+
+	it("falls back to the socket address, then a shared key", () => {
+		expect(clientIp(undefined, "10.0.0.2")).toBe("10.0.0.2");
+		expect(clientIp(" , ", undefined)).toBe("local");
 	});
 });

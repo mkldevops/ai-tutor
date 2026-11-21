@@ -23,6 +23,11 @@ class MemoryTable<T extends BaseRecord> implements Table<T> {
 		return this.list(filter, { limit: Number.POSITIVE_INFINITY });
 	}
 
+	async listLatest(filter: Filter<T>, max: number) {
+		const rows = await this.list(filter, { limit: max + 1, latest: true });
+		return rows.length > max ? { rows: rows.slice(1), truncated: true } : { rows, truncated: false };
+	}
+
 	async create(data: NewRecord<T>) {
 		const now = new Date().toISOString();
 		const row = { ...structuredClone(data), id: randomUUID().replace(/-/g, ""), createdAt: now, updatedAt: now } as T;

@@ -2,6 +2,25 @@ import type { PrefixWord } from "./english-bank";
 import type { Generator } from "./generators";
 import { pick, type Rng, shuffle } from "./rng";
 
+const US_SPELLINGS: Record<string, string> = {
+	mum: "mom",
+	neighbour: "neighbor",
+	neighbours: "neighbors",
+	colour: "color",
+	favourite: "favorite",
+	centre: "center",
+	grey: "gray",
+};
+
+export function usSpellingVariants(answer: string): { accept?: string[] } {
+	const us = answer.replace(/[A-Za-z]+/g, (w) => {
+		const v = US_SPELLINGS[w.toLowerCase()];
+		if (!v) return w;
+		return w[0] === w[0]?.toUpperCase() ? v[0]?.toUpperCase() + v.slice(1) : v;
+	});
+	return us === answer ? {} : { accept: [us] };
+}
+
 export function options(rng: Rng, answer: string, distractors: readonly string[]): string[] {
 	const unique = [...new Set(distractors.filter((d) => d !== answer))].slice(0, 3);
 	return shuffle(rng, [answer, ...unique]);

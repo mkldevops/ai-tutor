@@ -2,7 +2,7 @@ import { getObjective } from "#/curriculum/england-nc";
 import { createRng, generateItem, hashSeed, supportedTypes } from "#/curriculum/generators";
 import type { EvidenceMode, Item, ItemType, LessonPhase, PublicItem, SessionKind } from "#/domain/types";
 import { toPublicItem } from "#/domain/types";
-import { gradeResponse } from "./grading";
+import { gradeResponse, isAmericanSpelling } from "./grading";
 
 export const LESSON_SIZES = {
 	diagnosticPrereq: 2,
@@ -242,7 +242,9 @@ export function submitAnswer(
 			const target = getObjective(item.objectiveCode);
 			feedback = {
 				correct: false,
-				message: "Not quite. Let's look at it together.",
+				message: isAmericanSpelling(item, response)
+					? "Close! That is the American spelling. In British English we write –ise."
+					: "Not quite. Let's look at it together.",
 				question: item.prompt,
 				yourAnswer: response.trim(),
 				correctAnswer: item.answer,

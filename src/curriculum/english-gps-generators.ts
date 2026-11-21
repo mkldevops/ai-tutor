@@ -19,7 +19,7 @@ import {
 	withParenthesis,
 	wrongArticle,
 } from "./english-gps-bank";
-import { options, prefixGenerator } from "./english-helpers";
+import { options, prefixGenerator, usSpellingVariants } from "./english-helpers";
 import type { Generator } from "./generators";
 import { pick, shuffle } from "./rng";
 
@@ -142,7 +142,12 @@ const y5Parenthesis: Generator = ({ rng, difficulty, type, id }) => {
 			answer: correct,
 		};
 	}
-	return { ...base, prompt: `Write the words in parenthesis in this sentence: ${correct}`, answer: p.extra };
+	return {
+		...base,
+		prompt: `Write the words in parenthesis in this sentence: ${correct}`,
+		answer: p.extra,
+		...usSpellingVariants(p.extra),
+	};
 };
 
 const y5Adverbials: Generator = ({ rng, difficulty, type, id }) => {

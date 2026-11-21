@@ -26,7 +26,7 @@ import {
 	Y5_PREFIXES,
 } from "./english-bank";
 import { ENGLISH_GPS_GENERATORS } from "./english-gps-generators";
-import { options, prefixGenerator } from "./english-helpers";
+import { options, prefixGenerator, usSpellingVariants } from "./english-helpers";
 import type { Generator } from "./generators";
 import { pick, shuffle } from "./rng";
 
@@ -105,7 +105,7 @@ const y3InvertedCommas: Generator = ({ rng, difficulty, type, id }) => {
 		prompt: mc
 			? `Which sentence punctuates what ${line.speaker} ${line.verb} correctly?`
 			: `Add inverted commas: ${speechUnpunctuated(line)}`,
-		...(mc ? { choices: options(rng, answer, speechWrong(line)) } : {}),
+		...(mc ? { choices: options(rng, answer, speechWrong(line)) } : usSpellingVariants(answer)),
 		answer,
 		hint: `Put " before the first spoken word and " after the ${line.end === "," ? "comma" : `${line.end} mark`} that ends the speech.`,
 		workedSolution: `Only the spoken words go inside the inverted commas: ${answer}`,
