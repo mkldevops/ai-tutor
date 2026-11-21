@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { addLearner, completeLesson, signUp } from "./lesson-helpers";
+import { addLearner, completeLesson, placeOnStep, signUp } from "./lesson-helpers";
 
 const CLIENT_IP = { "x-forwarded-for": "198.51.100.31" };
 test.use({ extraHTTPHeaders: CLIENT_IP });
@@ -12,6 +12,7 @@ test("a Year 3 learner completes an English lesson, kept apart from Maths and fr
 	await addLearner(page, "Cleo", "3");
 	await page.getByRole("link", { name: "Open Cleo" }).click();
 	const cleoUrl = page.url();
+	await placeOnStep(page, "EN-Y3-GR-PRESENT-PERFECT");
 
 	const maths = page.getByRole("tab", { name: /Maths/ });
 	const english = page.getByRole("tab", { name: /English/ });
@@ -34,7 +35,7 @@ test("a Year 3 learner completes an English lesson, kept apart from Maths and fr
 	await expect(result.getByTestId("status-badge")).toHaveAttribute("data-status", "secure");
 	await result.getByRole("link", { name: "Back to progress" }).click();
 	await expect(english).toHaveAttribute("aria-selected", "true");
-	await expect(english).toContainText("1/7");
+	await expect(english).toContainText("4/7");
 	await expect(objective.getByTestId("status-badge")).toHaveAttribute("data-status", "secure");
 	await maths.click();
 	await expect(page.getByTestId("objective-MA-Y3-AS-MENTAL").getByTestId("status-badge")).toHaveAttribute(
@@ -43,8 +44,8 @@ test("a Year 3 learner completes an English lesson, kept apart from Maths and fr
 	);
 
 	await page.getByRole("link", { name: "Progress", exact: true }).click();
-	await expect(page.getByTestId("subject-progress-english")).toContainText("1 / 7 secured");
-	await expect(page.getByTestId("subject-progress-maths")).toContainText(/0 \/ \d+ secured/);
+	await expect(page.getByTestId("subject-progress-english")).toContainText("4 / 7 secured");
+	await expect(page.getByTestId("subject-progress-maths")).toContainText(/2 \/ \d+ secured/);
 
 	const other = await browser.newContext({ extraHTTPHeaders: CLIENT_IP });
 	const otherPage = await other.newPage();

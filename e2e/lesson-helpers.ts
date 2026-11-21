@@ -1,4 +1,5 @@
 import { expect, type Page } from "@playwright/test";
+import { programmeSteps } from "../src/curriculum/programme";
 import { solveEnglish } from "./english-solver";
 import { normalise, solve } from "./solver";
 
@@ -78,4 +79,21 @@ export async function completeLesson(page: Page, { wrongInGuided = 0 } = {}) {
 		await expect(feedback).toHaveCount(0);
 	}
 	throw new Error("Lesson did not complete");
+}
+
+export async function placeOnStep(page: Page, objectiveCode: string) {
+	const year = objectiveCode.includes("-Y5-") ? 5 : 3;
+	const steps = programmeSteps(year);
+	const target = steps.findIndex((s) => s.objectiveCode === objectiveCode);
+	expect(target, `${objectiveCode} on the Y${year} programme`).toBeGreaterThanOrEqual(0);
+	const back = page.url();
+	await page.getByRole("link", { name: "Progress", exact: true }).click();
+	for (const step of steps.slice(0, target)) {
+		const row = page.getByTestId(`evidence-${step.objectiveCode}`);
+		await row.getByText("Already known?").click();
+		await row.getByPlaceholder("Reason (required)").fill("Placed for the test");
+		await row.getByRole("button", { name: "Set status" }).click();
+		await expect(row.getByText("Already known?")).toHaveCount(0);
+	}
+	await page.goto(back, { waitUntil: "networkidle" });
 }

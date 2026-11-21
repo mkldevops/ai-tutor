@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { addLearner, completeLesson, signUp } from "./lesson-helpers";
+import { addLearner, completeLesson, placeOnStep, signUp } from "./lesson-helpers";
 
 const CLIENT_IP = { "x-forwarded-for": "198.51.100.52" };
 test.use({ extraHTTPHeaders: CLIENT_IP });
@@ -19,6 +19,7 @@ test("parent sees deterministic learning outcomes, other families and signed-out
 	expect(outcomesUrl).toMatch(/\/outcomes$/);
 
 	await page.goto(missionsUrl, { waitUntil: "networkidle" });
+	await placeOnStep(page, "MA-Y3-AS-MENTAL");
 	await page.getByTestId("objective-MA-Y3-AS-MENTAL").getByRole("button", { name: "Start lesson" }).click();
 	await expect(page.getByTestId("phase")).toHaveAttribute("data-phase", "diagnostic");
 	await completeLesson(page);
@@ -28,7 +29,7 @@ test("parent sees deterministic learning outcomes, other families and signed-out
 	await expect(page.getByTestId("outcomes-pass-rate")).toContainText("No spaced review yet.");
 	await expect(page.getByTestId("outcomes-regressions")).toContainText("0 times");
 	await expect(page.getByTestId("outcomes-overdue")).toContainText("0");
-	await expect(page.getByTestId("outcomes-secure-now")).toContainText("1 of 1 started");
+	await expect(page.getByTestId("outcomes-secure-now")).toContainText("1 of 7 started");
 	for (const n of [1, 2, 3]) await expect(page.getByTestId(`outcomes-retention-${n}`)).toContainText("None yet");
 	await expect(page.getByTestId("outcomes-pass-rate")).not.toContainText("%");
 	await expect(page.getByRole("list", { name: "Retention by review" })).not.toContainText("%");
