@@ -280,6 +280,18 @@ export const getOutcomesFn = createServerFn({ method: "GET" })
 		}),
 	);
 
+export const getProgrammeReportFn = createServerFn({ method: "GET" })
+	.validator(z.object({ studentId: idSchema }))
+	.handler(({ data }) =>
+		guard(async () => {
+			const { requireActor } = await import("./session");
+			const { getServerContext } = await import("./context");
+			const { getProgrammeReport } = await import("./services/programme-report");
+			const { actor } = await requireActor();
+			return getProgrammeReport({ store: getServerContext().store }, actor, data.studentId);
+		}),
+	);
+
 export const overrideCompetencyFn = createServerFn({ method: "POST" })
 	.validator(
 		z.object({

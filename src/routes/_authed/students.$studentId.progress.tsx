@@ -1,13 +1,15 @@
 import { createFileRoute, useRouter } from "@tanstack/react-router";
 import { ErrorBox, useAction } from "#/components/form";
 import { SUBJECTS } from "#/components/lesson-visual";
+import { ProgrammeReportView } from "#/components/programme-report";
 import { formatDate, STATUS_LABELS, StatusBadge } from "#/components/status";
 import { DONE, type Objective, type Progress, useProgress } from "#/components/student-progress";
 import { subjectsIn } from "#/components/subject-switch";
 import type { CompetencyStatus } from "#/domain/types";
-import { overrideCompetencyFn } from "#/server/functions";
+import { getProgrammeReportFn, overrideCompetencyFn } from "#/server/functions";
 
 export const Route = createFileRoute("/_authed/students/$studentId/progress")({
+	loader: ({ params }) => getProgrammeReportFn({ data: { studentId: params.studentId } }),
 	component: ProgressTab,
 });
 
@@ -30,6 +32,7 @@ const STATUS_HINT: Record<CompetencyStatus, string> = {
 
 function ProgressTab() {
 	const { student, objectives, events, outcomes } = useProgress();
+	const report = Route.useLoaderData();
 	const started = objectives.filter((o) => o.status !== "not_started");
 	const waiting = objectives.filter((o) => o.status === "not_started");
 	const secured = objectives.filter((o) => DONE.includes(o.status)).length;
@@ -52,6 +55,8 @@ function ProgressTab() {
 
 	return (
 		<div className="space-y-6">
+			<ProgrammeReportView report={report} />
+
 			<section aria-label="Progress summary" className="space-y-3">
 				<div className="grid grid-cols-3 gap-3">
 					{stats.map((s) => (
@@ -108,7 +113,12 @@ function ProgressTab() {
 					</h2>
 					<ul className="divide-y divide-line">
 						{waiting.map((o) => (
-							<li key={o.code} className="py-2" data-testid={`evidence-${o.code}`}>
+							<li
+								key={o.code}
+								id={`evidence-${o.code}`}
+								className="scroll-mt-4 py-2"
+								data-testid={`evidence-${o.code}`}
+							>
 								<details className="text-sm">
 									<summary className="flex cursor-pointer items-center justify-between gap-3">
 										<span className="text-base">{o.title}</span>
@@ -141,7 +151,7 @@ function ProgressTab() {
 
 function ObjectiveCard({ objective: o, studentId }: { objective: Objective; studentId: string }) {
 	return (
-		<article className="card space-y-3" data-testid={`evidence-${o.code}`}>
+		<article id={`evidence-${o.code}`} className="card scroll-mt-4 space-y-3" data-testid={`evidence-${o.code}`}>
 			<div className="flex items-start justify-between gap-3">
 				<p className="font-display text-lg leading-snug">{o.title}</p>
 				<StatusBadge status={o.status} />
