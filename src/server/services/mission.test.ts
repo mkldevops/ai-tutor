@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { programmeSteps } from "#/curriculum/programme";
+import { PROGRAMME_BY_YEAR, programmeSteps } from "#/curriculum/programme";
 import { currentItem } from "#/learning-engine/lesson";
 import { createMemoryStore } from "../store/memory-store";
 import type { DataStore } from "../store/types";
@@ -71,8 +71,8 @@ describe("getMission", () => {
 		await openLegacySession(store, english, "EN-Y3-GR-PRESENT-PERFECT");
 		await completeLesson(store, alice, maths, "MA-Y3-AS-MENTAL");
 		await completeLesson(store, alice, english, "EN-Y3-GR-PRESENT-PERFECT");
-		const a = await getMission(at(0), alice, maths);
-		const b = await getMission(at(0), alice, english);
+		const { course: _a, ...a } = await getMission(at(0), alice, maths);
+		const { course: _b, ...b } = await getMission(at(0), alice, english);
 		expect(a).toEqual(b);
 		expect(a).toMatchObject({ reason: "current", objectiveCode: "EN-Y3-SP-PREFIXES" });
 	});
@@ -107,6 +107,33 @@ describe("getMission", () => {
 		expect((await getSession(later, alice, started.sessionId)).objective.code).toBe("EN-Y3-SP-PREFIXES");
 	});
 
+	it("lays out the course by unit with the next step current once a step is secured", async () => {
+		const sam = await addLearner("Sam");
+		const states = async () =>
+			(await getMission(at(DAY), alice, sam)).course.units.flatMap((u) => u.steps.map((s) => [s.code, s.state]));
+		const before = await getMission(at(0), alice, sam);
+		expect(before.course.units.map((u) => u.id)).toEqual(PROGRAMME_BY_YEAR[3].map((u) => u.id));
+		expect(before.course).toMatchObject({ done: 0, total: programmeSteps(3).length });
+		expect((await states()).slice(0, 3)).toEqual([
+			["EN-Y3-SP-PREFIXES", "current"],
+			["EN-Y3-GR-A-AN", "locked"],
+			["MA-Y3-PV-DIGIT-VALUE", "locked"],
+		]);
+		await completeLesson(store, alice, sam, "EN-Y3-SP-PREFIXES");
+		const after = await getMission(at(DAY), alice, sam);
+		expect(after.course.done).toBe(1);
+		expect(after.course.units[0]?.steps[0]).toMatchObject({
+			code: "EN-Y3-SP-PREFIXES",
+			state: "done",
+			status: "secure",
+		});
+		expect((await states()).slice(0, 3)).toEqual([
+			["EN-Y3-SP-PREFIXES", "done"],
+			["EN-Y3-GR-A-AN", "current"],
+			["MA-Y3-PV-DIGIT-VALUE", "locked"],
+		]);
+	});
+
 	it("follows a parent override past a blocked step", async () => {
 		const sam = await addLearner("Sam");
 		await overrideCompetency(at(0), alice, {
@@ -128,7 +155,12 @@ describe("getMission", () => {
 				reason: "Already known",
 			});
 		}
-		expect(await getMission(at(0), alice, sam)).toEqual({ reason: "complete", nextReviewAt: null, objective: null });
+		expect(await getMission(at(0), alice, sam)).toMatchObject({
+			reason: "complete",
+			nextReviewAt: null,
+			objective: null,
+			course: { done: programmeSteps(3).length, total: programmeSteps(3).length },
+		});
 		await store.revision_schedules.create({
 			familyId: alice.familyId,
 			studentId: sam,

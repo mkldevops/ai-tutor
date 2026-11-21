@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { addLearner, completeLesson, placeOnStep, signUp } from "./lesson-helpers";
+import { addLearner, completeLesson, placeOnStep, signUp, startMission } from "./lesson-helpers";
 
 const CLIENT_IP = { "x-forwarded-for": "198.51.100.52" };
 test.use({ extraHTTPHeaders: CLIENT_IP });
@@ -20,7 +20,7 @@ test("parent sees deterministic learning outcomes, other families and signed-out
 
 	await page.goto(missionsUrl, { waitUntil: "networkidle" });
 	await placeOnStep(page, "MA-Y3-AS-MENTAL");
-	await page.getByTestId("objective-MA-Y3-AS-MENTAL").getByRole("button", { name: "Start lesson" }).click();
+	await startMission(page, "MA-Y3-AS-MENTAL");
 	await expect(page.getByTestId("phase")).toHaveAttribute("data-phase", "diagnostic");
 	await completeLesson(page);
 	await expect(page.getByTestId("result").getByTestId("status-badge")).toHaveAttribute("data-status", "secure");

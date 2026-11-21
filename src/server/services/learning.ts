@@ -137,7 +137,7 @@ export async function startSession(
 			mission:
 				mission.reason === "complete" ? null : { objectiveCode: mission.objectiveCode, kind: mission.sessionKind },
 		});
-		throw new AppError("off_programme", "This is not the next step on the learning path.");
+		throw new AppError("off_programme", "Nova has a different mission ready for today.");
 	}
 
 	const state = startLesson({

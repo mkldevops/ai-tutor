@@ -359,7 +359,7 @@ function LessonPage() {
 						)}
 
 						<Link to="/students/$studentId" params={{ studentId: session.studentId }} className="btn">
-							Back to progress
+							Back to course
 						</Link>
 					</section>
 				)}
