@@ -3,7 +3,7 @@ import { ErrorBox, useAction } from "#/components/form";
 import type { PlanetKind } from "#/components/learning-map";
 import { LessonArt, SUBJECTS, SubjectTag } from "#/components/lesson-visual";
 import { Nova } from "#/components/nova";
-import { PlanetDot } from "#/components/orbit-map";
+import { PlanetDot } from "#/components/planet-dot";
 import { formatDate, StatusBadge } from "#/components/status";
 import { useProgress } from "#/components/student-progress";
 import type { StepState } from "#/learning-engine/programme";

@@ -372,19 +372,6 @@
 		background: var(--color-accent);
 		color: var(--color-space-900);
 	}
-	.orbit-path {
-		fill: none;
-		stroke: rgb(255 255 255 / 0.14);
-		stroke-width: 1;
-	}
-	.orbit-core {
-		fill: var(--color-space-700);
-		stroke: rgb(255 255 255 / 0.2);
-	}
-	.orbit-core-label {
-		@apply font-mono text-[15px] tracking-wider uppercase;
-		fill: var(--color-star);
-	}
 	.planet circle {
 		stroke-width: 2;
 	}

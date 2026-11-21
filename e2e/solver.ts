@@ -30,5 +30,9 @@ export function solve(prompt: string): string {
 	if (m) return fmt(num(m[1]) * num(m[2]));
 	m = prompt.match(new RegExp(`^${N} litres of juice are shared equally into ${N} bottles`));
 	if (m) return fmt(num(m[1]) / num(m[2]));
+	m = prompt.match(new RegExp(`sold ${N} tickets on Saturday and ${N} tickets on Sunday`));
+	if (m) return fmt(num(m[1]) + num(m[2]));
+	m = prompt.match(new RegExp(`has ${N} seats\\. ${N} seats are taken`));
+	if (m) return fmt(num(m[1]) - num(m[2]));
 	throw new Error(`Unsupported prompt: ${prompt}`);
 }
