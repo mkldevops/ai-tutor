@@ -6,7 +6,7 @@ import { createMemoryStore } from "../store/memory-store";
 import type { DataStore } from "../store/types";
 import { type Actor, createFamilyForUser, createStudent } from "./family";
 import { answerSession, continueSession, type SessionResponse, startSession } from "./learning";
-import { placeAt } from "./programme-fixtures";
+import { openLegacySession, placeAt } from "./programme-fixtures";
 import { getProgrammeReport } from "./programme-report";
 
 const DAY = 86_400_000;
@@ -37,7 +37,9 @@ describe("getProgrammeReport", () => {
 	let bob: Actor;
 	let sam: string;
 
-	async function addSession(objectiveCode: string, sessionId: string, mode: EvidenceMode, correct: number) {
+	async function addSession(objectiveCode: string, mode: EvidenceMode, correct: number, open = false) {
+		const session = await openLegacySession(store, sam, objectiveCode);
+		const sessionId = session.id;
 		for (let i = 0; i < 5; i++) {
 			await store.assessment_attempts.create({
 				familyId: alice.familyId,
@@ -54,6 +56,7 @@ describe("getProgrammeReport", () => {
 			});
 			vi.advanceTimersByTime(1000);
 		}
+		if (!open) await store.learning_sessions.update(sessionId, { completedAt: new Date().toISOString() });
 	}
 
 	beforeEach(async () => {
@@ -111,18 +114,28 @@ describe("getProgrammeReport", () => {
 
 	it("flags the current step as stuck after two failed independent assessments, and clears it on a pass", async () => {
 		await placeAt(store, sam, CODE);
-		await addSession(CODE, "s1", "guided", 1);
-		await addSession(CODE, "s2", "independent", 2);
-		await addSession(CODE, "s3", "independent", 3);
+		await addSession(CODE, "guided", 1);
+		await addSession(CODE, "independent", 2);
+		await addSession(CODE, "independent", 3);
 
 		const stuck = await getProgrammeReport({ store }, alice, sam);
 		expect(stuck.position).toMatchObject({ stuck: true, failedAssessments: 2 });
 		expect(stuck.toRework).toEqual([expect.objectContaining({ code: CODE, reasons: ["stuck"], failedAssessments: 2 })]);
 
-		await addSession(CODE, "s4", "independent", 5);
+		await addSession(CODE, "independent", 5);
 		const passed = await getProgrammeReport({ store }, alice, sam);
 		expect(passed.position).toMatchObject({ stuck: false, failedAssessments: 0 });
 		expect(passed.toRework).toEqual([]);
+	});
+
+	it("ignores an unfinished assessment when counting failures", async () => {
+		await placeAt(store, sam, CODE);
+		await addSession(CODE, "independent", 2);
+		await addSession(CODE, "independent", 0, true);
+
+		const r = await getProgrammeReport({ store }, alice, sam);
+		expect(r.position).toMatchObject({ stuck: false, failedAssessments: 1 });
+		expect(r.toRework).toEqual([]);
 	});
 
 	it("lists a slipped step once with needs_review, regression and overdue review, and gates small rates", async () => {

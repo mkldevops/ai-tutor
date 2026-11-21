@@ -51,6 +51,20 @@ const reportStep = (s: StepPosition): ReportStep => ({
 	index: s.index,
 });
 
+async function failedAssessmentsOn(
+	store: DataStore,
+	scope: { studentId: string; familyId: string },
+	objectiveCode: string,
+	policy: MasteryPolicy,
+): Promise<number> {
+	const [sessions, attempts] = await Promise.all([
+		store.learning_sessions.listAll({ ...scope, objectiveCode }),
+		store.assessment_attempts.listAll({ ...scope, objectiveCode }),
+	]);
+	const completed = new Set(sessions.filter((s) => s.completedAt !== null).map((s) => s.id));
+	return countFailedAssessments(summariseSessions(attempts.filter((a) => completed.has(a.sessionId))), policy);
+}
+
 export async function getProgrammeReport(deps: Deps, actor: Actor, studentId: string): Promise<ProgrammeReport> {
 	const { store } = deps;
 	const student = await requireStudent(store, actor, studentId);
@@ -69,21 +83,7 @@ export async function getProgrammeReport(deps: Deps, actor: Actor, studentId: st
 	const sequence = programmeSteps(student.yearGroup);
 	const draft = programmePosition(sequence, competencies);
 	const currentCode = draft.current?.objectiveCode;
-	const failed = currentCode
-		? countFailedAssessments(
-				summariseSessions(
-					(await store.assessment_attempts.listAll({ ...scope, objectiveCode: currentCode })).map((a) => ({
-						sessionId: a.sessionId,
-						mode: a.mode,
-						itemType: a.itemType,
-						correct: a.correct,
-						hintsUsed: a.hintsUsed,
-						createdAt: a.createdAt,
-					})),
-				),
-				policy,
-			)
-		: 0;
+	const failed = currentCode ? await failedAssessmentsOn(store, scope, currentCode, policy) : 0;
 	const statusOf = new Map(competencies.map((c) => [c.objectiveCode, c.status]));
 	const stepCompetencies = [...new Set([...statusOf.keys(), ...(currentCode ? [currentCode] : [])])].map((code) => ({
 		objectiveCode: code,
