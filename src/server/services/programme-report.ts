@@ -4,21 +4,21 @@ import type { CompetencyStatus, Subject, YearGroup } from "#/domain/types";
 import { type Rate, rate } from "#/learning-engine/longitudinal";
 import { DEFAULT_POLICY, type MasteryPolicy, summariseSessions } from "#/learning-engine/mastery";
 import { deferredReviews, dueReviews } from "#/learning-engine/mission";
+import { countMissions, type Pace, type PaceSession, projectPace } from "#/learning-engine/pace";
 import {
 	countFailedAssessments,
 	type ProgrammePosition,
 	programmePosition,
 	type StepPosition,
 } from "#/learning-engine/programme";
-import type { DataStore, LearningSessionRecord } from "../store/types";
+import type { DataStore, LearningSessionRecord, StudentRecord } from "../store/types";
 import { type Actor, requireStudent } from "./family";
 import { getStudentOutcomes, OUTCOMES_MAX_ROWS } from "./longitudinal";
 import { recentMissions } from "./mission";
+import { programmeSettingsOf } from "./programme-settings";
 
 type Deps = { store: DataStore; now?: () => Date; policy?: MasteryPolicy; maxRows?: number };
 
-const DAY_MS = 86_400_000;
-export const MISSION_WINDOW_DAYS = 7;
 export const NEXT_STEPS = 3;
 
 export type ReworkReason = "needs_review" | "regression" | "stuck" | "overdue_review";
@@ -66,6 +66,7 @@ export type ProgrammeReport = {
 	missionsLast7Days: number;
 	reviewBacklog: { due: number; deferred: number };
 	extras: ExtraPractice;
+	pace: Pace;
 	truncated: boolean;
 	units: ReportUnit[];
 };
@@ -108,6 +109,25 @@ export async function programmeStanding(
 		failedAssessments: code === currentCode ? failed : 0,
 	}));
 	return { position: programmePosition(sequence, stepCompetencies), failed };
+}
+
+export function paceOf(
+	student: Pick<StudentRecord, "programme" | "createdAt">,
+	position: ProgrammePosition,
+	sessions: readonly PaceSession[],
+	now: Date,
+): Pace {
+	const settings = programmeSettingsOf(student);
+	const { current, locked, to_rework, done } = position.counts;
+	return projectPace({
+		target: settings.paceTarget,
+		paused: settings.paused,
+		sessions,
+		stepsRemaining: current + locked + to_rework,
+		stepsDone: done,
+		startedAt: student.createdAt,
+		now,
+	});
 }
 
 async function extraPractice(
@@ -189,12 +209,7 @@ export async function getProgrammeReport(deps: Deps, actor: Actor, studentId: st
 		];
 	});
 
-	const since = now.getTime() - MISSION_WINDOW_DAYS * DAY_MS;
-	const missionsLast7Days = sessions.rows.filter((s) => {
-		if (!s.completedAt || s.kind === "extra") return false;
-		const at = Date.parse(s.completedAt);
-		return at > since && at <= now.getTime();
-	}).length;
+	const missionsLast7Days = countMissions(sessions.rows, now);
 
 	return {
 		student: outcomes.student,
@@ -236,6 +251,7 @@ export async function getProgrammeReport(deps: Deps, actor: Actor, studentId: st
 			deferred: deferredReviews({ position, pendingReviews, recentMissions: recent, now }),
 		},
 		extras,
+		pace: paceOf(student, position, sessions.rows, now),
 		truncated: outcomes.truncated || sessions.truncated,
 		units: units.map((u, i) => {
 			const own = position.steps.filter((s) => s.unitIndex === i);

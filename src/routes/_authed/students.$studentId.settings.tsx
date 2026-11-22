@@ -1,8 +1,10 @@
 import { createFileRoute, useRouter } from "@tanstack/react-router";
 import { useState } from "react";
 import { ErrorBox, useAction } from "#/components/form";
+import { PaceSettings } from "#/components/pace-settings";
 import { useProgress } from "#/components/student-progress";
 import { VoiceSettings } from "#/components/voice-settings";
+import { DEFAULT_PACE_TARGET } from "#/domain/types";
 import { deleteStudentFn, exportStudentFn } from "#/server/functions";
 
 export const Route = createFileRoute("/_authed/students/$studentId/settings")({
@@ -31,6 +33,12 @@ function SettingsTab() {
 
 	return (
 		<div className="space-y-6">
+			<PaceSettings
+				studentId={student.id}
+				displayName={student.displayName}
+				target={student.programme?.paceTarget ?? DEFAULT_PACE_TARGET}
+			/>
+
 			<VoiceSettings
 				studentId={student.id}
 				displayName={student.displayName}

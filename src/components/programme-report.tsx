@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { SUBJECTS } from "#/components/lesson-visual";
+import { PaceBadge, paceLine, projectionLine } from "#/components/pace";
 import { formatDate } from "#/components/status";
 import type { ProgrammeReport, ReportStep, ReworkReason } from "#/server/services/programme-report";
 
@@ -93,6 +94,8 @@ export function ProgrammeReportView({ report: r }: { report: ProgrammeReport }) 
 	const currentCode = r.position.step?.code;
 	const backlog = backlogLine(r);
 	const extras = extrasLine(r);
+	const pace = paceLine(r.pace);
+	const projection = projectionLine(r.pace);
 	return (
 		<section aria-labelledby="report-title" className="space-y-4" data-testid="programme-report">
 			<div className="space-y-1">
@@ -105,6 +108,15 @@ export function ProgrammeReportView({ report: r }: { report: ProgrammeReport }) 
 				<p className="text-ink-soft" data-testid="report-secured">
 					{securedLine(r)} {activityLine(r)}
 				</p>
+				{pace && (
+					<p className="flex flex-wrap items-center gap-2 text-ink-soft" data-testid="report-pace">
+						<PaceBadge pace={r.pace} />
+						<span>
+							{pace}
+							{projection && ` ${projection}`}
+						</span>
+					</p>
+				)}
 				{backlog && (
 					<p className="text-sm text-ink-soft" data-testid="report-review-backlog">
 						{backlog}
