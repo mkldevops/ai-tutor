@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { AddLearnerDialog } from "#/components/add-learner-dialog";
 import { Nova } from "#/components/nova";
+import { PaceBadge, projectionLine } from "#/components/pace";
 import { formatDate } from "#/components/status";
 import { getFamilyOverviewFn } from "#/server/functions";
 import type { AttentionFlag, LearnerOverview } from "#/server/services/overview";
@@ -70,6 +71,7 @@ function Dashboard() {
 										Open
 									</Link>
 								</div>
+								<PaceSummary learner={s} />
 								<AttentionFlags learner={s} />
 								<LearnerStats learner={s} />
 							</li>
@@ -85,6 +87,21 @@ function positionLabel(p: LearnerOverview["position"]): string {
 	if (p.complete) return "Programme complete";
 	if (!p.unit || !p.step) return "No programme yet";
 	return `Unit ${p.unit.number} of ${p.unit.total} · step ${p.step.number} of ${p.step.total}`;
+}
+
+function PaceSummary({ learner: s }: { learner: LearnerOverview }) {
+	if (s.pace.status === "complete") return null;
+	const projection = projectionLine(s.pace);
+	return (
+		<p className="flex flex-wrap items-center gap-2 text-sm text-ink-soft" data-testid="overview-pace">
+			<span className="font-medium">Pace:</span>
+			<PaceBadge pace={s.pace} />
+			<span>
+				{s.pace.missionsThisWeek} of {s.pace.target} missions in the last 7 days
+			</span>
+			{projection && <span className="block w-full">{projection}</span>}
+		</p>
+	);
 }
 
 function AttentionFlags({ learner: s }: { learner: LearnerOverview }) {

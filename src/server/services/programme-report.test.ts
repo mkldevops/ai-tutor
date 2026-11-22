@@ -177,6 +177,33 @@ describe("getProgrammeReport", () => {
 		expect(later.missionsLast7Days).toBe(0);
 	});
 
+	it("reports pace against the stored target with a projected end date", async () => {
+		const day0 = await getProgrammeReport({ store }, alice, sam);
+		expect(day0.pace).toMatchObject({ status: "on_track", target: 4, basis: "target" });
+		expect(day0.pace.projectedEndAt).not.toBeNull();
+
+		await complete(store, alice, sam, "lesson");
+		const idle = await getProgrammeReport({ store, now: () => new Date(Date.now() + 8 * DAY) }, alice, sam);
+		expect(idle.pace).toMatchObject({ status: "behind", missionsThisWeek: 0, basis: "target" });
+
+		await store.students.update(sam, { programme: { paused: false, skips: [], paceTarget: 1 } });
+		const soon = await getProgrammeReport({ store, now: () => new Date(Date.now() + 6 * DAY) }, alice, sam);
+		expect(soon.pace).toMatchObject({ status: "on_track", target: 1, missionsThisWeek: 1, basis: "observed" });
+		expect(Date.parse(soon.pace.projectedEndAt ?? "")).toBeGreaterThan(Date.now() + 6 * DAY);
+
+		await store.students.update(sam, { programme: { paused: true, skips: [], paceTarget: 1 } });
+		const paused = await getProgrammeReport({ store, now: () => new Date(Date.now() + 8 * DAY) }, alice, sam);
+		expect(paused.pace).toMatchObject({ status: "paused", projectedEndAt: null });
+	});
+
+	it("does not count extra practice towards the pace", async () => {
+		await placeAt(store, sam, CODE);
+		const extra = await openLegacySession(store, sam, CODE);
+		await store.learning_sessions.update(extra.id, { kind: "extra", completedAt: new Date().toISOString() });
+		const r = await getProgrammeReport({ store }, alice, sam);
+		expect(r.pace.missionsThisWeek).toBe(0);
+	});
+
 	it.each([
 		[1, 0],
 		[3, 1],

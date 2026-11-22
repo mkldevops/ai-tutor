@@ -1,10 +1,12 @@
 import { PROGRAMME_BY_YEAR } from "#/curriculum/programme";
 import type { CompetencyStatus, YearGroup } from "#/domain/types";
 import { OVERDUE_AFTER_DAYS } from "#/learning-engine/longitudinal";
+import type { Pace } from "#/learning-engine/pace";
 import type { DataStore } from "../store/types";
 import type { Actor } from "./family";
 import { allowedObjectives } from "./learning";
-import { programmeStanding } from "./programme-report";
+import { OUTCOMES_MAX_ROWS } from "./longitudinal";
+import { paceOf, programmeStanding } from "./programme-report";
 
 const DAY_MS = 86_400_000;
 const DONE: CompetencyStatus[] = ["secure", "mastered"];
@@ -32,6 +34,7 @@ export type LearnerOverview = {
 	position: OverviewPosition;
 	overdueReviews: number;
 	attention: AttentionFlag[];
+	pace: Pace;
 };
 
 export async function getFamilyOverview(
@@ -44,10 +47,11 @@ export async function getFamilyOverview(
 	return Promise.all(
 		students.map(async (s) => {
 			const codes = new Set(allowedObjectives(s.yearGroup));
-			const [competencies, schedules, attempts] = await Promise.all([
+			const [competencies, schedules, attempts, sessions] = await Promise.all([
 				store.student_competencies.list({ studentId: s.id, familyId: actor.familyId }),
 				store.revision_schedules.list({ studentId: s.id, familyId: actor.familyId, status: "pending" }),
 				store.assessment_attempts.list({ studentId: s.id, familyId: actor.familyId }, { limit: 500, latest: true }),
+				store.learning_sessions.listLatest({ studentId: s.id, familyId: actor.familyId }, OUTCOMES_MAX_ROWS),
 			]);
 			const scope = { studentId: s.id, familyId: actor.familyId };
 			const { position } = await programmeStanding(store, scope, s.yearGroup, competencies);
@@ -90,6 +94,7 @@ export async function getFamilyOverview(
 				},
 				overdueReviews,
 				attention,
+				pace: paceOf(s, position, sessions.rows, new Date(now)),
 			};
 		}),
 	);

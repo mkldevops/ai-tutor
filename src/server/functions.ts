@@ -6,6 +6,7 @@ import {
 	confidenceMomentSchema,
 	confidenceValueSchema,
 	displayNameSchema,
+	programmeSettingsSchema,
 	sessionKindSchema,
 	studentPreferencesSchema,
 	yearGroupSchema,
@@ -163,6 +164,19 @@ export const setStudentVoiceFn = createServerFn({ method: "POST" })
 			const { actor } = await requireActor();
 			const prefs = await setStudentVoice(getServerContext().store, actor, data.studentId, data.enabled);
 			return { voice: prefs.voice === true };
+		}),
+	);
+
+export const setPaceTargetFn = createServerFn({ method: "POST" })
+	.validator(z.object({ studentId: idSchema, paceTarget: programmeSettingsSchema.shape.paceTarget.unwrap() }))
+	.handler(({ data }) =>
+		guard(async () => {
+			const { requireActor } = await import("./session");
+			const { getServerContext } = await import("./context");
+			const { setPaceTarget } = await import("./services/pace");
+			const { actor } = await requireActor();
+			const programme = await setPaceTarget(getServerContext().store, actor, data.studentId, data.paceTarget);
+			return { paceTarget: programme.paceTarget };
 		}),
 	);
 

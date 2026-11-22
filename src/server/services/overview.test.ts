@@ -114,6 +114,16 @@ describe("family overview", () => {
 		expect(only?.attention).toEqual([]);
 	});
 
+	it("shows pace against the learner's target", async () => {
+		const later = { store, now: () => new Date(Date.now() + 10 * 86_400_000) };
+		const [idle] = await getFamilyOverview(later, alice);
+		expect(idle?.pace).toMatchObject({ status: "behind", target: 4, missionsThisWeek: 0, basis: "target" });
+
+		await store.students.update(sam, { programme: { paused: true, skips: [], paceTarget: 4 } });
+		const [paused] = await getFamilyOverview(later, alice);
+		expect(paused?.pace.status).toBe("paused");
+	});
+
 	it("reports the unit and step after acquired steps", async () => {
 		await placeAt(store, sam, PLACED);
 		const [only] = await getFamilyOverview({ store }, alice);
