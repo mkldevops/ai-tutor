@@ -3,6 +3,7 @@ import type { CompetencyStatus } from "#/domain/types";
 import { summariseSessions } from "#/learning-engine/mastery";
 import { countFailedAssessments, type ProgrammePosition, programmePosition } from "#/learning-engine/programme";
 import type { BaseRecord, DataStore, StudentRecord, Table, TableMap, TableName } from "../store/types";
+import { skippedCodes } from "./programme-settings";
 
 export type ReadOnlyTable<T extends BaseRecord> = Pick<Table<T>, "get" | "list" | "listAll" | "listLatest">;
 export type ReadOnlyStore = { [K in TableName]: ReadOnlyTable<TableMap[K]> };
@@ -64,7 +65,7 @@ export async function placeLearner(store: ReadOnlyStore, student: StudentRecord)
 		failedAssessments: failedByCode.get(c.objectiveCode) ?? 0,
 	}));
 
-	const position = sequence.length > 0 ? programmePosition(sequence, stepCompetencies) : null;
+	const position = sequence.length > 0 ? programmePosition(sequence, stepCompetencies, skippedCodes(student)) : null;
 	const statusOf = new Map(stepCompetencies.map((c) => [c.objectiveCode, c.status]));
 	const currentIndex = position?.current?.index ?? Number.POSITIVE_INFINITY;
 	const ahead = (position?.steps ?? []).filter((s) => s.index > currentIndex);

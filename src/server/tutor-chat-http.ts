@@ -20,6 +20,7 @@ const STATUS: Record<AppErrorCode, number> = {
 	invalid: 400,
 	conflict: 409,
 	rate_limited: 429,
+	paused: 409,
 	off_programme: 409,
 };
 

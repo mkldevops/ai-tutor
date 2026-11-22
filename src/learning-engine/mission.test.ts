@@ -29,6 +29,16 @@ function mission(input: Partial<MissionInput> = {}) {
 }
 
 describe("todaysMission", () => {
+	it("serves no mission while the parent has paused the course, even with an open session or a due review", () => {
+		expect(
+			mission({
+				paused: true,
+				openSessions: [{ id: "s1", objectiveCode: codes[0] as string, kind: "lesson", createdAt: daysFromNow(-1) }],
+				pendingReviews: [{ objectiveCode: codes[0] as string, dueAt: daysFromNow(-2) }],
+			}),
+		).toEqual({ reason: "paused" });
+	});
+
 	it("resumes an open session before anything else", () => {
 		expect(
 			mission({
@@ -146,7 +156,8 @@ describe("review interleaving", () => {
 				deferredReviews({ position: inProgress, pendingReviews: pending, recentMissions: recent, now: NOW }),
 			);
 			const m = mission({ position: inProgress, pendingReviews: pending, recentMissions: recent });
-			if (m.reason === "complete" || m.reason === "continue") throw new Error(`unexpected ${m.reason}`);
+			if (m.reason === "complete" || m.reason === "paused" || m.reason === "continue")
+				throw new Error(`unexpected ${m.reason}`);
 			served.push(m.sessionKind === "review" ? `R:${codes.indexOf(m.objectiveCode)}` : "L");
 			if (m.sessionKind === "review") pending = pending.filter((r) => r.objectiveCode !== m.objectiveCode);
 			recent.push({

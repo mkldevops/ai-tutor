@@ -22,6 +22,7 @@ import { type Actor, audit, requireStudent } from "./family";
 import { objectiveHistory } from "./history";
 import { isExpiredSession, isReachedStep, missionFor } from "./mission";
 import { learningOutcomes } from "./outcomes";
+import { programmeSettingsOf } from "./programme-settings";
 
 export { isExpiredSession };
 
@@ -114,6 +115,9 @@ export async function startSession(
 	if (!allowedObjectives(student.yearGroup).includes(input.objectiveCode)) {
 		throw new AppError("invalid", "Objective not available for this student's year group");
 	}
+	if (input.kind !== "extra" && programmeSettingsOf(student).paused) {
+		throw new AppError("paused", "The course is paused for now. Extra practice is still open.");
+	}
 	const open = (
 		await store.learning_sessions.listAll({
 			studentId: student.id,
@@ -130,6 +134,7 @@ export async function startSession(
 		input.kind === "extra"
 			? isReachedStep(position, input.objectiveCode)
 			: mission.reason !== "complete" &&
+				mission.reason !== "paused" &&
 				mission.objectiveCode === input.objectiveCode &&
 				mission.sessionKind === input.kind;
 	if (!onProgramme) {
@@ -137,7 +142,9 @@ export async function startSession(
 			objectiveCode: input.objectiveCode,
 			kind: input.kind,
 			mission:
-				mission.reason === "complete" ? null : { objectiveCode: mission.objectiveCode, kind: mission.sessionKind },
+				mission.reason === "complete" || mission.reason === "paused"
+					? null
+					: { objectiveCode: mission.objectiveCode, kind: mission.sessionKind },
 		});
 		throw new AppError(
 			"off_programme",

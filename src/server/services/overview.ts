@@ -7,6 +7,7 @@ import type { Actor } from "./family";
 import { allowedObjectives } from "./learning";
 import { OUTCOMES_MAX_ROWS } from "./longitudinal";
 import { paceOf, programmeStanding } from "./programme-report";
+import { skippedCodes } from "./programme-settings";
 
 const DAY_MS = 86_400_000;
 const DONE: CompetencyStatus[] = ["secure", "mastered"];
@@ -54,7 +55,7 @@ export async function getFamilyOverview(
 				store.learning_sessions.listLatest({ studentId: s.id, familyId: actor.familyId }, OUTCOMES_MAX_ROWS),
 			]);
 			const scope = { studentId: s.id, familyId: actor.familyId };
-			const { position } = await programmeStanding(store, scope, s.yearGroup, competencies);
+			const { position } = await programmeStanding(store, scope, s.yearGroup, competencies, undefined, skippedCodes(s));
 			const comps = competencies.filter((c) => codes.has(c.objectiveCode));
 			const pending = schedules.filter((r) => codes.has(r.objectiveCode));
 			const week = attempts.filter((a) => now - Date.parse(a.createdAt) < 7 * DAY_MS);

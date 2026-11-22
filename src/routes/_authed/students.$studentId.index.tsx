@@ -58,6 +58,7 @@ const MISSION_LABEL = {
 	rework: "Rework mission",
 	current: "Next mission",
 	complete: "Programme complete",
+	paused: "Course paused",
 } as const;
 
 const SETTLED: readonly StepState[] = ["done", "skipped"];
@@ -85,7 +86,7 @@ function MissionHero({
 	pending: boolean;
 	onStart: (objectiveCode: string, kind: SessionKind) => void;
 }) {
-	const active = mission.reason !== "complete" && mission.objective ? mission : null;
+	const active = mission.reason !== "complete" && mission.reason !== "paused" && mission.objective ? mission : null;
 	const transition = unitTransition(mission);
 	return (
 		<section
@@ -95,7 +96,12 @@ function MissionHero({
 			data-reason={mission.reason}
 			data-objective={active?.objectiveCode}
 		>
-			<Nova state={active ? "ready" : "proud"} size={150} priority className="mx-auto shrink-0" />
+			<Nova
+				state={active ? "ready" : mission.reason === "paused" ? "wave" : "proud"}
+				size={150}
+				priority
+				className="mx-auto shrink-0"
+			/>
 			<div className="space-y-4">
 				<div>
 					<p className="meta">{MISSION_LABEL[mission.reason]}</p>
@@ -117,9 +123,15 @@ function MissionHero({
 							<p className="font-display text-xl leading-snug font-semibold">{active.objective.title}</p>
 						</div>
 					</div>
+				) : mission.reason === "paused" ? (
+					<p className="bubble text-lg" data-testid="mission-paused">
+						{`${name}'s course is paused for now. Nova will be ready when it starts again. Extra practice below is still open.`}
+					</p>
 				) : (
 					<p className="bubble text-lg">
-						{`${name} has secured every step of the Year ${yearGroup} programme. `}
+						{mission.course.done === mission.course.total
+							? `${name} has secured every step of the Year ${yearGroup} programme. `
+							: `${name} has reached the end of the Year ${yearGroup} programme. `}
 						{mission.reason === "complete" && mission.nextReviewAt
 							? `Next review check ${formatDate(mission.nextReviewAt)}.`
 							: "Nova will call them back for review checks."}

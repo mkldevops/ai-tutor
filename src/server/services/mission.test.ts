@@ -98,7 +98,7 @@ describe("getMission", () => {
 		const later = at(8 * DAY);
 		const mission = await getMission(later, alice, sam);
 		expect(mission).toMatchObject({ reason: "review", objectiveCode: "EN-Y3-SP-PREFIXES", sessionKind: "review" });
-		if (mission.reason === "complete") throw new Error("unexpected");
+		if (mission.reason === "complete" || mission.reason === "paused") throw new Error("unexpected");
 		const started = await startSession(later, alice, {
 			studentId: sam,
 			objectiveCode: mission.objectiveCode,
