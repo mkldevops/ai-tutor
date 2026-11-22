@@ -95,6 +95,9 @@ function mixedSet(state: LessonState, count: number, difficulty: 1 | 2 | 3): Ite
 	);
 }
 
+const initialPhase = (kind: SessionKind): LessonPhase =>
+	kind === "review" ? "review" : kind === "extra" ? "guided" : "diagnostic";
+
 export function startLesson(args: {
 	kind: SessionKind;
 	objectiveCode: string;
@@ -103,7 +106,7 @@ export function startLesson(args: {
 }): LessonState {
 	const state: LessonState = {
 		...args,
-		phase: args.kind === "review" ? "review" : "diagnostic",
+		phase: initialPhase(args.kind),
 		items: [],
 		index: 0,
 		difficulty: 2,
@@ -115,6 +118,11 @@ export function startLesson(args: {
 	};
 	if (args.kind === "review") {
 		state.items = mixedSet(state, LESSON_SIZES.review, 2);
+		return state;
+	}
+	if (args.kind === "extra") {
+		state.prerequisiteCodes = [];
+		state.items = [nextItem(state, state.objectiveCode, state.difficulty)];
 		return state;
 	}
 	const items: Item[] = [];
@@ -254,7 +262,9 @@ export function submitAnswer(
 			};
 		}
 		state.index += 1;
-		if (state.index >= LESSON_SIZES.guided) {
+		if (state.index >= LESSON_SIZES.guided && state.kind === "extra") {
+			state.phase = "complete";
+		} else if (state.index >= LESSON_SIZES.guided) {
 			state.phase = "independent";
 			state.index = 0;
 			state.items = mixedSet(state, LESSON_SIZES.independent, 2);

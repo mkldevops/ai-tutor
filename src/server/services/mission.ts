@@ -49,7 +49,7 @@ async function missionContext(store: DataStore, student: Pick<StudentRecord, "id
 	const position = programmePosition(programmeSteps(student.yearGroup), competencies);
 	const mission = todaysMission({
 		position,
-		openSessions: openSessions.filter((s) => !isExpiredSession(s, now)),
+		openSessions: openSessions.filter((s) => s.kind !== "extra" && !isExpiredSession(s, now)),
 		pendingReviews,
 		recentMissions: recent,
 		now,
@@ -62,8 +62,14 @@ export async function missionFor(
 	store: DataStore,
 	student: Pick<StudentRecord, "id" | "yearGroup">,
 	now: Date,
-): Promise<Mission> {
-	return (await missionContext(store, student, now)).mission;
+): Promise<{ mission: Mission; position: ProgrammePosition }> {
+	const { mission, position } = await missionContext(store, student, now);
+	return { mission, position };
+}
+
+export function isReachedStep(position: ProgrammePosition, objectiveCode: string): boolean {
+	const step = position.steps.find((s) => s.objectiveCode === objectiveCode);
+	return step !== undefined && step.state !== "locked";
 }
 
 function courseOf(

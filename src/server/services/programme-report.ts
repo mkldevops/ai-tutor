@@ -150,7 +150,7 @@ export async function getProgrammeReport(deps: Deps, actor: Actor, studentId: st
 
 	const since = now.getTime() - MISSION_WINDOW_DAYS * DAY_MS;
 	const missionsLast7Days = sessions.rows.filter((s) => {
-		if (!s.completedAt) return false;
+		if (!s.completedAt || s.kind === "extra") return false;
 		const at = Date.parse(s.completedAt);
 		return at > since && at <= now.getTime();
 	}).length;

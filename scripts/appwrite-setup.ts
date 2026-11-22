@@ -51,7 +51,7 @@ export const SCHEMA: TableSpec[] = [
 			id("familyId"),
 			id("studentId"),
 			{ kind: "string", key: "objectiveCode", size: 40, required: true },
-			{ kind: "enum", key: "kind", elements: ["lesson", "review"], required: true },
+			{ kind: "enum", key: "kind", elements: ["lesson", "review", "extra"], required: true },
 			{ kind: "string", key: "phase", size: 20, required: true },
 			{ kind: "longtext", key: "state", required: true },
 			{ kind: "datetime", key: "completedAt" },

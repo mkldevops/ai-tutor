@@ -28,7 +28,7 @@ export type CompetencyStatus = z.infer<typeof competencyStatusSchema>;
 export const lessonPhaseSchema = z.enum(["diagnostic", "instruction", "guided", "independent", "review", "complete"]);
 export type LessonPhase = z.infer<typeof lessonPhaseSchema>;
 
-export const sessionKindSchema = z.enum(["lesson", "review"]);
+export const sessionKindSchema = z.enum(["lesson", "review", "extra"]);
 export type SessionKind = z.infer<typeof sessionKindSchema>;
 
 export const confidenceValueSchema = z.number().int().min(1).max(5);

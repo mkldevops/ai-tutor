@@ -6,6 +6,7 @@ import { Nova } from "#/components/nova";
 import { PlanetDot } from "#/components/planet-dot";
 import { formatDate, StatusBadge } from "#/components/status";
 import { useProgress } from "#/components/student-progress";
+import type { SessionKind } from "#/domain/types";
 import type { StepState } from "#/learning-engine/programme";
 import { getMissionFn, startSessionFn } from "#/server/functions";
 import type { Course, CourseStep, CourseUnit, MissionResponse } from "#/server/services/mission";
@@ -19,7 +20,7 @@ function MissionsTab() {
 	const { student } = useProgress();
 	const mission = Route.useLoaderData();
 	const router = useRouter();
-	const start = useAction(async (objectiveCode: string, kind: "lesson" | "review") => {
+	const start = useAction(async (objectiveCode: string, kind: SessionKind) => {
 		try {
 			const res = await startSessionFn({ data: { studentId: student.id, objectiveCode, kind } });
 			await router.navigate({ to: "/learn/$sessionId", params: { sessionId: res.sessionId } });
@@ -75,7 +76,7 @@ function MissionHero({
 	name: string;
 	yearGroup: number;
 	pending: boolean;
-	onStart: (objectiveCode: string, kind: "lesson" | "review") => void;
+	onStart: (objectiveCode: string, kind: SessionKind) => void;
 }) {
 	const active = mission.reason !== "complete" && mission.objective ? mission : null;
 	const transition = unitTransition(mission);
