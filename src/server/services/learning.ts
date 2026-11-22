@@ -20,7 +20,7 @@ import type { CompetencyRecord, DataStore, LearningSessionRecord } from "../stor
 import { AppError, notFound } from "./errors";
 import { type Actor, audit, requireStudent } from "./family";
 import { objectiveHistory } from "./history";
-import { isExpiredSession, missionFor } from "./mission";
+import { isExpiredSession, isReachedStep, missionFor } from "./mission";
 import { learningOutcomes } from "./outcomes";
 
 export { isExpiredSession };
@@ -125,11 +125,13 @@ export async function startSession(
 		.at(-1);
 	if (open) return respond(store, open);
 
-	const mission = await missionFor(store, student, now);
+	const { mission, position } = await missionFor(store, student, now);
 	const onProgramme =
-		mission.reason !== "complete" &&
-		mission.objectiveCode === input.objectiveCode &&
-		mission.sessionKind === input.kind;
+		input.kind === "extra"
+			? isReachedStep(position, input.objectiveCode)
+			: mission.reason !== "complete" &&
+				mission.objectiveCode === input.objectiveCode &&
+				mission.sessionKind === input.kind;
 	if (!onProgramme) {
 		await audit(store, actor, "session.off_programme", `students/${student.id}`, {
 			objectiveCode: input.objectiveCode,
@@ -137,7 +139,12 @@ export async function startSession(
 			mission:
 				mission.reason === "complete" ? null : { objectiveCode: mission.objectiveCode, kind: mission.sessionKind },
 		});
-		throw new AppError("off_programme", "Nova has a different mission ready for today.");
+		throw new AppError(
+			"off_programme",
+			input.kind === "extra"
+				? "Extra practice is only open on steps you have reached."
+				: "Nova has a different mission ready for today.",
+		);
 	}
 
 	const state = startLesson({
@@ -215,7 +222,7 @@ export async function answerSession(deps: Deps, actor: Actor, sessionId: string,
 		hintsUsed: entry.hintsUsed,
 	});
 	const saved = await saveState(store, session, state, now);
-	if (state.phase === "complete") {
+	if (state.phase === "complete" && session.kind !== "extra") {
 		if (session.kind === "review") {
 			const pending = await store.revision_schedules.list({
 				studentId: session.studentId,

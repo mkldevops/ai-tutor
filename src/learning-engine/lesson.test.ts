@@ -204,3 +204,26 @@ describe("lesson flow", () => {
 		expect(() => submitAnswer(s, "1")).toThrow(LessonError);
 	});
 });
+
+describe("extra practice", () => {
+	const start = (objectiveCode = "MA-Y3-AS-MENTAL") =>
+		startLesson({ kind: "extra", objectiveCode, prerequisiteCodes: ["MA-Y2-AS-MENTAL"], seed: "extra" });
+
+	it("is guided practice only: no diagnostic, no instruction, no independent phase", () => {
+		const s = start();
+		expect(s.phase).toBe("guided");
+		const done = answerAll(s, () => true);
+		expect(done.phase).toBe("complete");
+		expect(done.log).toHaveLength(LESSON_SIZES.guided);
+		expect(new Set(done.log.map((l) => l.mode))).toEqual(new Set(["guided"]));
+	});
+
+	it("stays on the target objective even after repeated wrong answers", () => {
+		const done = answerAll(start(), () => false);
+		expect(done.log.every((l) => l.objectiveCode === "MA-Y3-AS-MENTAL")).toBe(true);
+	});
+
+	it("offers hints like guided practice", () => {
+		expect(requestHint(start()).hint).toBeTruthy();
+	});
+});
