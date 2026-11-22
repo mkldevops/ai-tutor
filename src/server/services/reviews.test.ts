@@ -4,7 +4,7 @@ import { createMemoryStore } from "../store/memory-store";
 import type { DataStore } from "../store/types";
 import { type Actor, createFamilyForUser, createStudent } from "./family";
 import { answerSession, continueSession, type SessionResponse, startSession } from "./learning";
-import { placeAt } from "./programme-fixtures";
+import { openLegacySession, placeAt } from "./programme-fixtures";
 
 const DAY = 86_400_000;
 const CODE = "MA-Y3-AS-MENTAL";
@@ -50,6 +50,9 @@ describe("expanding review intervals", () => {
 	afterEach(() => vi.useRealTimers());
 
 	async function reviewWhenDue(dueAt: string | null | undefined, wrong = 0) {
+		vi.setSystemTime(Date.parse(dueAt ?? "") - DAY);
+		const between = await openLegacySession(store, sam, "MA-Y3-AS-COLUMN");
+		await store.learning_sessions.update(between.id, { completedAt: new Date().toISOString() });
 		vi.setSystemTime(Date.parse(dueAt ?? ""));
 		const res = await complete(store, alice, sam, "review", wrong);
 		return { status: res.result?.status, days: daysUntil(res.result?.nextReviewAt), dueAt: res.result?.nextReviewAt };

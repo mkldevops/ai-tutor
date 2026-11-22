@@ -20,6 +20,12 @@ function reasonLabel(reason: ReworkReason, step: Rework): string {
 	}
 }
 
+export function backlogLine(r: Pick<ProgrammeReport, "reviewBacklog">): string | null {
+	const { due, deferred } = r.reviewBacklog;
+	if (deferred === 0) return null;
+	return `${plural(due, "review")} due. Nova spaces reviews between new steps, so ${plural(deferred, "review")} ${deferred === 1 ? "waits" : "wait"} for a later mission.`;
+}
+
 function positionSentence(r: ProgrammeReport): string {
 	const name = r.student.displayName;
 	const { unit, step, complete, total } = r.position;
@@ -72,6 +78,7 @@ function ReportList({
 export function ProgrammeReportView({ report: r }: { report: ProgrammeReport }) {
 	const name = r.student.displayName;
 	const currentCode = r.position.step?.code;
+	const backlog = backlogLine(r);
 	return (
 		<section aria-labelledby="report-title" className="space-y-4" data-testid="programme-report">
 			<div className="space-y-1">
@@ -84,6 +91,11 @@ export function ProgrammeReportView({ report: r }: { report: ProgrammeReport }) 
 				<p className="text-ink-soft" data-testid="report-secured">
 					{securedLine(r)} {activityLine(r)}
 				</p>
+				{backlog && (
+					<p className="text-sm text-ink-soft" data-testid="report-review-backlog">
+						{backlog}
+					</p>
+				)}
 				{r.truncated && (
 					<p className="note-hint text-sm">Only the most recent activity is counted; older missions are left out.</p>
 				)}

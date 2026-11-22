@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { backlogLine } from "#/components/programme-report";
 import { PROGRAMME_BY_YEAR, programmeSteps } from "#/curriculum/programme";
 import type { EvidenceMode } from "#/domain/types";
 import { currentItem } from "#/learning-engine/lesson";
@@ -94,6 +95,7 @@ describe("getProgrammeReport", () => {
 		expect(r.toRework).toEqual([]);
 		expect(r.passRate).toEqual({ passed: 0, total: 0, rate: null });
 		expect(r.missionsLast7Days).toBe(0);
+		expect(r.reviewBacklog).toEqual({ due: 0, deferred: 0 });
 		expect(r.truncated).toBe(false);
 	});
 
@@ -173,5 +175,55 @@ describe("getProgrammeReport", () => {
 
 		const later = await getProgrammeReport({ store, now: () => new Date(Date.now() + 8 * DAY) }, alice, sam);
 		expect(later.missionsLast7Days).toBe(0);
+	});
+
+	it.each([
+		[1, 0],
+		[3, 1],
+		[6, 4],
+	])("surfaces %i due reviews with %i beyond the cap", async (due, deferred) => {
+		await placeAt(store, sam, y3[6] as string);
+		for (let i = 0; i < due; i++) {
+			await store.revision_schedules.create({
+				familyId: alice.familyId,
+				studentId: sam,
+				objectiveCode: y3[i] as string,
+				dueAt: new Date(Date.now() - (i + 1) * DAY).toISOString(),
+				status: "pending",
+			});
+		}
+		await store.revision_schedules.create({
+			familyId: alice.familyId,
+			studentId: sam,
+			objectiveCode: y3[6] as string,
+			dueAt: new Date(Date.now() + DAY).toISOString(),
+			status: "pending",
+		});
+		const r = await getProgrammeReport({ store }, alice, sam);
+		expect(r.reviewBacklog).toEqual({ due, deferred });
+		expect(backlogLine(r) === null).toBe(deferred === 0);
+	});
+
+	it("defers every due review right after two reviews in a row", async () => {
+		await placeAt(store, sam, y3[6] as string);
+		for (let i = 0; i < 3; i++) {
+			await store.revision_schedules.create({
+				familyId: alice.familyId,
+				studentId: sam,
+				objectiveCode: y3[i] as string,
+				dueAt: new Date(Date.now() - (i + 1) * DAY).toISOString(),
+				status: "pending",
+			});
+		}
+		for (const code of [y3[3], y3[4]]) {
+			const done = await openLegacySession(store, sam, code as string);
+			vi.advanceTimersByTime(1000);
+			await store.learning_sessions.update(done.id, { kind: "review", completedAt: new Date().toISOString() });
+		}
+		const r = await getProgrammeReport({ store }, alice, sam);
+		expect(r.reviewBacklog).toEqual({ due: 3, deferred: 3 });
+		expect(backlogLine(r)).toBe(
+			"3 reviews due. Nova spaces reviews between new steps, so 3 reviews wait for a later mission.",
+		);
 	});
 });

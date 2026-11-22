@@ -1,7 +1,7 @@
 import { getObjective } from "#/curriculum/england-nc";
 import { PROGRAMME_BY_YEAR, programmeSteps } from "#/curriculum/programme";
 import type { CompetencyStatus, Subject } from "#/domain/types";
-import { type Mission, todaysMission } from "#/learning-engine/mission";
+import { type CompletedMission, MISSION_HISTORY_WINDOW, type Mission, todaysMission } from "#/learning-engine/mission";
 import { type ProgrammePosition, programmePosition, type StepState } from "#/learning-engine/programme";
 import { LESSON_EXPIRY_DAYS } from "../config";
 import type { DataStore, LearningSessionRecord, StudentRecord } from "../store/types";
@@ -31,17 +31,27 @@ export function isExpiredSession(session: Pick<LearningSessionRecord, "createdAt
 	return session.completedAt === null && now.getTime() >= expiresAt;
 }
 
+export async function recentMissions(
+	store: DataStore,
+	student: Pick<StudentRecord, "id">,
+): Promise<CompletedMission[]> {
+	const { rows } = await store.learning_sessions.listLatest({ studentId: student.id }, MISSION_HISTORY_WINDOW);
+	return rows.flatMap((s) => (s.completedAt ? [{ kind: s.kind, completedAt: s.completedAt }] : []));
+}
+
 async function missionContext(store: DataStore, student: Pick<StudentRecord, "id" | "yearGroup">, now: Date) {
-	const [competencies, pendingReviews, openSessions] = await Promise.all([
+	const [competencies, pendingReviews, openSessions, recent] = await Promise.all([
 		store.student_competencies.listAll({ studentId: student.id }),
 		store.revision_schedules.listAll({ studentId: student.id, status: "pending" }),
 		store.learning_sessions.listAll({ studentId: student.id, completedAt: null }),
+		recentMissions(store, student),
 	]);
 	const position = programmePosition(programmeSteps(student.yearGroup), competencies);
 	const mission = todaysMission({
 		position,
 		openSessions: openSessions.filter((s) => !isExpiredSession(s, now)),
 		pendingReviews,
+		recentMissions: recent,
 		now,
 	});
 	const statuses = new Map(competencies.map((c) => [c.objectiveCode, c.status]));
