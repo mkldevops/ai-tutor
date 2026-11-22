@@ -49,7 +49,8 @@ function LessonPage() {
 	const choicesRef = useRef<HTMLFieldSetElement>(null);
 	const { view } = session;
 	const { confidence } = session;
-	const step = flightStep(view.phase);
+	const extra = view.kind === "extra";
+	const step = extra ? null : flightStep(view.phase);
 	const askCheckIn = confidence.before === undefined && (view.phase === "diagnostic" || view.phase === "review");
 	const [heard, setHeard] = useState<{ said: string; number: string | null } | null>(null);
 	const speaker = useSpeaker(session.voice);
@@ -79,9 +80,10 @@ function LessonPage() {
 		if (gate) parts.push(gate.correct ? `Bravo! ${gate.message}` : `${gate.message} ${gate.workedSolution ?? ""}`);
 		else if (view.item) parts.push(questionSpeech(view.item));
 		else if (view.explanationSteps?.[0]) parts.push(view.explanationSteps[0].text);
-		else if (view.phase === "complete") parts.push("Mission complete. Well done for finishing!");
+		else if (view.phase === "complete")
+			parts.push(extra ? "Extra practice done. Well done!" : "Mission complete. Well done for finishing!");
 		speaker.speak(parts.filter(Boolean).join(" "));
-	}, [speaker, spokenKey, gate, saved, view.item, view.explanationSteps, view.phase]);
+	}, [speaker, spokenKey, gate, saved, view.item, view.explanationSteps, view.phase, extra]);
 	useEffect(() => {
 		if (!speaker.supported || !session.hint || lastHint.current === session.hint) return;
 		lastHint.current = session.hint;
@@ -130,7 +132,7 @@ function LessonPage() {
 						← Back
 					</Link>
 					<span className="chip" data-testid="phase" data-phase={view.phase}>
-						{PHASE_LABEL[view.phase]}
+						{extra && view.phase !== "complete" ? "Extra practice" : PHASE_LABEL[view.phase]}
 						{view.item ? ` · ${view.position}/${view.total}` : ""}
 					</span>
 				</div>
@@ -310,7 +312,28 @@ function LessonPage() {
 					<TutorChat key={`chat:${session.sessionId}`} sessionId={session.sessionId} />
 				)}
 
-				{view.phase === "complete" && session.result && (
+				{view.phase === "complete" && extra && (
+					<section className="space-y-6" data-testid="extra-result">
+						<div className="grid items-center gap-6 sm:grid-cols-[1fr_auto]">
+							<div className="space-y-3">
+								<p className="meta">Extra practice done</p>
+								<h2 className="font-display text-5xl leading-none sm:text-6xl">
+									Nice <i className="text-accent">practice!</i>
+								</h2>
+								<p className="text-soft">{session.objective.statement}</p>
+							</div>
+							<Nova state="proud" size={200} className="mx-auto" />
+						</div>
+						<p className="card text-sm text-soft">
+							Extra practice keeps skills fresh. It does not change the course: the next mission is still waiting.
+						</p>
+						<Link to="/students/$studentId" params={{ studentId: session.studentId }} className="btn">
+							Back to missions
+						</Link>
+					</section>
+				)}
+
+				{view.phase === "complete" && !extra && session.result && (
 					<section className="space-y-6" data-testid="result">
 						<Confetti />
 						<div className="grid items-center gap-6 sm:grid-cols-[1fr_auto]">
