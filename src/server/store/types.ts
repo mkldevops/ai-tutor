@@ -4,6 +4,7 @@ import type {
 	EvidenceMode,
 	FamilyRole,
 	ItemType,
+	ProgrammeSettings,
 	SessionKind,
 	StudentPreferences,
 	YearGroup,
@@ -19,6 +20,7 @@ export type StudentRecord = BaseRecord & {
 	displayName: string;
 	yearGroup: YearGroup;
 	preferences: StudentPreferences;
+	programme?: ProgrammeSettings | null;
 };
 export type LearningSessionRecord = BaseRecord & {
 	familyId: string;
@@ -207,7 +209,7 @@ export interface Table<T extends BaseRecord> {
 export type DataStore = { [K in TableName]: Table<TableMap[K]> };
 
 export const JSON_COLUMNS: { [K in TableName]?: (keyof TableMap[K])[] } = {
-	students: ["preferences"],
+	students: ["preferences", "programme"],
 	learning_sessions: ["state", "confidence"],
 	student_competencies: ["reasons", "override"],
 	audit_logs: ["detail"],
