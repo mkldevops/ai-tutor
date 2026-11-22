@@ -1,7 +1,14 @@
 import { describe, expect, it } from "vitest";
 import { programmeSteps } from "#/curriculum/programme";
 import type { CompetencyStatus } from "#/domain/types";
-import { type MissionInput, todaysMission } from "./mission";
+import {
+	type CompletedMission,
+	deferredReviews,
+	MAX_REVIEWS_BEFORE_LESSON,
+	type MissionInput,
+	type PendingReview,
+	todaysMission,
+} from "./mission";
 import { programmePosition } from "./programme";
 
 const sequence = programmeSteps(3);
@@ -120,5 +127,91 @@ describe("todaysMission", () => {
 			}),
 		).toEqual({ reason: "complete", nextReviewAt: daysFromNow(3) });
 		expect(mission({ position: all })).toEqual({ reason: "complete", nextReviewAt: null });
+	});
+});
+
+describe("review interleaving", () => {
+	const inProgress = position({ 0: "secure", 1: "secure", 2: "secure", 3: "secure", 4: "secure", 5: "secure" });
+
+	function simulate(dueCount: number, missions: number, history: CompletedMission[] = []) {
+		let pending: PendingReview[] = Array.from({ length: dueCount }, (_, i) => ({
+			objectiveCode: codes[i] as string,
+			dueAt: daysFromNow(-10 + i),
+		}));
+		const recent = [...history];
+		const served: string[] = [];
+		const deferred: number[] = [];
+		for (let n = 0; n < missions; n++) {
+			deferred.push(
+				deferredReviews({ position: inProgress, pendingReviews: pending, recentMissions: recent, now: NOW }),
+			);
+			const m = mission({ position: inProgress, pendingReviews: pending, recentMissions: recent });
+			if (m.reason === "complete" || m.reason === "continue") throw new Error(`unexpected ${m.reason}`);
+			served.push(m.sessionKind === "review" ? `R:${codes.indexOf(m.objectiveCode)}` : "L");
+			if (m.sessionKind === "review") pending = pending.filter((r) => r.objectiveCode !== m.objectiveCode);
+			recent.push({
+				kind: m.sessionKind,
+				completedAt: new Date(NOW.getTime() - (missions - n) * 60_000).toISOString(),
+			});
+		}
+		return { served, deferred };
+	}
+
+	const kinds = (served: string[]) => served.map((s) => s[0]).join("");
+
+	it("serves the lesson straight away when no review is due", () => {
+		expect(simulate(0, 3).served).toEqual(["L", "L", "L"]);
+	});
+
+	it("takes one due review before the lesson", () => {
+		expect(simulate(1, 3).served).toEqual(["R:0", "L", "L"]);
+	});
+
+	it("caps three due reviews at two before the lesson, then alternates", () => {
+		const { served, deferred } = simulate(3, 5);
+		expect(served).toEqual(["R:0", "R:1", "L", "R:2", "L"]);
+		expect(deferred[0]).toBe(1);
+	});
+
+	it("alternates six due reviews with lessons, oldest first", () => {
+		const { served, deferred } = simulate(6, 10);
+		expect(served).toEqual(["R:0", "R:1", "L", "R:2", "L", "R:3", "L", "R:4", "L", "R:5"]);
+		expect(deferred[0]).toBe(6 - MAX_REVIEWS_BEFORE_LESSON);
+	});
+
+	it("never blocks new content for more than one mission after the first two reviews", () => {
+		for (const due of [0, 1, 3, 6, 12]) {
+			const k = kinds(simulate(due, 2 * due + 2).served);
+			expect(k.slice(2)).not.toMatch(/RR/);
+			expect(k.slice(0, 3)).not.toBe("RRR");
+		}
+	});
+
+	it("resumes the cap from history: two reviews in a row force the lesson", () => {
+		const history: CompletedMission[] = [
+			{ kind: "review", completedAt: daysFromNow(-0.2) },
+			{ kind: "review", completedAt: daysFromNow(-0.1) },
+		];
+		expect(simulate(2, 2, history).served).toEqual(["L", "R:0"]);
+	});
+
+	it("ignores other session kinds when counting reviews in a row", () => {
+		const history = [
+			{ kind: "review", completedAt: daysFromNow(-0.3) },
+			{ kind: "extra", completedAt: daysFromNow(-0.2) },
+			{ kind: "review", completedAt: daysFromNow(-0.1) },
+		] as unknown as CompletedMission[];
+		expect(simulate(1, 1, history).served).toEqual(["L"]);
+	});
+
+	it("keeps serving reviews past the cap when no lesson is left", () => {
+		const all = position(Object.fromEntries(codes.map((_, i) => [i, "secure"])) as Record<number, CompetencyStatus>);
+		const recent: CompletedMission[] = [
+			{ kind: "review", completedAt: daysFromNow(-0.2) },
+			{ kind: "review", completedAt: daysFromNow(-0.1) },
+		];
+		const pendingReviews = [{ objectiveCode: codes[0] as string, dueAt: daysFromNow(-1) }];
+		expect(mission({ position: all, pendingReviews, recentMissions: recent })).toMatchObject({ reason: "review" });
+		expect(deferredReviews({ position: all, pendingReviews, recentMissions: recent, now: NOW })).toBe(0);
 	});
 });

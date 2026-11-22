@@ -14,7 +14,7 @@ import {
 	startSession,
 } from "./learning";
 import { getMission } from "./mission";
-import { openLegacySession } from "./programme-fixtures";
+import { openLegacySession, placeAt } from "./programme-fixtures";
 
 const DAY = 86_400_000;
 const NOW = new Date("2026-11-21T12:00:00.000Z");
@@ -105,6 +105,49 @@ describe("getMission", () => {
 			kind: mission.sessionKind,
 		});
 		expect((await getSession(later, alice, started.sessionId)).objective.code).toBe("EN-Y3-SP-PREFIXES");
+	});
+
+	it("refuses a third review in a row and accepts it again after a lesson", async () => {
+		const sam = await addLearner("Sam");
+		const steps = programmeSteps(3)
+			.map((s) => s.objectiveCode)
+			.slice(0, 4);
+		await placeAt(store, sam, steps[3] as string);
+		for (const [i, code] of steps.slice(0, 3).entries()) {
+			await store.revision_schedules.create({
+				familyId: alice.familyId,
+				studentId: sam,
+				objectiveCode: code,
+				dueAt: new Date(NOW.getTime() - (5 - i) * DAY).toISOString(),
+				status: "pending",
+			});
+		}
+		const finished = async (kind: "lesson" | "review", objectiveCode: string, minutes: number) => {
+			const session = await openLegacySession(store, sam, objectiveCode);
+			await store.learning_sessions.update(session.id, {
+				kind,
+				completedAt: new Date(NOW.getTime() - minutes * 60_000).toISOString(),
+			});
+			if (kind === "review") {
+				const [schedule] = await store.revision_schedules.listAll({ studentId: sam, objectiveCode, status: "pending" });
+				if (schedule) await store.revision_schedules.update(schedule.id, { status: "done" });
+			}
+		};
+		await finished("review", steps[0] as string, 20);
+		await finished("review", steps[1] as string, 10);
+		const capped = await getMission(at(0), alice, sam);
+		expect(capped).toMatchObject({ reason: "current", objectiveCode: steps[3] });
+		await expect(
+			startSession(at(0), alice, { studentId: sam, objectiveCode: steps[2] as string, kind: "review" }),
+		).rejects.toMatchObject({ code: "off_programme" });
+		await finished("lesson", steps[3] as string, 5);
+		expect(await getMission(at(0), alice, sam)).toMatchObject({ reason: "review", objectiveCode: steps[2] });
+		const started = await startSession(at(0), alice, {
+			studentId: sam,
+			objectiveCode: steps[2] as string,
+			kind: "review",
+		});
+		expect(started.sessionId).toBeTruthy();
 	});
 
 	it("lays out the course by unit with the next step current once a step is secured", async () => {

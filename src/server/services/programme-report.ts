@@ -3,6 +3,7 @@ import { PROGRAMME_BY_YEAR, programmeSteps } from "#/curriculum/programme";
 import type { CompetencyStatus, Subject, YearGroup } from "#/domain/types";
 import { type Rate, rate } from "#/learning-engine/longitudinal";
 import { DEFAULT_POLICY, type MasteryPolicy, summariseSessions } from "#/learning-engine/mastery";
+import { deferredReviews, dueReviews } from "#/learning-engine/mission";
 import {
 	countFailedAssessments,
 	type ProgrammePosition,
@@ -12,6 +13,7 @@ import {
 import type { DataStore } from "../store/types";
 import { type Actor, requireStudent } from "./family";
 import { getStudentOutcomes, OUTCOMES_MAX_ROWS } from "./longitudinal";
+import { recentMissions } from "./mission";
 
 type Deps = { store: DataStore; now?: () => Date; policy?: MasteryPolicy; maxRows?: number };
 
@@ -56,6 +58,7 @@ export type ProgrammeReport = {
 	passRate: Rate;
 	lastActivityAt: string | null;
 	missionsLast7Days: number;
+	reviewBacklog: { due: number; deferred: number };
 	truncated: boolean;
 	units: ReportUnit[];
 };
@@ -108,11 +111,13 @@ export async function getProgrammeReport(deps: Deps, actor: Actor, studentId: st
 	const scope = { studentId: student.id, familyId: actor.familyId };
 	const max = deps.maxRows ?? OUTCOMES_MAX_ROWS;
 
-	const [outcomes, competencies, sessions, latestAttempt] = await Promise.all([
+	const [outcomes, competencies, sessions, latestAttempt, pendingReviews, recent] = await Promise.all([
 		getStudentOutcomes({ ...deps, now: () => now, policy }, actor, student.id),
 		store.student_competencies.listAll(scope),
 		store.learning_sessions.listLatest(scope, max),
 		store.assessment_attempts.list(scope, { limit: 1, latest: true }),
+		store.revision_schedules.listAll({ ...scope, status: "pending" }),
+		recentMissions(store, student),
 	]);
 
 	const { position, failed } = await programmeStanding(store, scope, student.yearGroup, competencies, policy);
@@ -185,6 +190,10 @@ export async function getProgrammeReport(deps: Deps, actor: Actor, studentId: st
 		passRate: outcomes.passRate,
 		lastActivityAt: latestAttempt[0]?.createdAt ?? null,
 		missionsLast7Days,
+		reviewBacklog: {
+			due: dueReviews(position, pendingReviews, now).length,
+			deferred: deferredReviews({ position, pendingReviews, recentMissions: recent, now }),
+		},
 		truncated: outcomes.truncated || sessions.truncated,
 		units: units.map((u, i) => {
 			const own = position.steps.filter((s) => s.unitIndex === i);
