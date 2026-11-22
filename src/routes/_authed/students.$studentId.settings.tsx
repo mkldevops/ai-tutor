@@ -2,12 +2,14 @@ import { createFileRoute, useRouter } from "@tanstack/react-router";
 import { useState } from "react";
 import { ErrorBox, useAction } from "#/components/form";
 import { PaceSettings } from "#/components/pace-settings";
+import { requireParentArea } from "#/components/parent-gate";
 import { useProgress } from "#/components/student-progress";
 import { VoiceSettings } from "#/components/voice-settings";
 import { DEFAULT_PACE_TARGET } from "#/domain/types";
 import { deleteStudentFn, exportStudentFn } from "#/server/functions";
 
 export const Route = createFileRoute("/_authed/students/$studentId/settings")({
+	beforeLoad: requireParentArea,
 	component: SettingsTab,
 });
 

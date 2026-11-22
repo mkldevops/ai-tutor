@@ -1,12 +1,12 @@
 import { Link, useRouter, useRouterState } from "@tanstack/react-router";
 import { useEffect, useId, useRef, useState } from "react";
-import { signOut } from "#/server/functions";
+import { lockParentFn, signOut } from "#/server/functions";
 
-type Props = { name: string; email: string; isKnowledgeAdmin: boolean };
+type Props = { name: string; email: string; isKnowledgeAdmin: boolean; canLock: boolean };
 
 const itemClass = "block w-full px-4 py-2 text-left text-sm text-ink hover:bg-brand-soft focus-visible:bg-brand-soft";
 
-export function UserMenu({ name, email, isKnowledgeAdmin }: Props) {
+export function UserMenu({ name, email, isKnowledgeAdmin, canLock }: Props) {
 	const [open, setOpen] = useState(false);
 	const rootRef = useRef<HTMLDivElement>(null);
 	const buttonRef = useRef<HTMLButtonElement>(null);
@@ -88,6 +88,19 @@ export function UserMenu({ name, email, isKnowledgeAdmin }: Props) {
 						<Link to="/knowledge" role="menuitem" className={itemClass}>
 							Knowledge
 						</Link>
+					) : null}
+					{canLock ? (
+						<button
+							type="button"
+							role="menuitem"
+							className={itemClass}
+							onClick={async () => {
+								await lockParentFn();
+								await router.invalidate();
+							}}
+						>
+							Lock parent area
+						</button>
 					) : null}
 					<button
 						type="button"

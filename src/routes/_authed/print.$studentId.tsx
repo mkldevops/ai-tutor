@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 import { z } from "zod";
 import { Nova, type NovaState } from "#/components/nova";
+import { requireParentArea } from "#/components/parent-gate";
 import { getPrintableSheetFn } from "#/server/functions";
 import { LETTERS, type PrintableItem } from "#/worksheets/printable";
 
@@ -14,6 +15,7 @@ const searchSchema = z.object({
 });
 
 export const Route = createFileRoute("/_authed/print/$studentId")({
+	beforeLoad: requireParentArea,
 	validateSearch: searchSchema,
 	loaderDeps: ({ search }) => search,
 	loader: ({ params, deps }) =>

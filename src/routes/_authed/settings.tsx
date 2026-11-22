@@ -1,9 +1,12 @@
 import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
 import { useState } from "react";
 import { ErrorBox, useAction } from "#/components/form";
-import { deleteAccountFn, listStudentsFn } from "#/server/functions";
+import { requireParentArea } from "#/components/parent-gate";
+import { SetPinForm } from "#/components/parent-pin-form";
+import { deleteAccountFn, listStudentsFn, lockParentFn } from "#/server/functions";
 
 export const Route = createFileRoute("/_authed/settings")({
+	beforeLoad: requireParentArea,
 	loader: ({ context }) => (context.me.familyId ? listStudentsFn() : []),
 	component: AccountSettings,
 });
@@ -29,6 +32,8 @@ function AccountSettings() {
 					<dd className="break-all">{me.user.email}</dd>
 				</dl>
 			</section>
+
+			{me.familyId ? <ParentPin pinSet={me.parent.pinSet} /> : null}
 
 			<section aria-labelledby="learners-heading" className="card space-y-3">
 				<h2 id="learners-heading" className="font-display text-2xl">
@@ -61,6 +66,32 @@ function AccountSettings() {
 
 			<DeleteAccount email={me.user.email} canDelete={me.role === "owner" || me.familyId === null} />
 		</main>
+	);
+}
+
+function ParentPin({ pinSet }: { pinSet: boolean }) {
+	const router = useRouter();
+	const lock = useAction(async () => {
+		await lockParentFn();
+		await router.invalidate();
+	});
+	return (
+		<section id="parent-pin" aria-labelledby="parent-pin-heading" className="card space-y-3">
+			<h2 id="parent-pin-heading" className="font-display text-2xl">
+				Parent PIN
+			</h2>
+			<p className="text-sm text-ink-soft">
+				{pinSet
+					? "The PIN guards reports, settings and overrides. The area locks itself after 10 minutes without activity."
+					: "Without a PIN, anyone on this device can open reports, settings and overrides. Learners keep access to their missions."}
+			</p>
+			<SetPinForm submitLabel={pinSet ? "Change PIN" : "Set PIN"} />
+			{pinSet ? (
+				<button type="button" className="btn" disabled={lock.pending} onClick={() => void lock.run()}>
+					Lock now
+				</button>
+			) : null}
+		</section>
 	);
 }
 

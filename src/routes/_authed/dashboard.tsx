@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { AddLearnerDialog } from "#/components/add-learner-dialog";
 import { Nova } from "#/components/nova";
 import { PaceBadge, projectionLine } from "#/components/pace";
+import { requireParentArea } from "#/components/parent-gate";
 import { formatDate } from "#/components/status";
 import { getFamilyOverviewFn } from "#/server/functions";
 import type { AttentionFlag, LearnerOverview } from "#/server/services/overview";
@@ -13,12 +14,14 @@ const ATTENTION_LABEL: Record<AttentionFlag, string> = {
 };
 
 export const Route = createFileRoute("/_authed/dashboard")({
+	beforeLoad: requireParentArea,
 	loader: () => getFamilyOverviewFn(),
 	component: Dashboard,
 });
 
 function Dashboard() {
 	const students = Route.useLoaderData();
+	const { me } = Route.useRouteContext();
 
 	return (
 		<main className="page space-y-8">
@@ -34,6 +37,16 @@ function Dashboard() {
 					Each learner has their own missions, progress and review dates. Open one to see what to practise next.
 				</p>
 			</header>
+
+			{me.parent.pinSet ? null : (
+				<p className="card text-sm" data-testid="pin-prompt">
+					Reports, settings and overrides are open to anyone on this device.{" "}
+					<Link to="/settings" hash="parent-pin" className="link">
+						Set a parent PIN
+					</Link>{" "}
+					so learners only see their missions.
+				</p>
+			)}
 
 			<section aria-label="Learners">
 				{students.length === 0 ? (

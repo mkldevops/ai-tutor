@@ -1,11 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { SUBJECTS } from "#/components/lesson-visual";
+import { requireParentArea } from "#/components/parent-gate";
 import { formatDate, STATUS_LABELS, StatusBadge } from "#/components/status";
 import { MIN_RATE_SAMPLE, type Rate } from "#/learning-engine/longitudinal";
 import { getOutcomesFn } from "#/server/functions";
 import type { ObjectiveOutcome, StudentOutcomes } from "#/server/services/longitudinal";
 
 export const Route = createFileRoute("/_authed/students/$studentId/outcomes")({
+	beforeLoad: requireParentArea,
 	loader: ({ params }) => getOutcomesFn({ data: { studentId: params.studentId } }),
 	component: OutcomesTab,
 });

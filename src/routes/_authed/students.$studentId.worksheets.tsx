@@ -1,9 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { requireParentArea } from "#/components/parent-gate";
 import { PrintableWorksheets } from "#/components/printable-worksheets";
 import { useProgress } from "#/components/student-progress";
 import { WorksheetChecks } from "#/components/worksheet-checks";
 
 export const Route = createFileRoute("/_authed/students/$studentId/worksheets")({
+	beforeLoad: requireParentArea,
 	component: WorksheetsTab,
 });
 

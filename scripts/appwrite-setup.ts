@@ -20,7 +20,12 @@ const id = (key: string): Column => ({ kind: "string", key, size: 36, required: 
 export const SCHEMA: TableSpec[] = [
 	{
 		id: "families",
-		columns: [{ kind: "string", key: "name", size: 60, required: true }, id("ownerUserId")],
+		columns: [
+			{ kind: "string", key: "name", size: 60, required: true },
+			id("ownerUserId"),
+			{ kind: "string", key: "parentPinHash", size: 128 },
+			{ kind: "datetime", key: "parentPinSetAt" },
+		],
 		indexes: [{ key: "by_owner", columns: ["ownerUserId"] }],
 	},
 	{

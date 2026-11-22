@@ -22,6 +22,7 @@ const STATUS: Record<AppErrorCode, number> = {
 	rate_limited: 429,
 	paused: 409,
 	off_programme: 409,
+	parent_locked: 403,
 };
 
 const textResponse = (status: number, message: string) =>

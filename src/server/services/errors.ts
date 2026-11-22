@@ -6,7 +6,8 @@ export type AppErrorCode =
 	| "conflict"
 	| "rate_limited"
 	| "off_programme"
-	| "paused";
+	| "paused"
+	| "parent_locked";
 
 export class AppError extends Error {
 	constructor(

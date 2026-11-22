@@ -16,6 +16,7 @@ import { Route as SignupRouteImport } from './routes/signup'
 import { Route as AuthedDashboardRouteImport } from './routes/_authed/dashboard'
 import { Route as AuthedKnowledgeRouteImport } from './routes/_authed/knowledge'
 import { Route as AuthedSettingsRouteImport } from './routes/_authed/settings'
+import { Route as AuthedUnlockRouteImport } from './routes/_authed/unlock'
 import { Route as ApiTutorChatRouteImport } from './routes/api/tutor-chat'
 import { Route as AuthedLearnSessionIdRouteImport } from './routes/_authed/learn.$sessionId'
 import { Route as AuthedPrintStudentIdRouteImport } from './routes/_authed/print.$studentId'
@@ -58,6 +59,11 @@ const AuthedKnowledgeRoute = AuthedKnowledgeRouteImport.update({
 const AuthedSettingsRoute = AuthedSettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
+  getParentRoute: () => AuthedRoute,
+} as any)
+const AuthedUnlockRoute = AuthedUnlockRouteImport.update({
+  id: '/unlock',
+  path: '/unlock',
   getParentRoute: () => AuthedRoute,
 } as any)
 const ApiTutorChatRoute = ApiTutorChatRouteImport.update({
@@ -118,6 +124,7 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof AuthedDashboardRoute
   '/knowledge': typeof AuthedKnowledgeRoute
   '/settings': typeof AuthedSettingsRoute
+  '/unlock': typeof AuthedUnlockRoute
   '/api/tutor-chat': typeof ApiTutorChatRoute
   '/learn/$sessionId': typeof AuthedLearnSessionIdRoute
   '/print/$studentId': typeof AuthedPrintStudentIdRoute
@@ -135,6 +142,7 @@ export interface FileRoutesByTo {
   '/dashboard': typeof AuthedDashboardRoute
   '/knowledge': typeof AuthedKnowledgeRoute
   '/settings': typeof AuthedSettingsRoute
+  '/unlock': typeof AuthedUnlockRoute
   '/api/tutor-chat': typeof ApiTutorChatRoute
   '/learn/$sessionId': typeof AuthedLearnSessionIdRoute
   '/print/$studentId': typeof AuthedPrintStudentIdRoute
@@ -153,6 +161,7 @@ export interface FileRoutesById {
   '/_authed/dashboard': typeof AuthedDashboardRoute
   '/_authed/knowledge': typeof AuthedKnowledgeRoute
   '/_authed/settings': typeof AuthedSettingsRoute
+  '/_authed/unlock': typeof AuthedUnlockRoute
   '/api/tutor-chat': typeof ApiTutorChatRoute
   '/_authed/learn/$sessionId': typeof AuthedLearnSessionIdRoute
   '/_authed/print/$studentId': typeof AuthedPrintStudentIdRoute
@@ -172,6 +181,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/knowledge'
     | '/settings'
+    | '/unlock'
     | '/api/tutor-chat'
     | '/learn/$sessionId'
     | '/print/$studentId'
@@ -189,6 +199,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/knowledge'
     | '/settings'
+    | '/unlock'
     | '/api/tutor-chat'
     | '/learn/$sessionId'
     | '/print/$studentId'
@@ -206,6 +217,7 @@ export interface FileRouteTypes {
     | '/_authed/dashboard'
     | '/_authed/knowledge'
     | '/_authed/settings'
+    | '/_authed/unlock'
     | '/api/tutor-chat'
     | '/_authed/learn/$sessionId'
     | '/_authed/print/$studentId'
@@ -274,6 +286,13 @@ declare module '@tanstack/react-router' {
       path: '/settings'
       fullPath: '/settings'
       preLoaderRoute: typeof AuthedSettingsRouteImport
+      parentRoute: typeof AuthedRoute
+    }
+    '/_authed/unlock': {
+      id: '/_authed/unlock'
+      path: '/unlock'
+      fullPath: '/unlock'
+      preLoaderRoute: typeof AuthedUnlockRouteImport
       parentRoute: typeof AuthedRoute
     }
     '/api/tutor-chat': {
@@ -369,6 +388,7 @@ interface AuthedRouteChildren {
   AuthedDashboardRoute: typeof AuthedDashboardRoute
   AuthedKnowledgeRoute: typeof AuthedKnowledgeRoute
   AuthedSettingsRoute: typeof AuthedSettingsRoute
+  AuthedUnlockRoute: typeof AuthedUnlockRoute
   AuthedLearnSessionIdRoute: typeof AuthedLearnSessionIdRoute
   AuthedPrintStudentIdRoute: typeof AuthedPrintStudentIdRoute
   AuthedStudentsStudentIdRoute: typeof AuthedStudentsStudentIdRouteWithChildren
@@ -378,6 +398,7 @@ const AuthedRouteChildren: AuthedRouteChildren = {
   AuthedDashboardRoute: AuthedDashboardRoute,
   AuthedKnowledgeRoute: AuthedKnowledgeRoute,
   AuthedSettingsRoute: AuthedSettingsRoute,
+  AuthedUnlockRoute: AuthedUnlockRoute,
   AuthedLearnSessionIdRoute: AuthedLearnSessionIdRoute,
   AuthedPrintStudentIdRoute: AuthedPrintStudentIdRoute,
   AuthedStudentsStudentIdRoute: AuthedStudentsStudentIdRouteWithChildren,
