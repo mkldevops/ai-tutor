@@ -51,3 +51,26 @@ test("the parent report shows where the learner is and moves after a secured mis
 	await expect(page).toHaveURL(new RegExp(`#evidence-${FIRST}$`));
 	await expect(page.getByTestId(`evidence-${FIRST}`)).toBeInViewport();
 });
+
+test("the parent sets a weekly pace target that only parent views show", async ({ page }) => {
+	await signUp(page, `parent-pace-${Date.now()}@example.test`);
+	await addLearner(page, "Ivo", "3");
+	await expect(page.getByTestId("learner-Ivo").getByTestId("overview-pace")).toContainText("of 4 missions");
+	await page.getByRole("link", { name: "Open Ivo" }).click();
+	const missions = page.url();
+
+	await page.getByRole("link", { name: "Settings", exact: true }).click();
+	await page.getByTestId("pace-settings").getByRole("combobox").selectOption("6");
+	await expect(page.getByTestId("pace-settings")).toContainText("Saved");
+
+	await openProgress(page);
+	const pace = page.getByTestId("report-pace");
+	await expect(pace).toContainText("target 6 a week");
+	await expect(pace).toContainText("(estimate)");
+	await expect(pace.getByTestId("pace-status")).toHaveAttribute("data-pace", "on_track");
+
+	await page.goto(missions, { waitUntil: "networkidle" });
+	await expect(page.getByTestId("mission")).toBeVisible();
+	await expect(page.getByTestId("pace-status")).toHaveCount(0);
+	await expect(page.locator("main")).not.toContainText(/on track|behind|a week|estimate/i);
+});
