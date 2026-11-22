@@ -196,11 +196,11 @@ describe("review interleaving", () => {
 	});
 
 	it("ignores other session kinds when counting reviews in a row", () => {
-		const history = [
+		const history: CompletedMission[] = [
 			{ kind: "review", completedAt: daysFromNow(-0.3) },
 			{ kind: "extra", completedAt: daysFromNow(-0.2) },
 			{ kind: "review", completedAt: daysFromNow(-0.1) },
-		] as unknown as CompletedMission[];
+		];
 		expect(simulate(1, 1, history).served).toEqual(["L"]);
 	});
 
