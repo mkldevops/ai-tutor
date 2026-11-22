@@ -13,7 +13,12 @@ import type { LessonState } from "#/learning-engine/lesson";
 
 export type BaseRecord = { id: string; createdAt: string; updatedAt: string };
 
-export type FamilyRecord = BaseRecord & { name: string; ownerUserId: string };
+export type FamilyRecord = BaseRecord & {
+	name: string;
+	ownerUserId: string;
+	parentPinHash?: string | null;
+	parentPinSetAt?: string | null;
+};
 export type FamilyMemberRecord = BaseRecord & { familyId: string; userId: string; role: FamilyRole };
 export type StudentRecord = BaseRecord & {
 	familyId: string;

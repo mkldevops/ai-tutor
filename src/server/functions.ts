@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { PIN_PATTERN } from "#/domain/parent-lock";
 import {
 	answerInputSchema,
 	competencyStatusSchema,
@@ -20,7 +21,13 @@ async function guard<T>(fn: () => Promise<T>): Promise<T> {
 	try {
 		return await fn();
 	} catch (e) {
-		if (e instanceof AppError) throw new Error(e.message);
+		if (e instanceof AppError) {
+			if (e.code === "parent_locked") {
+				const { setResponseStatus } = await import("@tanstack/react-start/server");
+				setResponseStatus(403);
+			}
+			throw new Error(e.message);
+		}
 		const { AuthError } = await import("./auth/provider");
 		if (e instanceof AuthError) throw new Error(e.message);
 		console.error("[ai-tutor] unexpected error", e);
@@ -29,17 +36,19 @@ async function guard<T>(fn: () => Promise<T>): Promise<T> {
 }
 
 export const getMe = createServerFn({ method: "GET" }).handler(async () => {
-	const { currentUser, isKnowledgeAdmin } = await import("./session");
+	const { currentUser, isKnowledgeAdmin, parentState } = await import("./session");
 	const { getServerContext } = await import("./context");
 	const { resolveActor } = await import("./services/family");
 	const user = await currentUser();
 	if (!user) return null;
 	const actor = await resolveActor(getServerContext().store, user.id);
+	const parent = actor ? await parentState(actor) : { pinSet: false, unlocked: true };
 	return {
 		user: { id: user.id, email: user.email, name: user.name },
 		familyId: actor?.familyId ?? null,
 		role: actor?.role ?? null,
 		isKnowledgeAdmin: isKnowledgeAdmin(user),
+		parent: { pinSet: parent.pinSet, unlocked: parent.unlocked },
 	};
 });
 
@@ -95,6 +104,44 @@ export const signOut = createServerFn({ method: "POST" }).handler(async () => {
 	return { ok: true };
 });
 
+const pinInput = z.string().regex(PIN_PATTERN, "Use 4 to 8 digits");
+
+export const unlockParentFn = createServerFn({ method: "POST" })
+	.validator(z.object({ pin: pinInput }))
+	.handler(({ data }) =>
+		guard(async () => {
+			const { requireActor, grantParentUnlock } = await import("./session");
+			const { getServerContext } = await import("./context");
+			const { unlockParentArea } = await import("./services/parent-lock");
+			const { actor } = await requireActor();
+			const { store, auth } = getServerContext();
+			const family = await unlockParentArea({ store, auth }, actor, data.pin);
+			if (family) grantParentUnlock(family);
+			return { ok: true };
+		}),
+	);
+
+export const lockParentFn = createServerFn({ method: "POST" }).handler(async () => {
+	const { clearParentUnlock } = await import("./session");
+	clearParentUnlock();
+	return { ok: true };
+});
+
+export const setParentPinFn = createServerFn({ method: "POST" })
+	.validator(z.object({ password: z.string().min(1).max(128), pin: pinInput }))
+	.handler(({ data }) =>
+		guard(async () => {
+			const { requireActor, grantParentUnlock } = await import("./session");
+			const { getServerContext } = await import("./context");
+			const { setParentPin } = await import("./services/parent-lock");
+			const { user, actor } = await requireActor();
+			const { store, auth } = getServerContext();
+			const family = await setParentPin({ store, auth }, user, actor, data);
+			grantParentUnlock(family);
+			return { ok: true };
+		}),
+	);
+
 export const listStudentsFn = createServerFn({ method: "GET" }).handler(() =>
 	guard(async () => {
 		const { requireActor } = await import("./session");
@@ -108,10 +155,10 @@ export const listStudentsFn = createServerFn({ method: "GET" }).handler(() =>
 
 export const getFamilyOverviewFn = createServerFn({ method: "GET" }).handler(() =>
 	guard(async () => {
-		const { requireActor } = await import("./session");
+		const { requireParent } = await import("./session");
 		const { getServerContext } = await import("./context");
 		const { getFamilyOverview } = await import("./services/overview");
-		const { actor } = await requireActor();
+		const { actor } = await requireParent();
 		return getFamilyOverview({ store: getServerContext().store }, actor);
 	}),
 );
@@ -126,10 +173,10 @@ export const createStudentFn = createServerFn({ method: "POST" })
 	)
 	.handler(({ data }) =>
 		guard(async () => {
-			const { requireActor } = await import("./session");
+			const { requireParent } = await import("./session");
 			const { getServerContext } = await import("./context");
 			const { createStudent } = await import("./services/family");
-			const { actor } = await requireActor();
+			const { actor } = await requireParent();
 			const s = await createStudent(getServerContext().store, actor, {
 				displayName: data.displayName,
 				yearGroup: data.yearGroup,
@@ -145,10 +192,10 @@ export const updateStudentFn = createServerFn({ method: "POST" })
 	)
 	.handler(({ data }) =>
 		guard(async () => {
-			const { requireActor } = await import("./session");
+			const { requireParent } = await import("./session");
 			const { getServerContext } = await import("./context");
 			const { updateStudent } = await import("./services/family");
-			const { actor } = await requireActor();
+			const { actor } = await requireParent();
 			const { studentId, ...patch } = data;
 			await updateStudent(getServerContext().store, actor, studentId, patch);
 			return { ok: true };
@@ -159,10 +206,10 @@ export const setStudentVoiceFn = createServerFn({ method: "POST" })
 	.validator(z.object({ studentId: idSchema, enabled: z.boolean() }))
 	.handler(({ data }) =>
 		guard(async () => {
-			const { requireActor } = await import("./session");
+			const { requireParent } = await import("./session");
 			const { getServerContext } = await import("./context");
 			const { setStudentVoice } = await import("./services/family");
-			const { actor } = await requireActor();
+			const { actor } = await requireParent();
 			const prefs = await setStudentVoice(getServerContext().store, actor, data.studentId, data.enabled);
 			return { voice: prefs.voice === true };
 		}),
@@ -172,10 +219,10 @@ export const setPaceTargetFn = createServerFn({ method: "POST" })
 	.validator(z.object({ studentId: idSchema, paceTarget: programmeSettingsSchema.shape.paceTarget.unwrap() }))
 	.handler(({ data }) =>
 		guard(async () => {
-			const { requireActor } = await import("./session");
+			const { requireParent } = await import("./session");
 			const { getServerContext } = await import("./context");
 			const { setPaceTarget } = await import("./services/pace");
-			const { actor } = await requireActor();
+			const { actor } = await requireParent();
 			const programme = await setPaceTarget(getServerContext().store, actor, data.studentId, data.paceTarget);
 			return { paceTarget: programme.paceTarget };
 		}),
@@ -217,11 +264,11 @@ export const deleteStudentFn = createServerFn({ method: "POST" })
 	.validator(z.object({ studentId: idSchema, confirmName: z.string().max(60) }))
 	.handler(({ data }) =>
 		guard(async () => {
-			const { requireActor } = await import("./session");
+			const { requireParent } = await import("./session");
 			const { getServerContext } = await import("./context");
 			const { rateLimit } = await import("./rate-limit");
 			const { deleteStudent } = await import("./services/deletion");
-			const { actor } = await requireActor();
+			const { actor } = await requireParent();
 			await rateLimit(`delete-student:${actor.userId}`, 10, 60 * 60_000);
 			await deleteStudent(getServerContext().store, actor, data.studentId, data.confirmName);
 			return { ok: true };
@@ -232,13 +279,16 @@ export const deleteAccountFn = createServerFn({ method: "POST" })
 	.validator(z.object({ confirmEmail: z.string().max(254) }))
 	.handler(({ data }) =>
 		guard(async () => {
-			const { currentUser, clearSessionCookie } = await import("./session");
+			const { currentUser, clearSessionCookie, assertParentUnlocked } = await import("./session");
 			const { getServerContext } = await import("./context");
 			const { rateLimit } = await import("./rate-limit");
 			const { AppError } = await import("./services/errors");
 			const { deleteAccount } = await import("./services/deletion");
+			const { resolveActor } = await import("./services/family");
 			const user = await currentUser();
 			if (!user) throw new AppError("unauthenticated", "Please sign in.");
+			const actor = await resolveActor(getServerContext().store, user.id);
+			if (actor) await assertParentUnlocked(actor);
 			await rateLimit(`delete-account:${user.id}`, 5, 60 * 60_000);
 			const { store, auth } = getServerContext();
 			await deleteAccount({ store, auth }, user, data.confirmEmail);
@@ -251,10 +301,10 @@ export const exportStudentFn = createServerFn({ method: "GET" })
 	.validator(z.object({ studentId: idSchema }))
 	.handler(({ data }) =>
 		guard(async () => {
-			const { requireActor } = await import("./session");
+			const { requireParent } = await import("./session");
 			const { getServerContext } = await import("./context");
 			const { exportStudentData } = await import("./services/family");
-			const { actor } = await requireActor();
+			const { actor } = await requireParent();
 			return JSON.stringify(await exportStudentData(getServerContext().store, actor, data.studentId));
 		}),
 	);
@@ -263,11 +313,12 @@ export const getProgressFn = createServerFn({ method: "GET" })
 	.validator(z.object({ studentId: idSchema }))
 	.handler(({ data }) =>
 		guard(async () => {
-			const { requireActor } = await import("./session");
+			const { requireActor, parentState } = await import("./session");
 			const { getServerContext } = await import("./context");
-			const { getStudentProgress } = await import("./services/learning");
+			const { getStudentProgress, childProgress } = await import("./services/learning");
 			const { actor } = await requireActor();
-			return getStudentProgress({ store: getServerContext().store }, actor, data.studentId);
+			const progress = await getStudentProgress({ store: getServerContext().store }, actor, data.studentId);
+			return (await parentState(actor)).unlocked ? progress : childProgress(progress);
 		}),
 	);
 
@@ -287,10 +338,10 @@ export const getOutcomesFn = createServerFn({ method: "GET" })
 	.validator(z.object({ studentId: idSchema }))
 	.handler(({ data }) =>
 		guard(async () => {
-			const { requireActor } = await import("./session");
+			const { requireParent } = await import("./session");
 			const { getServerContext } = await import("./context");
 			const { getStudentOutcomes } = await import("./services/longitudinal");
-			const { actor } = await requireActor();
+			const { actor } = await requireParent();
 			return getStudentOutcomes({ store: getServerContext().store }, actor, data.studentId);
 		}),
 	);
@@ -299,10 +350,10 @@ export const getProgrammeReportFn = createServerFn({ method: "GET" })
 	.validator(z.object({ studentId: idSchema }))
 	.handler(({ data }) =>
 		guard(async () => {
-			const { requireActor } = await import("./session");
+			const { requireParent } = await import("./session");
 			const { getServerContext } = await import("./context");
 			const { getProgrammeReport } = await import("./services/programme-report");
-			const { actor } = await requireActor();
+			const { actor } = await requireParent();
 			return getProgrammeReport({ store: getServerContext().store }, actor, data.studentId);
 		}),
 	);
@@ -318,10 +369,10 @@ export const overrideCompetencyFn = createServerFn({ method: "POST" })
 	)
 	.handler(({ data }) =>
 		guard(async () => {
-			const { requireActor } = await import("./session");
+			const { requireParent } = await import("./session");
 			const { getServerContext } = await import("./context");
 			const { overrideCompetency } = await import("./services/learning");
-			const { actor } = await requireActor();
+			const { actor } = await requireParent();
 			await overrideCompetency({ store: getServerContext().store }, actor, data);
 			return { ok: true };
 		}),
@@ -331,10 +382,10 @@ export const setProgrammePausedFn = createServerFn({ method: "POST" })
 	.validator(z.object({ studentId: idSchema, paused: z.boolean() }))
 	.handler(({ data }) =>
 		guard(async () => {
-			const { requireActor } = await import("./session");
+			const { requireParent } = await import("./session");
 			const { getServerContext } = await import("./context");
 			const { setProgrammePaused } = await import("./services/programme-controls");
-			const { actor } = await requireActor();
+			const { actor } = await requireParent();
 			await setProgrammePaused({ store: getServerContext().store }, actor, data.studentId, data.paused);
 			return { ok: true };
 		}),
@@ -350,10 +401,10 @@ export const skipProgrammeStepFn = createServerFn({ method: "POST" })
 	)
 	.handler(({ data }) =>
 		guard(async () => {
-			const { requireActor } = await import("./session");
+			const { requireParent } = await import("./session");
 			const { getServerContext } = await import("./context");
 			const { skipProgrammeStep } = await import("./services/programme-controls");
-			const { actor } = await requireActor();
+			const { actor } = await requireParent();
 			await skipProgrammeStep({ store: getServerContext().store }, actor, data);
 			return { ok: true };
 		}),
@@ -363,10 +414,10 @@ export const undoProgrammeSkipFn = createServerFn({ method: "POST" })
 	.validator(z.object({ studentId: idSchema, objectiveCode: z.string().max(40) }))
 	.handler(({ data }) =>
 		guard(async () => {
-			const { requireActor } = await import("./session");
+			const { requireParent } = await import("./session");
 			const { getServerContext } = await import("./context");
 			const { undoProgrammeSkip } = await import("./services/programme-controls");
-			const { actor } = await requireActor();
+			const { actor } = await requireParent();
 			await undoProgrammeSkip({ store: getServerContext().store }, actor, data);
 			return { ok: true };
 		}),
@@ -489,10 +540,10 @@ export const listWorksheetChecksFn = createServerFn({ method: "GET" })
 	.validator(z.object({ studentId: idSchema }))
 	.handler(({ data }) =>
 		guard(async () => {
-			const { requireActor } = await import("./session");
+			const { requireParent } = await import("./session");
 			const { getServerContext } = await import("./context");
 			const { listWorksheetChecks } = await import("./services/worksheets");
-			const { actor } = await requireActor();
+			const { actor } = await requireParent();
 			const { config, store } = getServerContext();
 			return {
 				enabled: config.VISION_ENABLED && !!config.AI_API_KEY,
@@ -512,13 +563,13 @@ export const checkWorksheetPhotoFn = createServerFn({ method: "POST" })
 	)
 	.handler(({ data }) =>
 		guard(async () => {
-			const { requireActor } = await import("./session");
+			const { requireParent } = await import("./session");
 			const { getServerContext } = await import("./context");
 			const { rateLimit } = await import("./rate-limit");
 			const { createWorksheetReader } = await import("#/ai/vision-agent");
 			const { checkWorksheetPhoto } = await import("./services/worksheets");
 			const { AppError } = await import("./services/errors");
-			const { actor } = await requireActor();
+			const { actor } = await requireParent();
 			const { config, store } = getServerContext();
 			const reader = createWorksheetReader(config);
 			if (!reader) throw new AppError("invalid", "Worksheet photo checks are turned off.");
@@ -542,10 +593,10 @@ export const reviewWorksheetCheckFn = createServerFn({ method: "POST" })
 	)
 	.handler(({ data }) =>
 		guard(async () => {
-			const { requireActor } = await import("./session");
+			const { requireParent } = await import("./session");
 			const { getServerContext } = await import("./context");
 			const { reviewWorksheetCheck } = await import("./services/worksheets");
-			const { actor } = await requireActor();
+			const { actor } = await requireParent();
 			return reviewWorksheetCheck(getServerContext().store, actor, data.checkId, {
 				corrections: data.corrections,
 				parentNote: data.parentNote || null,
@@ -557,10 +608,10 @@ export const deleteWorksheetCheckFn = createServerFn({ method: "POST" })
 	.validator(z.object({ checkId: idSchema }))
 	.handler(({ data }) =>
 		guard(async () => {
-			const { requireActor } = await import("./session");
+			const { requireParent } = await import("./session");
 			const { getServerContext } = await import("./context");
 			const { deleteWorksheetCheck } = await import("./services/worksheets");
-			const { actor } = await requireActor();
+			const { actor } = await requireParent();
 			await deleteWorksheetCheck(getServerContext().store, actor, data.checkId);
 			return { ok: true };
 		}),
@@ -642,10 +693,10 @@ export const getPrintableSheetFn = createServerFn({ method: "GET" })
 	.validator(printableSheetSchema)
 	.handler(({ data }) =>
 		guard(async () => {
-			const { requireActor } = await import("./session");
+			const { requireParent } = await import("./session");
 			const { getServerContext } = await import("./context");
 			const { getPrintableSheet } = await import("./services/printables");
-			const { actor } = await requireActor();
+			const { actor } = await requireParent();
 			return getPrintableSheet(getServerContext().store, actor, data);
 		}),
 	);

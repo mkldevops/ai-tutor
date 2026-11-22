@@ -7,15 +7,17 @@ export const Route = createFileRoute("/_authed/students/$studentId")({
 });
 
 const TABS = [
-	{ to: "/students/$studentId", label: "Missions", exact: true },
-	{ to: "/students/$studentId/progress", label: "Progress", exact: false },
-	{ to: "/students/$studentId/outcomes", label: "Outcomes", exact: false },
-	{ to: "/students/$studentId/worksheets", label: "Worksheets", exact: false },
-	{ to: "/students/$studentId/settings", label: "Settings", exact: false },
+	{ to: "/students/$studentId", label: "Missions", exact: true, parent: false },
+	{ to: "/students/$studentId/progress", label: "Progress", exact: false, parent: true },
+	{ to: "/students/$studentId/outcomes", label: "Outcomes", exact: false, parent: true },
+	{ to: "/students/$studentId/worksheets", label: "Worksheets", exact: false, parent: true },
+	{ to: "/students/$studentId/settings", label: "Settings", exact: false, parent: true },
 ] as const;
 
 function StudentLayout() {
 	const { student } = Route.useLoaderData();
+	const { me } = Route.useRouteContext();
+	const tabs = TABS.filter((t) => me.parent.unlocked || !t.parent);
 	return (
 		<main className="page space-y-6">
 			<header className="space-y-4">
@@ -26,7 +28,7 @@ function StudentLayout() {
 					{student.displayName} <i className="text-ink-mute">· Year {student.yearGroup}</i>
 				</h1>
 				<nav aria-label={`${student.displayName} sections`} className="tabs">
-					{TABS.map((t) => (
+					{tabs.map((t) => (
 						<Link
 							key={t.to}
 							to={t.to}

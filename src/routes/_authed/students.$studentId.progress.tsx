@@ -1,6 +1,7 @@
 import { createFileRoute, useRouter } from "@tanstack/react-router";
 import { ErrorBox, useAction } from "#/components/form";
 import { SUBJECTS } from "#/components/lesson-visual";
+import { requireParentArea } from "#/components/parent-gate";
 import { ProgrammeControls } from "#/components/programme-controls";
 import { ProgrammeReportView } from "#/components/programme-report";
 import { formatDate, STATUS_LABELS, StatusBadge } from "#/components/status";
@@ -10,6 +11,7 @@ import type { CompetencyStatus } from "#/domain/types";
 import { getProgrammeReportFn, overrideCompetencyFn } from "#/server/functions";
 
 export const Route = createFileRoute("/_authed/students/$studentId/progress")({
+	beforeLoad: requireParentArea,
 	loader: ({ params }) => getProgrammeReportFn({ data: { studentId: params.studentId } }),
 	component: ProgressTab,
 });

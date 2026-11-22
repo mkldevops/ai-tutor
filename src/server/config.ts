@@ -25,6 +25,7 @@ const envSchema = z
 			.default("openrouter/deepseek/deepseek-v4.1-flash"),
 		VISION_DAILY_CHECKS_PER_FAMILY: z.coerce.number().int().min(0).default(20),
 		SESSION_COOKIE_SECURE: z.stringbool().optional(),
+		PARENT_LOCK_SECRET: z.string().min(32).optional(),
 		KNOWLEDGE_INDEX: z.enum(["memory", "qdrant"]).default("memory"),
 		QDRANT_URL: z.url().optional(),
 		QDRANT_API_KEY: z.string().optional(),

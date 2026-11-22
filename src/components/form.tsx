@@ -1,4 +1,6 @@
+import { useRouter } from "@tanstack/react-router";
 import { useState } from "react";
+import { PARENT_LOCKED_MESSAGE } from "#/domain/parent-lock";
 
 export function errorMessage(e: unknown): string {
 	if (e instanceof Error) return e.message;
@@ -8,12 +10,17 @@ export function errorMessage(e: unknown): string {
 export function useAction<A extends unknown[], R>(fn: (...args: A) => Promise<R>) {
 	const [pending, setPending] = useState(false);
 	const [error, setError] = useState<string | null>(null);
+	const router = useRouter();
 	const run = async (...args: A): Promise<R | undefined> => {
 		setPending(true);
 		setError(null);
 		try {
 			return await fn(...args);
 		} catch (e) {
+			if (errorMessage(e) === PARENT_LOCKED_MESSAGE) {
+				await router.invalidate();
+				return undefined;
+			}
 			setError(errorMessage(e));
 			return undefined;
 		} finally {

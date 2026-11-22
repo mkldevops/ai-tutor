@@ -466,3 +466,16 @@ export async function getStudentProgress(deps: Deps, actor: Actor, studentId: st
 		}),
 	};
 }
+
+type StudentProgress = Awaited<ReturnType<typeof getStudentProgress>>;
+
+export function childProgress(progress: StudentProgress): StudentProgress {
+	return {
+		...progress,
+		objectives: [],
+		recentSessions: [],
+		outcomes: learningOutcomes([], []),
+		events: [],
+		printables: [],
+	};
+}
