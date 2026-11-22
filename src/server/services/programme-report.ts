@@ -61,6 +61,8 @@ export type ProgrammeReport = {
 		failedAssessments: number;
 	})[];
 	next: ReportStep[];
+	paused: boolean;
+	skipped: (ReportStep & { reason: string; at: string })[];
 	passRate: Rate;
 	lastActivityAt: string | null;
 	missionsLast7Days: number;
@@ -98,9 +100,10 @@ export async function programmeStanding(
 	yearGroup: YearGroup,
 	competencies: readonly { objectiveCode: string; status: CompetencyStatus }[],
 	policy: MasteryPolicy = DEFAULT_POLICY,
+	skips: readonly string[] = [],
 ): Promise<{ position: ProgrammePosition; failed: number }> {
 	const sequence = programmeSteps(yearGroup);
-	const currentCode = programmePosition(sequence, competencies).current?.objectiveCode;
+	const currentCode = programmePosition(sequence, competencies, skips).current?.objectiveCode;
 	const failed = currentCode ? await failedAssessmentsOn(store, scope, currentCode, policy) : 0;
 	const statusOf = new Map(competencies.map((c) => [c.objectiveCode, c.status]));
 	const stepCompetencies = [...new Set([...statusOf.keys(), ...(currentCode ? [currentCode] : [])])].map((code) => ({
@@ -108,7 +111,7 @@ export async function programmeStanding(
 		status: statusOf.get(code) ?? ("not_started" as const),
 		failedAssessments: code === currentCode ? failed : 0,
 	}));
-	return { position: programmePosition(sequence, stepCompetencies), failed };
+	return { position: programmePosition(sequence, stepCompetencies, skips), failed };
 }
 
 export function paceOf(
@@ -163,6 +166,8 @@ export async function getProgrammeReport(deps: Deps, actor: Actor, studentId: st
 	const policy = deps.policy ?? DEFAULT_POLICY;
 	const scope = { studentId: student.id, familyId: actor.familyId };
 	const max = deps.maxRows ?? OUTCOMES_MAX_ROWS;
+	const settings = programmeSettingsOf(student);
+	const skipOf = new Map(settings.skips.map((s) => [s.objectiveCode, s]));
 
 	const [outcomes, competencies, sessions, latestAttempt, pendingReviews, recent] = await Promise.all([
 		getStudentOutcomes({ ...deps, now: () => now, policy }, actor, student.id),
@@ -174,7 +179,7 @@ export async function getProgrammeReport(deps: Deps, actor: Actor, studentId: st
 	]);
 
 	const [{ position, failed }, extras] = await Promise.all([
-		programmeStanding(store, scope, student.yearGroup, competencies, policy),
+		programmeStanding(store, scope, student.yearGroup, competencies, policy, [...skipOf.keys()]),
 		extraPractice(
 			store,
 			scope,
@@ -243,6 +248,11 @@ export async function getProgrammeReport(deps: Deps, actor: Actor, studentId: st
 			.filter((s) => s.state === "current" || s.state === "locked")
 			.slice(0, NEXT_STEPS)
 			.map(reportStep),
+		paused: settings.paused,
+		skipped: position.steps.flatMap((s) => {
+			const skip = skipOf.get(s.objectiveCode);
+			return s.state === "skipped" && skip ? [{ ...reportStep(s), reason: skip.reason, at: skip.at }] : [];
+		}),
 		passRate: outcomes.passRate,
 		lastActivityAt: latestAttempt[0]?.createdAt ?? null,
 		missionsLast7Days,

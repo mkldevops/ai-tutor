@@ -1,6 +1,7 @@
 import { createFileRoute, useRouter } from "@tanstack/react-router";
 import { ErrorBox, useAction } from "#/components/form";
 import { SUBJECTS } from "#/components/lesson-visual";
+import { ProgrammeControls } from "#/components/programme-controls";
 import { ProgrammeReportView } from "#/components/programme-report";
 import { formatDate, STATUS_LABELS, StatusBadge } from "#/components/status";
 import { DONE, type Objective, type Progress, useProgress } from "#/components/student-progress";
@@ -56,6 +57,7 @@ function ProgressTab() {
 	return (
 		<div className="space-y-6">
 			<ProgrammeReportView report={report} />
+			<ProgrammeControls report={report} />
 
 			<section aria-label="Progress summary" className="space-y-3">
 				<div className="grid grid-cols-3 gap-3">

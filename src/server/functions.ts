@@ -6,6 +6,7 @@ import {
 	confidenceMomentSchema,
 	confidenceValueSchema,
 	displayNameSchema,
+	PROGRAMME_SKIP_REASON_MAX,
 	programmeSettingsSchema,
 	sessionKindSchema,
 	studentPreferencesSchema,
@@ -322,6 +323,51 @@ export const overrideCompetencyFn = createServerFn({ method: "POST" })
 			const { overrideCompetency } = await import("./services/learning");
 			const { actor } = await requireActor();
 			await overrideCompetency({ store: getServerContext().store }, actor, data);
+			return { ok: true };
+		}),
+	);
+
+export const setProgrammePausedFn = createServerFn({ method: "POST" })
+	.validator(z.object({ studentId: idSchema, paused: z.boolean() }))
+	.handler(({ data }) =>
+		guard(async () => {
+			const { requireActor } = await import("./session");
+			const { getServerContext } = await import("./context");
+			const { setProgrammePaused } = await import("./services/programme-controls");
+			const { actor } = await requireActor();
+			await setProgrammePaused({ store: getServerContext().store }, actor, data.studentId, data.paused);
+			return { ok: true };
+		}),
+	);
+
+export const skipProgrammeStepFn = createServerFn({ method: "POST" })
+	.validator(
+		z.object({
+			studentId: idSchema,
+			objectiveCode: z.string().max(40),
+			reason: z.string().trim().min(3).max(PROGRAMME_SKIP_REASON_MAX),
+		}),
+	)
+	.handler(({ data }) =>
+		guard(async () => {
+			const { requireActor } = await import("./session");
+			const { getServerContext } = await import("./context");
+			const { skipProgrammeStep } = await import("./services/programme-controls");
+			const { actor } = await requireActor();
+			await skipProgrammeStep({ store: getServerContext().store }, actor, data);
+			return { ok: true };
+		}),
+	);
+
+export const undoProgrammeSkipFn = createServerFn({ method: "POST" })
+	.validator(z.object({ studentId: idSchema, objectiveCode: z.string().max(40) }))
+	.handler(({ data }) =>
+		guard(async () => {
+			const { requireActor } = await import("./session");
+			const { getServerContext } = await import("./context");
+			const { undoProgrammeSkip } = await import("./services/programme-controls");
+			const { actor } = await requireActor();
+			await undoProgrammeSkip({ store: getServerContext().store }, actor, data);
 			return { ok: true };
 		}),
 	);

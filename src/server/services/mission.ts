@@ -6,6 +6,7 @@ import { type ProgrammePosition, programmePosition, type StepState } from "#/lea
 import { LESSON_EXPIRY_DAYS } from "../config";
 import type { DataStore, LearningSessionRecord, StudentRecord } from "../store/types";
 import { type Actor, requireStudent } from "./family";
+import { programmeSettingsOf } from "./programme-settings";
 
 type Deps = { store: DataStore; now?: () => Date };
 
@@ -39,19 +40,26 @@ export async function recentMissions(
 	return rows.flatMap((s) => (s.completedAt ? [{ kind: s.kind, completedAt: s.completedAt }] : []));
 }
 
-async function missionContext(store: DataStore, student: Pick<StudentRecord, "id" | "yearGroup">, now: Date) {
+type MissionStudent = Pick<StudentRecord, "id" | "yearGroup" | "programme">;
+
+async function missionContext(store: DataStore, student: MissionStudent, now: Date) {
 	const [competencies, pendingReviews, openSessions, recent] = await Promise.all([
 		store.student_competencies.listAll({ studentId: student.id }),
 		store.revision_schedules.listAll({ studentId: student.id, status: "pending" }),
 		store.learning_sessions.listAll({ studentId: student.id, completedAt: null }),
 		recentMissions(store, student),
 	]);
-	const position = programmePosition(programmeSteps(student.yearGroup), competencies);
+	const settings = programmeSettingsOf(student);
+	const skipped = new Set(settings.skips.map((s) => s.objectiveCode));
+	const position = programmePosition(programmeSteps(student.yearGroup), competencies, skipped);
 	const mission = todaysMission({
 		position,
-		openSessions: openSessions.filter((s) => s.kind !== "extra" && !isExpiredSession(s, now)),
+		openSessions: openSessions.filter(
+			(s) => s.kind !== "extra" && !skipped.has(s.objectiveCode) && !isExpiredSession(s, now),
+		),
 		pendingReviews,
 		recentMissions: recent,
+		paused: settings.paused,
 		now,
 	});
 	const statuses = new Map(competencies.map((c) => [c.objectiveCode, c.status]));
@@ -60,7 +68,7 @@ async function missionContext(store: DataStore, student: Pick<StudentRecord, "id
 
 export async function missionFor(
 	store: DataStore,
-	student: Pick<StudentRecord, "id" | "yearGroup">,
+	student: MissionStudent,
 	now: Date,
 ): Promise<{ mission: Mission; position: ProgrammePosition }> {
 	const { mission, position } = await missionContext(store, student, now);
@@ -100,7 +108,7 @@ export async function getMission(deps: Deps, actor: Actor, studentId: string): P
 	const student = await requireStudent(deps.store, actor, studentId);
 	const { mission, position, statuses } = await missionContext(deps.store, student, deps.now?.() ?? new Date());
 	const course = courseOf(student.yearGroup, position, statuses);
-	if (mission.reason === "complete") return { ...mission, objective: null, course };
+	if (mission.reason === "complete" || mission.reason === "paused") return { ...mission, objective: null, course };
 	const o = getObjective(mission.objectiveCode);
 	return {
 		...mission,

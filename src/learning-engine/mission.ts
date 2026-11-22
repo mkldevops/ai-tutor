@@ -12,7 +12,8 @@ export type Mission =
 			sessionId: string | null;
 			dueAt: string | null;
 	  }
-	| { reason: "complete"; nextReviewAt: string | null };
+	| { reason: "complete"; nextReviewAt: string | null }
+	| { reason: "paused" };
 
 export type OpenSession = { id: string; objectiveCode: string; kind: SessionKind; createdAt: string };
 export type PendingReview = { objectiveCode: string; dueAt: string };
@@ -26,6 +27,7 @@ export type MissionInput = {
 	openSessions: readonly OpenSession[];
 	pendingReviews: readonly PendingReview[];
 	recentMissions?: readonly CompletedMission[];
+	paused?: boolean;
 	now: Date;
 };
 
@@ -76,8 +78,10 @@ export function todaysMission({
 	openSessions,
 	pendingReviews,
 	recentMissions = [],
+	paused = false,
 	now,
 }: MissionInput): Mission {
+	if (paused) return { reason: "paused" };
 	const open = [...openSessions].sort((a, b) => b.createdAt.localeCompare(a.createdAt) || b.id.localeCompare(a.id))[0];
 	if (open) {
 		return {

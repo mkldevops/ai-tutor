@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest";
+import { programmeSteps } from "#/curriculum/programme";
 import { currentItem } from "#/learning-engine/lesson";
 import { createMemoryStore } from "../store/memory-store";
 import type { DataStore } from "../store/types";
@@ -23,6 +24,7 @@ import {
 	rateConfidence,
 	startSession,
 } from "./learning";
+import { setProgrammePaused, skipProgrammeStep, undoProgrammeSkip } from "./programme-controls";
 import { placeAt } from "./programme-fixtures";
 
 const prefs = { readingSupport: false, theme: "calm" as const };
@@ -96,6 +98,17 @@ describe("tenant isolation", () => {
 		const data = (await exportStudentData(store, alice, aliceY3)) as { mastery_events: { studentId: string }[] };
 		expect(data.mastery_events).toHaveLength(501);
 		expect(data.mastery_events.every((e) => e.studentId === aliceY3)).toBe(true);
+	});
+
+	it("forbids pausing, skipping or undoing a skip on another family's student", async () => {
+		const objectiveCode = programmeSteps(5)[0]?.objectiveCode as string;
+		await skipProgrammeStep({ store }, bob, { studentId: bobY5, objectiveCode, reason: "Known" });
+		const before = await store.students.get(bobY5);
+		await expectNotFound(setProgrammePaused({ store }, alice, bobY5, true));
+		await expectNotFound(skipProgrammeStep({ store }, alice, { studentId: bobY5, objectiveCode, reason: "Known" }));
+		await expectNotFound(undoProgrammeSkip({ store }, alice, { studentId: bobY5, objectiveCode }));
+		expect((await store.students.get(bobY5))?.programme).toEqual(before?.programme);
+		expect(await store.audit_logs.listAll({ familyId: alice.familyId, action: "programme.pause" })).toEqual([]);
 	});
 
 	it("forbids starting a session for another family's student", async () => {
