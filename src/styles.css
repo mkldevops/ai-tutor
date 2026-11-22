@@ -157,6 +157,10 @@
 		background: var(--ui-card);
 		border-color: var(--ui-card-line);
 	}
+	.card-extra {
+		border-style: dashed;
+		background: transparent;
+	}
 	.btn {
 		@apply inline-flex min-h-11 items-center justify-center gap-2 rounded-lg px-5 py-2 font-bold transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50;
 		background: var(--ui-primary-bg);

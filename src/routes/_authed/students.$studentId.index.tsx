@@ -1,4 +1,5 @@
 import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
+import { ExtraPractice } from "#/components/extra-practice";
 import { ErrorBox, useAction } from "#/components/form";
 import type { PlanetKind } from "#/components/learning-map";
 import { LessonArt, SUBJECTS, SubjectTag } from "#/components/lesson-visual";
@@ -41,6 +42,12 @@ function MissionsTab() {
 			/>
 			<ErrorBox error={start.error} />
 			<CoursePath course={mission.course} name={student.displayName} />
+			<ExtraPractice
+				studentId={student.id}
+				course={mission.course}
+				pending={start.pending}
+				onPractise={(code) => void start.run(code, "extra")}
+			/>
 		</div>
 	);
 }
