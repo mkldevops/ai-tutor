@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { extrasLine } from "#/components/programme-report";
 import { programmeSteps } from "#/curriculum/programme";
 import { currentItem, LESSON_SIZES } from "#/learning-engine/lesson";
 import { createMemoryStore } from "../store/memory-store";
@@ -138,6 +139,41 @@ describe("extra practice sessions", () => {
 		await finish(await extra(FIRST));
 		const report = await getProgrammeReport(deps(), alice, sam);
 		expect(report.missionsLast7Days).toBe(0);
+	});
+
+	it("is reported as extra practice, never as acquired", async () => {
+		await finish(await extra(FIRST), true);
+		await finish(await extra(FIRST, 1), false, 1);
+		await extra(FIRST, 1);
+		const report = await getProgrammeReport(deps(1), alice, sam);
+		expect(report.acquired).toEqual([]);
+		expect(report.position.step?.code).toBe(FIRST);
+		expect(report.extras).toEqual({
+			sessions: 2,
+			objectives: [{ code: FIRST, title: expect.any(String), sessions: 2 }],
+			accuracy: { passed: LESSON_SIZES.guided, total: 2 * LESSON_SIZES.guided, rate: 0.5 },
+		});
+		expect(extrasLine(report)).toContain("2 sessions");
+	});
+
+	it("lists practised objectives in programme order without acquiring the current step", async () => {
+		await placeAt(store, sam, SECOND);
+		await finish(await extra(SECOND));
+		await finish(await extra(FIRST));
+		const report = await getProgrammeReport(deps(), alice, sam);
+		expect(report.acquired.map((s) => s.code)).toEqual([FIRST]);
+		expect(report.extras.objectives.map((o) => [o.code, o.sessions])).toEqual([
+			[FIRST, 1],
+			[SECOND, 1],
+		]);
+	});
+
+	it("leaves lessons out of the extra practice line", async () => {
+		await finish(await startSession(deps(), alice, { studentId: sam, objectiveCode: FIRST, kind: "lesson" }));
+		const report = await getProgrammeReport(deps(), alice, sam);
+		expect(report.acquired.map((s) => s.code)).toEqual([FIRST]);
+		expect(report.extras).toMatchObject({ sessions: 0, objectives: [], accuracy: { total: 0, rate: null } });
+		expect(extrasLine(report)).toBeNull();
 	});
 
 	it("is exported and deleted with the learner", async () => {

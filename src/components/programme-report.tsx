@@ -26,6 +26,19 @@ export function backlogLine(r: Pick<ProgrammeReport, "reviewBacklog">): string |
 	return `${plural(due, "review")} due. Nova spaces reviews between new steps, so ${plural(deferred, "review")} ${deferred === 1 ? "waits" : "wait"} for a later mission.`;
 }
 
+export function extrasLine(r: Pick<ProgrammeReport, "extras">): string | null {
+	const { sessions, objectives, accuracy } = r.extras;
+	if (sessions === 0) return null;
+	const titles = objectives.map((o) => o.title).join(", ");
+	const score =
+		accuracy.total === 0
+			? "no answers recorded"
+			: accuracy.rate === null
+				? `${accuracy.passed} of ${accuracy.total} answers right`
+				: `${Math.round(accuracy.rate * 100)}% of answers right`;
+	return `Extra practice: ${plural(sessions, "session")} on ${titles} · ${score}. Extra practice does not move the programme.`;
+}
+
 function positionSentence(r: ProgrammeReport): string {
 	const name = r.student.displayName;
 	const { unit, step, complete, total } = r.position;
@@ -79,6 +92,7 @@ export function ProgrammeReportView({ report: r }: { report: ProgrammeReport }) 
 	const name = r.student.displayName;
 	const currentCode = r.position.step?.code;
 	const backlog = backlogLine(r);
+	const extras = extrasLine(r);
 	return (
 		<section aria-labelledby="report-title" className="space-y-4" data-testid="programme-report">
 			<div className="space-y-1">
@@ -94,6 +108,11 @@ export function ProgrammeReportView({ report: r }: { report: ProgrammeReport }) 
 				{backlog && (
 					<p className="text-sm text-ink-soft" data-testid="report-review-backlog">
 						{backlog}
+					</p>
+				)}
+				{extras && (
+					<p className="text-sm text-ink-soft" data-testid="report-extras">
+						{extras}
 					</p>
 				)}
 				{r.truncated && (
