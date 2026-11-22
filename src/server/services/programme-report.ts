@@ -10,7 +10,7 @@ import {
 	programmePosition,
 	type StepPosition,
 } from "#/learning-engine/programme";
-import type { DataStore } from "../store/types";
+import type { DataStore, LearningSessionRecord } from "../store/types";
 import { type Actor, requireStudent } from "./family";
 import { getStudentOutcomes, OUTCOMES_MAX_ROWS } from "./longitudinal";
 import { recentMissions } from "./mission";
@@ -33,6 +33,12 @@ export type ReportUnit = {
 	done: number;
 	total: number;
 	current: boolean;
+};
+
+export type ExtraPractice = {
+	sessions: number;
+	objectives: { code: string; title: string; sessions: number }[];
+	accuracy: Rate;
 };
 
 export type ProgrammeReport = {
@@ -59,6 +65,7 @@ export type ProgrammeReport = {
 	lastActivityAt: string | null;
 	missionsLast7Days: number;
 	reviewBacklog: { due: number; deferred: number };
+	extras: ExtraPractice;
 	truncated: boolean;
 	units: ReportUnit[];
 };
@@ -103,6 +110,32 @@ export async function programmeStanding(
 	return { position: programmePosition(sequence, stepCompetencies), failed };
 }
 
+async function extraPractice(
+	store: DataStore,
+	scope: { studentId: string; familyId: string },
+	order: readonly string[],
+	sessions: readonly LearningSessionRecord[],
+): Promise<ExtraPractice> {
+	const extras = sessions.filter((s) => s.kind === "extra" && s.completedAt !== null);
+	const attempts = (
+		await Promise.all(extras.map((s) => store.assessment_attempts.listAll({ ...scope, sessionId: s.id })))
+	).flat();
+	const rank = (code: string) => (order.includes(code) ? order.indexOf(code) : order.length);
+	const perObjective = new Map<string, number>();
+	for (const s of extras) perObjective.set(s.objectiveCode, (perObjective.get(s.objectiveCode) ?? 0) + 1);
+	return {
+		sessions: extras.length,
+		objectives: [...perObjective]
+			.sort(([a], [b]) => rank(a) - rank(b))
+			.map(([code, count]) => ({
+				code,
+				title: getObjective(code)?.title ?? code,
+				sessions: count,
+			})),
+		accuracy: rate(attempts.filter((a) => a.correct).length, attempts.length),
+	};
+}
+
 export async function getProgrammeReport(deps: Deps, actor: Actor, studentId: string): Promise<ProgrammeReport> {
 	const { store } = deps;
 	const student = await requireStudent(store, actor, studentId);
@@ -120,7 +153,15 @@ export async function getProgrammeReport(deps: Deps, actor: Actor, studentId: st
 		recentMissions(store, student),
 	]);
 
-	const { position, failed } = await programmeStanding(store, scope, student.yearGroup, competencies, policy);
+	const [{ position, failed }, extras] = await Promise.all([
+		programmeStanding(store, scope, student.yearGroup, competencies, policy),
+		extraPractice(
+			store,
+			scope,
+			programmeSteps(student.yearGroup).map((s) => s.objectiveCode),
+			sessions.rows,
+		),
+	]);
 
 	const units = PROGRAMME_BY_YEAR[student.yearGroup];
 	const current = position.current;
@@ -194,6 +235,7 @@ export async function getProgrammeReport(deps: Deps, actor: Actor, studentId: st
 			due: dueReviews(position, pendingReviews, now).length,
 			deferred: deferredReviews({ position, pendingReviews, recentMissions: recent, now }),
 		},
+		extras,
 		truncated: outcomes.truncated || sessions.truncated,
 		units: units.map((u, i) => {
 			const own = position.steps.filter((s) => s.unitIndex === i);
