@@ -1,6 +1,7 @@
 import type { StudentPreferences, YearGroup } from "#/domain/types";
 import type { DataStore, StudentRecord, TableName } from "../store/types";
 import { AppError, notFound } from "./errors";
+import { programmeSettingsOf } from "./programme-settings";
 
 export type Actor = { userId: string; familyId: string; role: "owner" | "parent" };
 
@@ -89,7 +90,7 @@ export const STUDENT_OWNED: TableName[] = [
 
 export async function exportStudentData(store: DataStore, actor: Actor, studentId: string) {
 	const student = await requireStudent(store, actor, studentId);
-	const data: Record<string, unknown> = { student };
+	const data: Record<string, unknown> = { student: { ...student, programme: programmeSettingsOf(student) } };
 	for (const table of STUDENT_OWNED) {
 		data[table] = await (store[table] as DataStore["assessment_attempts"]).listAll({ studentId });
 	}

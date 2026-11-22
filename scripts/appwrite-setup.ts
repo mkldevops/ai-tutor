@@ -42,6 +42,7 @@ export const SCHEMA: TableSpec[] = [
 			{ kind: "string", key: "displayName", size: 40, required: true },
 			{ kind: "integer", key: "yearGroup", required: true, min: 1, max: 6 },
 			{ kind: "string", key: "preferences", size: 2000, required: true },
+			{ kind: "longtext", key: "programme" },
 		],
 		indexes: [{ key: "by_family", columns: ["familyId"] }],
 	},

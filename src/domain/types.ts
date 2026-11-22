@@ -43,6 +43,24 @@ export const studentPreferencesSchema = z.object({
 });
 export type StudentPreferences = z.infer<typeof studentPreferencesSchema>;
 
+export const PROGRAMME_SKIP_REASON_MAX = 200;
+export const DEFAULT_PACE_TARGET = 4;
+
+export const programmeSkipSchema = z.object({
+	objectiveCode: z.string().min(1).max(40),
+	reason: z.string().trim().min(1).max(PROGRAMME_SKIP_REASON_MAX),
+	byUserId: z.string().min(1).max(36),
+	at: z.iso.datetime(),
+});
+export type ProgrammeSkip = z.infer<typeof programmeSkipSchema>;
+
+export const programmeSettingsSchema = z.object({
+	paused: z.boolean().default(false),
+	skips: z.array(programmeSkipSchema).max(50).default([]),
+	paceTarget: z.number().int().min(1).max(14).default(DEFAULT_PACE_TARGET),
+});
+export type ProgrammeSettings = z.infer<typeof programmeSettingsSchema>;
+
 export const displayNameSchema = z
 	.string()
 	.trim()

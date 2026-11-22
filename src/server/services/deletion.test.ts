@@ -7,6 +7,7 @@ import { deleteAccount, deleteFamily, deleteStudent } from "./deletion";
 import { type Actor, createFamilyForUser, createStudent, resolveActor, STUDENT_OWNED } from "./family";
 import { answerSession, continueSession, overrideCompetency, startSession } from "./learning";
 import { placeAt } from "./programme-fixtures";
+import { programmeSettingsOf } from "./programme-settings";
 
 const prefs = { readingSupport: false, theme: "calm" as const };
 const OBJECTIVE = "MA-Y3-AS-MENTAL";
@@ -64,6 +65,13 @@ async function seedLearner(store: DataStore, actor: Actor, displayName: string) 
 		dueAt: new Date().toISOString(),
 		status: "done",
 	});
+	await store.students.update(student.id, {
+		programme: {
+			paused: true,
+			skips: [{ objectiveCode: OBJECTIVE, reason: "Known", byUserId: actor.userId, at: new Date().toISOString() }],
+			paceTarget: 4,
+		},
+	});
 	return student.id;
 }
 
@@ -114,6 +122,7 @@ describe("learner deletion", () => {
 		expect(counts.students).toBe(1);
 		expect(counts.session_messages).toBe(1);
 		expect(await studentRowCount(store, ada)).toBe(adaBefore);
+		expect(programmeSettingsOf((await store.students.get(ada))!).paused).toBe(true);
 		expect(await familyRowCounts(store, bob.familyId)).toEqual(bobBefore);
 	});
 
