@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { PROGRAMME_BY_YEAR, programmeSteps } from "#/curriculum/programme";
 import { currentItem } from "#/learning-engine/lesson";
 import { createMemoryStore } from "../store/memory-store";
@@ -40,8 +40,13 @@ describe("getMission", () => {
 	const at = (ms: number) => ({ store, now: () => new Date(NOW.getTime() + ms) });
 
 	beforeEach(async () => {
+		vi.useFakeTimers({ now: NOW, toFake: ["Date"] });
 		store = createMemoryStore();
 		alice = await createFamilyForUser(store, "user-alice", "Alice family");
+	});
+
+	afterEach(() => {
+		vi.useRealTimers();
 	});
 
 	const addLearner = async (name: string, yearGroup: 3 | 5 = 3) =>

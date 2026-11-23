@@ -30,7 +30,7 @@ export default defineConfig({
 					AI_MODEL: "fake/tutor",
 					AI_API_KEY: "fake",
 					ELEVENLABS_API_KEY: "",
-					KNOWLEDGE_ADMIN_EMAILS: "knowledge-admin@example.test",
+					KNOWLEDGE_ADMIN_EMAILS: "knowledge-admin@example.test,knowledge-pin-admin@example.test",
 				},
 			},
 });

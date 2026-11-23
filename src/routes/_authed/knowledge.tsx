@@ -1,6 +1,7 @@
 import { createFileRoute, useRouter } from "@tanstack/react-router";
 import { useState } from "react";
 import { ErrorBox, useAction } from "#/components/form";
+import { requireParentArea } from "#/components/parent-gate";
 import {
 	getKnowledgeOverviewFn,
 	getKnowledgeVersionFn,
@@ -9,6 +10,7 @@ import {
 } from "#/server/functions";
 
 export const Route = createFileRoute("/_authed/knowledge")({
+	beforeLoad: requireParentArea,
 	loader: () => getKnowledgeOverviewFn(),
 	component: KnowledgePage,
 });
