@@ -1,5 +1,6 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { programmeSteps } from "#/curriculum/programme";
+import type { CompetencyStatus } from "#/domain/types";
 import { createMemoryStore } from "../store/memory-store";
 import type { DataStore } from "../store/types";
 import { type Actor, createFamilyForUser, createStudent } from "./family";
@@ -52,17 +53,49 @@ describe("programme controls", () => {
 		expect((await actions()).map((a) => a.action)).toEqual(["programme.pause", "programme.resume"]);
 	});
 
-	it("holds the next new step until tomorrow once a step was secured today, only when the cap is on", async () => {
+	const secureToday = async (objectiveCode: string, fromStatus: CompetencyStatus = "developing") => {
 		await store.student_competencies.create({
 			familyId: alice.familyId,
 			studentId: sam,
-			objectiveCode: FIRST,
+			objectiveCode,
 			status: "secure",
 			computedStatus: "secure",
 			reasons: [],
-			securedAt: new Date(NOW.getTime() - 3_600_000).toISOString(),
+			securedAt: NOW.toISOString(),
 			override: null,
 		});
+		vi.useFakeTimers({ now: NOW, toFake: ["Date"] });
+		try {
+			await store.mastery_events.create({
+				familyId: alice.familyId,
+				studentId: sam,
+				objectiveCode,
+				fromStatus,
+				toStatus: "secure",
+				actor: "system",
+				actorUserId: null,
+				reason: "test",
+			});
+		} finally {
+			vi.useRealTimers();
+		}
+	};
+
+	it("ignores re-passes on a step that was already secure, and parent overrides", async () => {
+		await setDailyNewStepCap(deps(), alice, sam, true);
+		await secureToday(FIRST, "secure");
+		expect(await getMission(deps(), alice, sam)).toMatchObject({ reason: "current", objectiveCode: SECOND });
+		await overrideCompetency(deps(), alice, {
+			studentId: sam,
+			objectiveCode: SECOND,
+			status: "secure",
+			reason: "Known at school",
+		});
+		expect(await getMission(deps(), alice, sam)).toMatchObject({ reason: "current", objectiveCode: THIRD });
+	});
+
+	it("holds the next new step until tomorrow once a step was secured today, only when the cap is on", async () => {
+		await secureToday(FIRST);
 		expect(await getMission(deps(), alice, sam)).toMatchObject({ reason: "current", objectiveCode: SECOND });
 
 		await setDailyNewStepCap(deps(), alice, sam, true);
