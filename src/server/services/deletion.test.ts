@@ -70,6 +70,7 @@ async function seedLearner(store: DataStore, actor: Actor, displayName: string) 
 			paused: true,
 			skips: [{ objectiveCode: OBJECTIVE, reason: "Known", byUserId: actor.userId, at: new Date().toISOString() }],
 			paceTarget: 4,
+			dailyNewStepCap: false,
 		},
 	});
 	return student.id;

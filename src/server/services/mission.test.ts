@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { PROGRAMME_BY_YEAR, programmeSteps } from "#/curriculum/programme";
 import { currentItem } from "#/learning-engine/lesson";
+import { isActiveMission } from "#/learning-engine/mission";
 import { createMemoryStore } from "../store/memory-store";
 import type { DataStore } from "../store/types";
 import type { AppError } from "./errors";
@@ -103,7 +104,7 @@ describe("getMission", () => {
 		const later = at(8 * DAY);
 		const mission = await getMission(later, alice, sam);
 		expect(mission).toMatchObject({ reason: "review", objectiveCode: "EN-Y3-SP-PREFIXES", sessionKind: "review" });
-		if (mission.reason === "complete" || mission.reason === "paused") throw new Error("unexpected");
+		if (!isActiveMission(mission)) throw new Error("unexpected");
 		const started = await startSession(later, alice, {
 			studentId: sam,
 			objectiveCode: mission.objectiveCode,

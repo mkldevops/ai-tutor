@@ -58,6 +58,7 @@ export const programmeSettingsSchema = z.object({
 	paused: z.boolean().default(false),
 	skips: z.array(programmeSkipSchema).max(50).default([]),
 	paceTarget: z.number().int().min(1).max(14).default(DEFAULT_PACE_TARGET),
+	dailyNewStepCap: z.boolean().default(false),
 });
 export type ProgrammeSettings = z.infer<typeof programmeSettingsSchema>;
 

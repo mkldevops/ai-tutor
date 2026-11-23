@@ -186,12 +186,14 @@ describe("getProgrammeReport", () => {
 		const idle = await getProgrammeReport({ store, now: () => new Date(Date.now() + 8 * DAY) }, alice, sam);
 		expect(idle.pace).toMatchObject({ status: "behind", missionsThisWeek: 0, basis: "target" });
 
-		await store.students.update(sam, { programme: { paused: false, skips: [], paceTarget: 1 } });
+		await store.students.update(sam, {
+			programme: { paused: false, skips: [], paceTarget: 1, dailyNewStepCap: false },
+		});
 		const soon = await getProgrammeReport({ store, now: () => new Date(Date.now() + 6 * DAY) }, alice, sam);
 		expect(soon.pace).toMatchObject({ status: "on_track", target: 1, missionsThisWeek: 1, basis: "observed" });
 		expect(Date.parse(soon.pace.projectedEndAt ?? "")).toBeGreaterThan(Date.now() + 6 * DAY);
 
-		await store.students.update(sam, { programme: { paused: true, skips: [], paceTarget: 1 } });
+		await store.students.update(sam, { programme: { paused: true, skips: [], paceTarget: 1, dailyNewStepCap: false } });
 		const paused = await getProgrammeReport({ store, now: () => new Date(Date.now() + 8 * DAY) }, alice, sam);
 		expect(paused.pace).toMatchObject({ status: "paused", projectedEndAt: null });
 	});

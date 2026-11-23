@@ -391,6 +391,24 @@ export const setProgrammePausedFn = createServerFn({ method: "POST" })
 		}),
 	);
 
+export const setDailyNewStepCapFn = createServerFn({ method: "POST" })
+	.validator(z.object({ studentId: idSchema, enabled: z.boolean() }))
+	.handler(({ data }) =>
+		guard(async () => {
+			const { requireParent } = await import("./session");
+			const { getServerContext } = await import("./context");
+			const { setDailyNewStepCap } = await import("./services/programme-controls");
+			const { actor } = await requireParent();
+			const programme = await setDailyNewStepCap(
+				{ store: getServerContext().store },
+				actor,
+				data.studentId,
+				data.enabled,
+			);
+			return { dailyNewStepCap: programme.dailyNewStepCap };
+		}),
+	);
+
 export const skipProgrammeStepFn = createServerFn({ method: "POST" })
 	.validator(
 		z.object({

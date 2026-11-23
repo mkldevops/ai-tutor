@@ -13,7 +13,13 @@ export type Mission =
 			dueAt: string | null;
 	  }
 	| { reason: "complete"; nextReviewAt: string | null }
-	| { reason: "paused" };
+	| { reason: "paused" }
+	| { reason: "done_for_today" };
+
+export type ActiveMission = Extract<Mission, { reason: MissionReason }>;
+
+export const isActiveMission = (mission: Mission): mission is ActiveMission =>
+	mission.reason !== "complete" && mission.reason !== "paused" && mission.reason !== "done_for_today";
 
 export type OpenSession = { id: string; objectiveCode: string; kind: SessionKind; createdAt: string };
 export type PendingReview = { objectiveCode: string; dueAt: string };
@@ -28,6 +34,8 @@ export type MissionInput = {
 	pendingReviews: readonly PendingReview[];
 	recentMissions?: readonly CompletedMission[];
 	paused?: boolean;
+	dailyNewStepCap?: boolean;
+	lastSecuredAt?: string | null;
 	now: Date;
 };
 
@@ -62,6 +70,14 @@ export function reviewSlots(recentMissions: readonly CompletedMission[]): number
 const lessonAvailable = (position: ProgrammePosition) =>
 	position.current !== null || position.steps.some((s) => s.state === "to_rework");
 
+const utcDay = (at: Date) => at.toISOString().slice(0, 10);
+
+export function securedToday(lastSecuredAt: string | null | undefined, now: Date): boolean {
+	if (!lastSecuredAt) return false;
+	const at = new Date(lastSecuredAt);
+	return !Number.isNaN(at.getTime()) && at.getTime() <= now.getTime() && utcDay(at) === utcDay(now);
+}
+
 export function deferredReviews({
 	position,
 	pendingReviews,
@@ -79,6 +95,8 @@ export function todaysMission({
 	pendingReviews,
 	recentMissions = [],
 	paused = false,
+	dailyNewStepCap = false,
+	lastSecuredAt = null,
 	now,
 }: MissionInput): Mission {
 	if (paused) return { reason: "paused" };
@@ -93,9 +111,12 @@ export function todaysMission({
 		};
 	}
 
+	const capped = dailyNewStepCap && securedToday(lastSecuredAt, now);
+	const rework = position.steps.find((s) => s.state === "to_rework");
+	const lessonOpen = rework !== undefined || (position.current !== null && !capped);
 	const reviews = programmeReviews(position, pendingReviews);
 	const due = reviews.find((r) => isDue(r.dueAt, now));
-	if (due && (!lessonAvailable(position) || reviewSlots(recentMissions) > 0)) {
+	if (due && (!lessonOpen || reviewSlots(recentMissions) > 0)) {
 		return {
 			reason: "review",
 			objectiveCode: due.objectiveCode,
@@ -105,7 +126,6 @@ export function todaysMission({
 		};
 	}
 
-	const rework = position.steps.find((s) => s.state === "to_rework");
 	if (rework) {
 		return {
 			reason: "rework",
@@ -115,6 +135,8 @@ export function todaysMission({
 			dueAt: null,
 		};
 	}
+
+	if (position.current && capped) return { reason: "done_for_today" };
 
 	if (position.current) {
 		return {

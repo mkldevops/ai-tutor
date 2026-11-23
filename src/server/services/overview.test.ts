@@ -119,7 +119,7 @@ describe("family overview", () => {
 		const [idle] = await getFamilyOverview(later, alice);
 		expect(idle?.pace).toMatchObject({ status: "behind", target: 4, missionsThisWeek: 0, basis: "target" });
 
-		await store.students.update(sam, { programme: { paused: true, skips: [], paceTarget: 4 } });
+		await store.students.update(sam, { programme: { paused: true, skips: [], paceTarget: 4, dailyNewStepCap: false } });
 		const [paused] = await getFamilyOverview(later, alice);
 		expect(paused?.pace.status).toBe("paused");
 	});

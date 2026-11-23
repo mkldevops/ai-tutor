@@ -8,6 +8,7 @@ import { PlanetDot } from "#/components/planet-dot";
 import { formatDate, StatusBadge } from "#/components/status";
 import { useProgress } from "#/components/student-progress";
 import type { SessionKind } from "#/domain/types";
+import { isActiveMission } from "#/learning-engine/mission";
 import type { StepState } from "#/learning-engine/programme";
 import { getMissionFn, startSessionFn } from "#/server/functions";
 import type { Course, CourseStep, CourseUnit, MissionResponse } from "#/server/services/mission";
@@ -59,6 +60,7 @@ const MISSION_LABEL = {
 	current: "Next mission",
 	complete: "Programme complete",
 	paused: "Course paused",
+	done_for_today: "New step done for today",
 } as const;
 
 const SETTLED: readonly StepState[] = ["done", "skipped"];
@@ -86,7 +88,7 @@ function MissionHero({
 	pending: boolean;
 	onStart: (objectiveCode: string, kind: SessionKind) => void;
 }) {
-	const active = mission.reason !== "complete" && mission.reason !== "paused" && mission.objective ? mission : null;
+	const active = isActiveMission(mission) && mission.objective ? mission : null;
 	const transition = unitTransition(mission);
 	return (
 		<section
@@ -97,7 +99,7 @@ function MissionHero({
 			data-objective={active?.objectiveCode}
 		>
 			<Nova
-				state={active ? "ready" : mission.reason === "paused" ? "wave" : "proud"}
+				state={active ? "ready" : mission.reason === "paused" || mission.reason === "done_for_today" ? "wave" : "proud"}
 				size={150}
 				priority
 				className="mx-auto shrink-0"
@@ -123,6 +125,10 @@ function MissionHero({
 							<p className="font-display text-xl leading-snug font-semibold">{active.objective.title}</p>
 						</div>
 					</div>
+				) : mission.reason === "done_for_today" ? (
+					<p className="bubble text-lg" data-testid="mission-done-today">
+						{`${name} has secured a new step today. The next one opens tomorrow. Extra practice below is still open.`}
+					</p>
 				) : mission.reason === "paused" ? (
 					<p className="bubble text-lg" data-testid="mission-paused">
 						{`${name}'s course is paused for now. Nova will be ready when it starts again. Extra practice below is still open.`}

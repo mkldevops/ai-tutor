@@ -25,6 +25,16 @@ export async function setProgrammePaused(deps: Deps, actor: Actor, studentId: st
 	return saved;
 }
 
+export async function setDailyNewStepCap(deps: Deps, actor: Actor, studentId: string, enabled: boolean) {
+	const { store } = deps;
+	const student = await requireStudent(store, actor, studentId);
+	const settings = programmeSettingsOf(student);
+	if (settings.dailyNewStepCap === enabled) return settings;
+	const saved = await save(store, student, { ...settings, dailyNewStepCap: enabled });
+	await audit(store, actor, enabled ? "programme.daily_cap_on" : "programme.daily_cap_off", `students/${student.id}`);
+	return saved;
+}
+
 export async function skipProgrammeStep(
 	deps: Deps,
 	actor: Actor,
