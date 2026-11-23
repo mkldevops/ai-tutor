@@ -26,7 +26,7 @@ function AuthedLayout() {
 					<UserMenu
 						name={me.user.name}
 						email={me.user.email}
-						isKnowledgeAdmin={me.isKnowledgeAdmin}
+						isKnowledgeAdmin={me.isKnowledgeAdmin && me.parent.unlocked}
 						canLock={canLock}
 					/>
 				</div>

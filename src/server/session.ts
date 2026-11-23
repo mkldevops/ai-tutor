@@ -63,6 +63,8 @@ export async function requireKnowledgeAdmin(): Promise<AuthUser> {
 	if (!user) throw new AppError("unauthenticated", "Please sign in.");
 	await rateLimit(`user:${user.id}`, 240, 60_000);
 	if (!isKnowledgeAdmin(user)) throw new AppError("not_found", "Page not found");
+	const actor = await resolveActor(getServerContext().store, user.id);
+	if (actor) await assertParentUnlocked(actor);
 	return user;
 }
 
