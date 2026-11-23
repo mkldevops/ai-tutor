@@ -1,11 +1,18 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { programmeSteps } from "#/curriculum/programme";
+import type { CompetencyStatus } from "#/domain/types";
 import { createMemoryStore } from "../store/memory-store";
 import type { DataStore } from "../store/types";
 import { type Actor, createFamilyForUser, createStudent } from "./family";
 import { overrideCompetency, startSession } from "./learning";
 import { getMission } from "./mission";
-import { MAX_PROGRAMME_SKIPS, setProgrammePaused, skipProgrammeStep, undoProgrammeSkip } from "./programme-controls";
+import {
+	MAX_PROGRAMME_SKIPS,
+	setDailyNewStepCap,
+	setProgrammePaused,
+	skipProgrammeStep,
+	undoProgrammeSkip,
+} from "./programme-controls";
 import { openLegacySession, placeAt } from "./programme-fixtures";
 import { getProgrammeReport } from "./programme-report";
 import { programmeSettingsOf } from "./programme-settings";
@@ -44,6 +51,73 @@ describe("programme controls", () => {
 		await setProgrammePaused(deps(), alice, sam, false);
 		expect(await getMission(deps(), alice, sam)).toMatchObject({ reason: "current", objectiveCode: FIRST });
 		expect((await actions()).map((a) => a.action)).toEqual(["programme.pause", "programme.resume"]);
+	});
+
+	const secureToday = async (objectiveCode: string, fromStatus: CompetencyStatus = "developing") => {
+		await store.student_competencies.create({
+			familyId: alice.familyId,
+			studentId: sam,
+			objectiveCode,
+			status: "secure",
+			computedStatus: "secure",
+			reasons: [],
+			securedAt: NOW.toISOString(),
+			override: null,
+		});
+		vi.useFakeTimers({ now: NOW, toFake: ["Date"] });
+		try {
+			await store.mastery_events.create({
+				familyId: alice.familyId,
+				studentId: sam,
+				objectiveCode,
+				fromStatus,
+				toStatus: "secure",
+				actor: "system",
+				actorUserId: null,
+				reason: "test",
+			});
+		} finally {
+			vi.useRealTimers();
+		}
+	};
+
+	it("ignores re-passes on a step that was already secure, and parent overrides", async () => {
+		await setDailyNewStepCap(deps(), alice, sam, true);
+		await secureToday(FIRST, "secure");
+		expect(await getMission(deps(), alice, sam)).toMatchObject({ reason: "current", objectiveCode: SECOND });
+		await overrideCompetency(deps(), alice, {
+			studentId: sam,
+			objectiveCode: SECOND,
+			status: "secure",
+			reason: "Known at school",
+		});
+		expect(await getMission(deps(), alice, sam)).toMatchObject({ reason: "current", objectiveCode: THIRD });
+	});
+
+	it("holds the next new step until tomorrow once a step was secured today, only when the cap is on", async () => {
+		await secureToday(FIRST);
+		expect(await getMission(deps(), alice, sam)).toMatchObject({ reason: "current", objectiveCode: SECOND });
+
+		await setDailyNewStepCap(deps(), alice, sam, true);
+		await setDailyNewStepCap(deps(), alice, sam, true);
+		expect(programmeSettingsOf((await store.students.get(sam))!).dailyNewStepCap).toBe(true);
+		expect(await getMission(deps(), alice, sam)).toMatchObject({ reason: "done_for_today", objective: null });
+		await expect(
+			startSession(deps(), alice, { studentId: sam, objectiveCode: SECOND, kind: "lesson" }),
+		).rejects.toMatchObject({
+			code: "off_programme",
+			message: "Today's new step is done. The next one opens tomorrow.",
+		});
+		const extra = await startSession(deps(), alice, { studentId: sam, objectiveCode: FIRST, kind: "extra" });
+		expect(extra.objective.code).toBe(FIRST);
+
+		const tomorrow = { store, now: () => new Date("2026-11-23T00:05:00.000Z") };
+		expect(await getMission(tomorrow, alice, sam)).toMatchObject({ reason: "current", objectiveCode: SECOND });
+		const lesson = await startSession(tomorrow, alice, { studentId: sam, objectiveCode: SECOND, kind: "lesson" });
+		expect(lesson.objective.code).toBe(SECOND);
+
+		await setDailyNewStepCap(deps(), alice, sam, false);
+		expect((await actions()).map((a) => a.action)).toEqual(["programme.daily_cap_on", "programme.daily_cap_off"]);
 	});
 
 	it("refuses to resume a paused open lesson", async () => {
@@ -114,7 +188,7 @@ describe("programme controls", () => {
 			byUserId: alice.userId,
 			at: NOW.toISOString(),
 		}));
-		await store.students.update(sam, { programme: { paused: false, skips, paceTarget: 4 } });
+		await store.students.update(sam, { programme: { paused: false, skips, paceTarget: 4, dailyNewStepCap: false } });
 		await expect(
 			skipProgrammeStep(deps(), alice, { studentId: sam, objectiveCode: FIRST, reason: "Known" }),
 		).rejects.toMatchObject({ code: "invalid" });

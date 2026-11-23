@@ -4,9 +4,11 @@ import type { CompetencyStatus } from "#/domain/types";
 import {
 	type CompletedMission,
 	deferredReviews,
+	isActiveMission,
 	MAX_REVIEWS_BEFORE_LESSON,
 	type MissionInput,
 	type PendingReview,
+	securedToday,
 	todaysMission,
 } from "./mission";
 import { programmePosition } from "./programme";
@@ -37,6 +39,82 @@ describe("todaysMission", () => {
 				pendingReviews: [{ objectiveCode: codes[0] as string, dueAt: daysFromNow(-2) }],
 			}),
 		).toEqual({ reason: "paused" });
+	});
+
+	describe("daily new-step cap", () => {
+		const securedThisMorning = "2026-11-21T08:00:00.000Z";
+		const capped = (input: Partial<MissionInput> = {}) =>
+			mission({
+				position: position({ 0: "secure" }),
+				dailyNewStepCap: true,
+				lastSecuredAt: securedThisMorning,
+				...input,
+			});
+
+		it("withholds the next new step once a step was secured today", () => {
+			expect(capped()).toEqual({ reason: "done_for_today" });
+		});
+
+		it("leaves missions unchanged when the cap is off", () => {
+			const input = { position: position({ 0: "secure" }), lastSecuredAt: securedThisMorning };
+			expect(mission(input)).toEqual(mission({ position: position({ 0: "secure" }) }));
+			expect(mission(input)).toMatchObject({ reason: "current", objectiveCode: codes[1] });
+		});
+
+		it("offers the next new step when the last step was secured on an earlier day", () => {
+			expect(capped({ lastSecuredAt: "2026-11-20T23:59:00.000Z" })).toMatchObject({
+				reason: "current",
+				objectiveCode: codes[1],
+			});
+			expect(capped({ lastSecuredAt: null })).toMatchObject({ reason: "current", objectiveCode: codes[1] });
+		});
+
+		it("keeps continue, review and rework missions available", () => {
+			expect(
+				capped({
+					openSessions: [{ id: "s1", objectiveCode: codes[1] as string, kind: "lesson", createdAt: daysFromNow(0) }],
+				}),
+			).toMatchObject({ reason: "continue", sessionId: "s1" });
+			expect(capped({ pendingReviews: [{ objectiveCode: codes[0] as string, dueAt: daysFromNow(-1) }] })).toMatchObject(
+				{ reason: "review", objectiveCode: codes[0] },
+			);
+			expect(capped({ position: position({ 0: "secure", 1: "needs_review" }) })).toMatchObject({
+				reason: "rework",
+				objectiveCode: codes[1],
+			});
+		});
+
+		it("serves a due review even when the review slots are spent, since no new step is on offer", () => {
+			const recentMissions: CompletedMission[] = [
+				{ kind: "review", completedAt: daysFromNow(-0.2) },
+				{ kind: "review", completedAt: daysFromNow(-0.1) },
+			];
+			const pendingReviews = [{ objectiveCode: codes[0] as string, dueAt: daysFromNow(-1) }];
+			expect(capped({ recentMissions, pendingReviews })).toMatchObject({ reason: "review" });
+			expect(mission({ position: position({ 0: "secure" }), recentMissions, pendingReviews })).toMatchObject({
+				reason: "current",
+			});
+		});
+
+		it("still reports a finished programme as complete and a paused one as paused", () => {
+			const all = Object.fromEntries(codes.map((_, i) => [i, "secure" as const]));
+			expect(capped({ position: position(all) })).toMatchObject({ reason: "complete" });
+			expect(capped({ paused: true })).toEqual({ reason: "paused" });
+		});
+
+		it("is not an active mission", () => {
+			expect(isActiveMission(capped())).toBe(false);
+		});
+	});
+
+	describe("securedToday", () => {
+		it("compares UTC calendar days and ignores missing, invalid or future timestamps", () => {
+			expect(securedToday("2026-11-21T00:00:00.000Z", NOW)).toBe(true);
+			expect(securedToday("2026-11-20T23:59:59.999Z", NOW)).toBe(false);
+			expect(securedToday("2026-11-21T18:00:00.000Z", NOW)).toBe(false);
+			expect(securedToday(null, NOW)).toBe(false);
+			expect(securedToday("not a date", NOW)).toBe(false);
+		});
 	});
 
 	it("resumes an open session before anything else", () => {
@@ -156,8 +234,7 @@ describe("review interleaving", () => {
 				deferredReviews({ position: inProgress, pendingReviews: pending, recentMissions: recent, now: NOW }),
 			);
 			const m = mission({ position: inProgress, pendingReviews: pending, recentMissions: recent });
-			if (m.reason === "complete" || m.reason === "paused" || m.reason === "continue")
-				throw new Error(`unexpected ${m.reason}`);
+			if (!isActiveMission(m) || m.reason === "continue") throw new Error(`unexpected ${m.reason}`);
 			served.push(m.sessionKind === "review" ? `R:${codes.indexOf(m.objectiveCode)}` : "L");
 			if (m.sessionKind === "review") pending = pending.filter((r) => r.objectiveCode !== m.objectiveCode);
 			recent.push({

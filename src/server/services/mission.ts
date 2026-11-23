@@ -1,7 +1,13 @@
 import { getObjective } from "#/curriculum/england-nc";
 import { PROGRAMME_BY_YEAR, programmeSteps } from "#/curriculum/programme";
 import type { CompetencyStatus, Subject } from "#/domain/types";
-import { type CompletedMission, MISSION_HISTORY_WINDOW, type Mission, todaysMission } from "#/learning-engine/mission";
+import {
+	type CompletedMission,
+	isActiveMission,
+	MISSION_HISTORY_WINDOW,
+	type Mission,
+	todaysMission,
+} from "#/learning-engine/mission";
 import { type ProgrammePosition, programmePosition, type StepState } from "#/learning-engine/programme";
 import { LESSON_EXPIRY_DAYS } from "../config";
 import type { DataStore, LearningSessionRecord, StudentRecord } from "../store/types";
@@ -40,18 +46,35 @@ export async function recentMissions(
 	return rows.flatMap((s) => (s.completedAt ? [{ kind: s.kind, completedAt: s.completedAt }] : []));
 }
 
+const SECURED_HISTORY_WINDOW = 50;
+const ADVANCED: ReadonlySet<CompetencyStatus> = new Set(["secure", "mastered"]);
+
 type MissionStudent = Pick<StudentRecord, "id" | "yearGroup" | "programme">;
 
 async function missionContext(store: DataStore, student: MissionStudent, now: Date) {
-	const [competencies, pendingReviews, openSessions, recent] = await Promise.all([
+	const [competencies, pendingReviews, openSessions, recent, secured] = await Promise.all([
 		store.student_competencies.listAll({ studentId: student.id }),
 		store.revision_schedules.listAll({ studentId: student.id, status: "pending" }),
 		store.learning_sessions.listAll({ studentId: student.id, completedAt: null }),
 		recentMissions(store, student),
+		store.mastery_events.listLatest({ studentId: student.id }, SECURED_HISTORY_WINDOW),
 	]);
 	const settings = programmeSettingsOf(student);
 	const skipped = new Set(settings.skips.map((s) => s.objectiveCode));
-	const position = programmePosition(programmeSteps(student.yearGroup), competencies, skipped);
+	const steps = programmeSteps(student.yearGroup);
+	const position = programmePosition(steps, competencies, skipped);
+	const inProgramme = new Set(steps.map((s) => s.objectiveCode));
+	const lastSecuredAt = secured.rows
+		.filter(
+			(e) =>
+				e.actor === "system" &&
+				e.toStatus === "secure" &&
+				!ADVANCED.has(e.fromStatus) &&
+				inProgramme.has(e.objectiveCode),
+		)
+		.map((e) => e.createdAt)
+		.sort()
+		.at(-1);
 	const mission = todaysMission({
 		position,
 		openSessions: openSessions.filter(
@@ -60,6 +83,8 @@ async function missionContext(store: DataStore, student: MissionStudent, now: Da
 		pendingReviews,
 		recentMissions: recent,
 		paused: settings.paused,
+		dailyNewStepCap: settings.dailyNewStepCap,
+		lastSecuredAt: lastSecuredAt ?? null,
 		now,
 	});
 	const statuses = new Map(competencies.map((c) => [c.objectiveCode, c.status]));
@@ -108,7 +133,7 @@ export async function getMission(deps: Deps, actor: Actor, studentId: string): P
 	const student = await requireStudent(deps.store, actor, studentId);
 	const { mission, position, statuses } = await missionContext(deps.store, student, deps.now?.() ?? new Date());
 	const course = courseOf(student.yearGroup, position, statuses);
-	if (mission.reason === "complete" || mission.reason === "paused") return { ...mission, objective: null, course };
+	if (!isActiveMission(mission)) return { ...mission, objective: null, course };
 	const o = getObjective(mission.objectiveCode);
 	return {
 		...mission,

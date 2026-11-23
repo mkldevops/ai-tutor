@@ -27,10 +27,17 @@ describe("setPaceTarget", () => {
 	});
 
 	it("stores the target, keeps the other settings and audits the change", async () => {
-		await store.students.update(sam, { programme: { paused: true, skips: [skip], paceTarget: 4 } });
+		await store.students.update(sam, {
+			programme: { paused: true, skips: [skip], paceTarget: 4, dailyNewStepCap: false },
+		});
 		await setPaceTarget(store, alice, sam, 6);
 		const student = await store.students.get(sam);
-		expect(programmeSettingsOf(student!)).toEqual({ paused: true, skips: [skip], paceTarget: 6 });
+		expect(programmeSettingsOf(student!)).toEqual({
+			paused: true,
+			skips: [skip],
+			paceTarget: 6,
+			dailyNewStepCap: false,
+		});
 		const logs = await store.audit_logs.list({ familyId: alice.familyId });
 		expect(logs.find((l) => l.action === "programme.pace")).toMatchObject({
 			actorUserId: "user-alice",
@@ -41,7 +48,12 @@ describe("setPaceTarget", () => {
 
 	it("defaults the other settings for a learner without stored settings", async () => {
 		await setPaceTarget(store, alice, sam, 2);
-		expect(programmeSettingsOf((await store.students.get(sam))!)).toEqual({ paused: false, skips: [], paceTarget: 2 });
+		expect(programmeSettingsOf((await store.students.get(sam))!)).toEqual({
+			paused: false,
+			skips: [],
+			paceTarget: 2,
+			dailyNewStepCap: false,
+		});
 	});
 
 	it("rejects a target outside 1 to 14", async () => {

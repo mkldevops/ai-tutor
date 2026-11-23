@@ -6,7 +6,7 @@ import { type Actor, createFamilyForUser, createStudent, exportStudentData } fro
 import { programmeSettingsOf } from "./programme-settings";
 
 const prefs = { readingSupport: false, theme: "calm" as const };
-const DEFAULTS = { paused: false, skips: [], paceTarget: DEFAULT_PACE_TARGET };
+const DEFAULTS = { paused: false, skips: [], paceTarget: DEFAULT_PACE_TARGET, dailyNewStepCap: false };
 const skip = {
 	objectiveCode: "MA-Y3-AS-MENTAL",
 	reason: "Already covered at school",
@@ -49,7 +49,7 @@ describe("programme settings storage", () => {
 	});
 
 	it("round-trips settings through the memory store", async () => {
-		const settings = { paused: true, skips: [skip], paceTarget: 5 };
+		const settings = { paused: true, skips: [skip], paceTarget: 5, dailyNewStepCap: false };
 		await store.students.update(sam, { programme: settings });
 		const student = await store.students.get(sam);
 		expect(programmeSettingsOf(student!)).toEqual(settings);
@@ -61,7 +61,7 @@ describe("programme settings storage", () => {
 	});
 
 	it("exports stored settings", async () => {
-		const settings = { paused: false, skips: [skip], paceTarget: 3 };
+		const settings = { paused: false, skips: [skip], paceTarget: 3, dailyNewStepCap: false };
 		await store.students.update(sam, { programme: settings });
 		const data = (await exportStudentData(store, alice, sam)) as { student: { programme: unknown } };
 		expect(data.student.programme).toEqual(settings);

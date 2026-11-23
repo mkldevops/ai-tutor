@@ -15,6 +15,7 @@ import {
 	viewLesson,
 } from "#/learning-engine/lesson";
 import { DEFAULT_POLICY, evaluateMastery, type MasteryPolicy } from "#/learning-engine/mastery";
+import { isActiveMission, type Mission } from "#/learning-engine/mission";
 import { nextReviewDate } from "#/learning-engine/scheduling";
 import type { CompetencyRecord, DataStore, LearningSessionRecord } from "../store/types";
 import { AppError, notFound } from "./errors";
@@ -104,6 +105,12 @@ async function getCompetency(store: DataStore, studentId: string, objectiveCode:
 	return comp ?? null;
 }
 
+function offProgrammeMessage(kind: SessionKind, reason: Mission["reason"]): string {
+	if (kind === "extra") return "Extra practice is only open on steps you have reached.";
+	if (reason === "done_for_today") return "Today's new step is done. The next one opens tomorrow.";
+	return "Nova has a different mission ready for today.";
+}
+
 export async function startSession(
 	deps: Deps,
 	actor: Actor,
@@ -133,25 +140,14 @@ export async function startSession(
 	const onProgramme =
 		input.kind === "extra"
 			? isReachedStep(position, input.objectiveCode)
-			: mission.reason !== "complete" &&
-				mission.reason !== "paused" &&
-				mission.objectiveCode === input.objectiveCode &&
-				mission.sessionKind === input.kind;
+			: isActiveMission(mission) && mission.objectiveCode === input.objectiveCode && mission.sessionKind === input.kind;
 	if (!onProgramme) {
 		await audit(store, actor, "session.off_programme", `students/${student.id}`, {
 			objectiveCode: input.objectiveCode,
 			kind: input.kind,
-			mission:
-				mission.reason === "complete" || mission.reason === "paused"
-					? null
-					: { objectiveCode: mission.objectiveCode, kind: mission.sessionKind },
+			mission: isActiveMission(mission) ? { objectiveCode: mission.objectiveCode, kind: mission.sessionKind } : null,
 		});
-		throw new AppError(
-			"off_programme",
-			input.kind === "extra"
-				? "Extra practice is only open on steps you have reached."
-				: "Nova has a different mission ready for today.",
-		);
+		throw new AppError("off_programme", offProgrammeMessage(input.kind, mission.reason));
 	}
 
 	const state = startLesson({

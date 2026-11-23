@@ -1,5 +1,6 @@
 import { createFileRoute, useRouter } from "@tanstack/react-router";
 import { useState } from "react";
+import { DailyCapSettings } from "#/components/daily-cap-settings";
 import { ErrorBox, useAction } from "#/components/form";
 import { PaceSettings } from "#/components/pace-settings";
 import { requireParentArea } from "#/components/parent-gate";
@@ -39,6 +40,12 @@ function SettingsTab() {
 				studentId={student.id}
 				displayName={student.displayName}
 				target={student.programme?.paceTarget ?? DEFAULT_PACE_TARGET}
+			/>
+
+			<DailyCapSettings
+				studentId={student.id}
+				displayName={student.displayName}
+				enabled={student.programme?.dailyNewStepCap === true}
 			/>
 
 			<VoiceSettings
