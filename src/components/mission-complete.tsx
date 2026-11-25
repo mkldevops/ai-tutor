@@ -59,7 +59,7 @@ export function RateConfidence({ before, after, onRate }: Props) {
 					★
 				</span>
 				<p className="font-display text-3xl">Thanks for rating!</p>
-				<p className="text-sm text-soft">It helps Nova plan your next mission.</p>
+				<p className="text-sm text-soft">Your check-in is saved. Any rating is okay.</p>
 				<ConfidenceChange before={before} after={after} />
 				<div className="celebrate-track" aria-hidden="true">
 					<div className="celebrate-bar" style={{ animationDuration: `${THANKS_MS}ms` }} />
@@ -80,15 +80,9 @@ export function RateConfidence({ before, after, onRate }: Props) {
 
 function ConfidenceChange({ before, after, className }: { before?: number; after: number; className?: string }) {
 	if (before === undefined) return null;
-	const verdict =
-		after > before
-			? "Practice paid off."
-			: after < before
-				? "That is normal after a solo check. The review will help."
-				: "Steady. The review check will show how it lasts.";
 	return (
 		<p className={`text-sm text-soft ${className ?? ""}`} data-testid="confidence-change">
-			Before: {before} of 5 · Now: {after} of 5. {verdict}
+			Before: {before} of 5 · Now: {after} of 5. This records how you feel; your answers show what to practise.
 		</p>
 	);
 }

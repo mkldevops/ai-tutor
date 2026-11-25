@@ -74,8 +74,8 @@ export async function completeLesson(page: Page, { wrongInGuided = 0 } = {}) {
 			await page.waitForTimeout(2500);
 			await expect(page.getByTestId("question")).toHaveCount(0);
 			await expect(feedback.getByTestId("understood")).toBeFocused();
-			await page.keyboard.press("Enter");
 		}
+		await feedback.getByRole("button", { name: "Continue", exact: true }).click();
 		await expect(feedback).toHaveCount(0);
 	}
 	throw new Error("Lesson did not complete");

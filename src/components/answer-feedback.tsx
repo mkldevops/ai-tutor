@@ -1,7 +1,6 @@
 import { type ReactNode, useEffect, useRef } from "react";
 import type { Feedback } from "#/learning-engine/lesson";
 
-export const CELEBRATE_MS = 1800;
 export const SAVED_MS = 1000;
 
 type Props = {
@@ -46,7 +45,8 @@ export function AnswerSaved({ onNext }: { onNext: () => void }) {
 }
 
 function Celebrate({ message, onNext }: { message: string; onNext: () => void }) {
-	useAutoNext(onNext, CELEBRATE_MS);
+	const next = useRef<HTMLButtonElement>(null);
+	useEffect(() => next.current?.focus({ preventScroll: true }), []);
 
 	return (
 		<section
@@ -57,11 +57,8 @@ function Celebrate({ message, onNext }: { message: string; onNext: () => void })
 		>
 			<p className="font-display text-5xl leading-none font-bold sm:text-6xl">Bravo!</p>
 			<p className="text-lg text-soft">{message}</p>
-			<div className="celebrate-track" aria-hidden="true">
-				<div className="celebrate-bar" style={{ animationDuration: `${CELEBRATE_MS}ms` }} />
-			</div>
-			<button type="button" className="link text-sm" onClick={onNext}>
-				Next question now
+			<button ref={next} type="button" className="btn min-h-11" onClick={onNext} data-testid="feedback-continue">
+				Continue
 			</button>
 		</section>
 	);
@@ -85,14 +82,18 @@ function Explain({
 
 	return (
 		<section className="card space-y-5 p-5 sm:p-6" aria-live="polite" data-testid="feedback" data-correct="false">
-			<p className="note-focus font-semibold">{feedback.message}</p>
+			<div className="space-y-2">
+				<p className="font-display text-2xl">Let's take a look together</p>
+				<p className="text-soft">{feedback.message}</p>
+				<p className="text-sm text-soft">Compare the answers, then read the steps. Continue when you are ready.</p>
+			</div>
 			{feedback.question && <p className="font-display text-4xl leading-tight">{feedback.question}</p>}
 			{(feedback.yourAnswer || feedback.correctAnswer) && (
-				<dl className="grid grid-cols-2 gap-3">
+				<dl className="grid grid-cols-1 gap-3 sm:grid-cols-2">
 					{feedback.yourAnswer && (
 						<div className="answer-review" data-kind="yours">
 							<dt className="meta">You answered</dt>
-							<dd className="font-display text-3xl line-through" data-testid="your-answer">
+							<dd className="font-display text-3xl wrap-anywhere" data-testid="your-answer">
 								{feedback.yourAnswer}
 							</dd>
 						</div>
@@ -100,7 +101,7 @@ function Explain({
 					{feedback.correctAnswer && (
 						<div className="answer-review" data-kind="right">
 							<dt className="meta">Right answer</dt>
-							<dd className="font-display text-3xl" data-testid="correct-answer">
+							<dd className="font-display text-3xl wrap-anywhere" data-testid="correct-answer">
 								{feedback.correctAnswer}
 							</dd>
 						</div>
@@ -123,7 +124,7 @@ function Explain({
 			{children}
 			<div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-t pt-4 explain-extras">
 				<button ref={understood} type="button" className="btn" onClick={onNext} data-testid="understood">
-					I understand, next question
+					Continue
 				</button>
 				{extras}
 			</div>
