@@ -58,30 +58,85 @@ export async function handleTutorChat(
 	request: Request,
 	ctx: { requireActor: () => Promise<{ actor: Actor }>; deps: TutorChatDeps },
 ): Promise<Response> {
+	const controller = new AbortController();
+	const abort = () => controller.abort(request.signal.reason);
+	request.signal.addEventListener("abort", abort, { once: true });
+	if (request.signal.aborted) abort();
+	const detach = () => request.signal.removeEventListener("abort", abort);
 	let events: AsyncIterable<{ type: string; text: string }>;
 	try {
 		const { actor } = await ctx.requireActor();
 		const parsed = bodySchema.safeParse(await readBody(request));
 		if (!parsed.success) throw new AppError("invalid", "Invalid chat message.");
-		events = await startTutorChat(ctx.deps, actor, parsed.data);
+		events = await startTutorChat(ctx.deps, actor, parsed.data, controller.signal);
 	} catch (e) {
+		detach();
 		if (e instanceof BodyRejected) return e.response;
 		if (e instanceof AppError) return textResponse(STATUS[e.code], e.message);
 		if (e instanceof AuthError) return textResponse(401, e.message);
+		if (controller.signal.aborted) return new Response(null, { status: 499 });
 		console.error("[ai-tutor] tutor chat request failed", e instanceof Error ? e.message : e);
 		return textResponse(500, FAILED_TEXT);
 	}
 	const stream = createUIMessageStream({
 		execute: async ({ writer }) => {
-			const id = "nova";
-			writer.write({ type: "text-start", id });
-			for await (const event of events) {
-				if (event.text) writer.write({ type: "text-delta", id, delta: event.text });
-				if (event.type !== "text") writer.write({ type: "data-notice", data: { reason: event.type }, transient: true });
+			try {
+				const id = "nova";
+				writer.write({ type: "text-start", id });
+				for await (const event of events) {
+					if (controller.signal.aborted) break;
+					if (event.text) writer.write({ type: "text-delta", id, delta: event.text });
+					if (event.type !== "text")
+						writer.write({ type: "data-notice", data: { reason: event.type }, transient: true });
+				}
+				writer.write({ type: "text-end", id });
+			} finally {
+				detach();
 			}
-			writer.write({ type: "text-end", id });
 		},
-		onError: () => FAILED_TEXT,
+		onError: () => (controller.signal.aborted ? "" : FAILED_TEXT),
 	});
-	return createUIMessageStreamResponse({ stream, headers: { "cache-control": "no-store" } });
+	const response = createUIMessageStreamResponse({ stream, headers: { "cache-control": "no-store" } });
+	if (!response.body) {
+		controller.abort();
+		detach();
+		return response;
+	}
+	const reader = response.body.getReader();
+	let cancelled = false;
+	// Cancelling the SDK's custom execute loop alone does not stop its producer.
+	// Observe cancellation at the actual response body and abort the service/model first.
+	const body = new ReadableStream<Uint8Array>(
+		{
+			async pull(output) {
+				try {
+					const part = await reader.read();
+					if (cancelled) return;
+					if (part.done) {
+						reader.releaseLock();
+						output.close();
+					} else {
+						output.enqueue(part.value);
+					}
+				} catch (error) {
+					controller.abort(error);
+					detach();
+					reader.releaseLock();
+					if (!cancelled) output.error(error);
+				}
+			},
+			async cancel(reason) {
+				cancelled = true;
+				controller.abort(reason);
+				detach();
+				try {
+					await reader.cancel(reason);
+				} finally {
+					reader.releaseLock();
+				}
+			},
+		},
+		{ highWaterMark: 0 },
+	);
+	return new Response(body, { status: response.status, headers: response.headers });
 }

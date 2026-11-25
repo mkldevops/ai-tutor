@@ -3,6 +3,7 @@ import { createRng, generateItem, hashSeed, supportedTypes } from "#/curriculum/
 import type { EvidenceMode, Item, ItemType, LessonPhase, PublicItem, SessionKind } from "#/domain/types";
 import { toPublicItem } from "#/domain/types";
 import { gradeResponse, isAmericanSpelling } from "./grading";
+import { misconceptionFeedback } from "./misconception-feedback";
 
 export const LESSON_SIZES = {
 	diagnosticPrereq: 2,
@@ -248,16 +249,17 @@ export function submitAnswer(
 			state.consecutiveWrong += 1;
 			state.difficulty = Math.max(1, state.difficulty - 1) as 1 | 2 | 3;
 			const target = getObjective(item.objectiveCode);
+			const support = misconceptionFeedback(item, response);
 			feedback = {
 				correct: false,
 				message: isAmericanSpelling(item, response)
 					? "Close! That is the American spelling. In British English we write –ise."
-					: "Not quite. Let's look at it together.",
+					: (support?.message ?? "Not quite. Let's look at it together."),
 				question: item.prompt,
 				yourAnswer: response.trim(),
 				correctAnswer: item.answer,
 				hint: item.hint,
-				workedSolution: item.workedSolution,
+				workedSolution: support?.workedSolution ?? item.workedSolution,
 				...(target?.explanation[1] ? { alternativeExplanation: target.explanation[1] } : {}),
 			};
 		}

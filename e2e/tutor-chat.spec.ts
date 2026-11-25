@@ -17,6 +17,9 @@ async function answerCorrectly(page: Page) {
 		await page.getByRole("button", { name: "Check" }).click();
 	}
 	await expect(page.getByTestId("phase")).not.toHaveText(position);
+	if (await page.getByTestId("feedback").isVisible()) {
+		await page.getByTestId("feedback").getByRole("button", { name: "Continue", exact: true }).click();
+	}
 	await expect(page.getByTestId("feedback")).toHaveCount(0);
 	await expect(page.getByTestId("answer-saved")).toHaveCount(0);
 }
@@ -72,9 +75,88 @@ test("Nova chats during tutoring and stays silent during the check", async ({ pa
 
 	await page.reload();
 	await expect(page.getByTestId("tutor-chat").getByTestId("chat-nova")).toContainText("tens digit");
+	await chat.getByLabel("Message to Nova").fill("Keep my draft");
+	await chat.getByRole("button", { name: "Hide Nova · Continue alone" }).click();
+	await expect(chat.getByLabel("Message to Nova")).toBeHidden();
+	await expect(chat.getByRole("button", { name: "Open Nova" })).toHaveAttribute("aria-expanded", "false");
+	await chat.getByRole("button", { name: "Open Nova" }).click();
+	await expect(chat.getByLabel("Message to Nova")).toHaveValue("Keep my draft");
+	await expect(chat.getByTestId("chat-nova")).toContainText("tens digit");
+
+	// A deliberately slow UI stream tests cancellation; it does not test LLM pedagogy.
+	await page.evaluate(() => {
+		const original = window.fetch;
+		window.fetch = async (input, init) => {
+			if (!String(input).endsWith("/api/tutor-chat")) return original(input, init);
+			const encoder = new TextEncoder();
+			let timer: ReturnType<typeof setTimeout>;
+			let stopped = false;
+			const markStopped = () => {
+				if (stopped) return;
+				stopped = true;
+				const root = document.documentElement;
+				root.dataset.novaStopped = String(Number(root.dataset.novaStopped ?? "0") + 1);
+			};
+			const stream = new ReadableStream({
+				start(controller) {
+					const emit = (chunk: object) => controller.enqueue(encoder.encode(`data: ${JSON.stringify(chunk)}\n\n`));
+					emit({ type: "text-start", id: "slow" });
+					emit({ type: "text-delta", id: "slow", delta: "A smaller example. " });
+					timer = setTimeout(() => {
+						emit({ type: "text-delta", id: "slow", delta: "This should never appear." });
+						emit({ type: "text-end", id: "slow" });
+						controller.close();
+					}, 30_000);
+					init?.signal?.addEventListener(
+						"abort",
+						() => {
+							markStopped();
+							clearTimeout(timer);
+							controller.error(new DOMException("Aborted", "AbortError"));
+						},
+						{ once: true },
+					);
+				},
+				cancel() {
+					markStopped();
+					clearTimeout(timer);
+				},
+			});
+			return new Response(stream, {
+				headers: { "content-type": "text/event-stream", "x-vercel-ai-ui-message-stream": "v1" },
+			});
+		};
+	});
+	await chat.getByRole("button", { name: "Use a smaller example", exact: true }).click();
+	await expect(chat.getByTestId("chat-child").last()).toHaveText("Use a smaller example");
+	await expect(chat.getByTestId("chat-nova").last()).toContainText("A smaller example.");
+	await chat.getByRole("button", { name: "Stop generating", exact: true }).click();
+	await expect(chat.getByRole("button", { name: "Stop generating", exact: true })).toHaveCount(0);
+	await expect(chat.getByLabel("Message to Nova")).toBeFocused();
+	await expect(chat.getByLabel("Message to Nova")).toHaveValue("Keep my draft");
+	await chat.getByRole("button", { name: "Explain another way", exact: true }).click();
+	await expect(chat.getByTestId("chat-nova").last()).toContainText("A smaller example.");
+	await chat.getByRole("button", { name: "Hide Nova · Continue alone" }).click();
+	await expect(chat.getByTestId("tutor-chat-log")).toBeHidden();
+	await chat.getByRole("button", { name: "Open Nova" }).click();
+	await expect(chat.getByRole("button", { name: "Stop generating", exact: true })).toHaveCount(0);
+	await expect(chat.getByTestId("tutor-chat-log")).not.toContainText("This should never appear");
+	await expect(chat.getByLabel("Message to Nova")).toHaveValue("Keep my draft");
+	await expect(page.locator("html")).toHaveAttribute("data-nova-stopped", "2");
 
 	await advanceTo(page, "guided");
 	await expect(page.getByTestId("tutor-chat")).toBeVisible();
+	const currentPrompt = await page.getByTestId("prompt").getAttribute("data-prompt");
+	await expect(chat.getByTestId("tutor-current-question")).toHaveText(`Current question: ${currentPrompt}`);
+	await chat.getByRole("button", { name: "Explain the question", exact: true }).click();
+	await expect(chat.getByTestId("chat-nova").last()).toContainText("A smaller example.");
+	await answerCorrectly(page);
+	await expect(page.locator("html")).toHaveAttribute("data-nova-stopped", "3");
+	const nextPrompt = await page.getByTestId("prompt").getAttribute("data-prompt");
+	await expect(chat.getByTestId("tutor-current-question")).toHaveText(`Current question: ${nextPrompt}`);
+	await expect(chat.getByRole("button", { name: "Stop generating", exact: true })).toHaveCount(0);
+	await expect(chat.getByRole("button", { name: "Explain the question", exact: true })).toBeEnabled();
+	await page.reload();
 
 	await advanceTo(page, "independent");
 	await expect(page.getByTestId("tutor-chat")).toHaveCount(0);

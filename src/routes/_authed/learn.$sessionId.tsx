@@ -1,11 +1,13 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { type KeyboardEvent, useEffect, useRef, useState } from "react";
 import { AnswerFeedback, AnswerSaved } from "#/components/answer-feedback";
+import { ConceptMotion } from "#/components/concept-motion";
 import { ConfidenceScale } from "#/components/confidence-scale";
 import { ExplanationStepper } from "#/components/explanation-stepper";
 import { FlightPlan } from "#/components/flight-plan";
 import { ErrorBox, useAction } from "#/components/form";
 import { flightStep } from "#/components/learning-map";
+import { answerFormat, LessonSummary, PHASE_SUPPORT } from "#/components/lesson-support";
 import { BLANK, numberLineFor } from "#/components/missing-number";
 import { NumberLine, PromptText } from "#/components/missing-number-view";
 import { Confetti, RateConfidence } from "#/components/mission-complete";
@@ -50,7 +52,7 @@ function LessonPage() {
 	const { view } = session;
 	const { confidence } = session;
 	const extra = view.kind === "extra";
-	const step = extra ? null : flightStep(view.phase);
+	const step = extra ? null : flightStep(gate ? "guided" : view.phase);
 	const askCheckIn = confidence.before === undefined && (view.phase === "diagnostic" || view.phase === "review");
 	const [heard, setHeard] = useState<{ said: string; number: string | null } | null>(null);
 	const speaker = useSpeaker(session.voice);
@@ -128,14 +130,33 @@ function LessonPage() {
 		<div className="surface-space min-h-screen">
 			<main className="page max-w-2xl space-y-6">
 				<div className="flex items-center justify-between">
-					<Link to="/students/$studentId" params={{ studentId: session.studentId }} className="link text-sm">
-						← Back
+					<Link
+						to="/students/$studentId"
+						params={{ studentId: session.studentId }}
+						className="link inline-flex min-h-11 items-center text-sm"
+						data-testid="lesson-break"
+						aria-disabled={act.pending}
+						onClick={(event) => {
+							if (act.pending) event.preventDefault();
+							else {
+								speaker.stop();
+								listener.stop();
+							}
+						}}
+					>
+						{view.phase === "complete" ? "← Back to missions" : "← Take a break"}
 					</Link>
 					<span className="chip" data-testid="phase" data-phase={view.phase}>
-						{extra && view.phase !== "complete" ? "Extra practice" : PHASE_LABEL[view.phase]}
-						{view.item ? ` · ${view.position}/${view.total}` : ""}
+						{gate ? "Your feedback" : extra && view.phase !== "complete" ? "Extra practice" : PHASE_LABEL[view.phase]}
+						{view.item && !gate ? ` · ${view.position}/${view.total}` : ""}
 					</span>
 				</div>
+				{view.phase !== "complete" && (
+					<p className="text-xs text-muted" data-testid="break-reassurance">
+						Checked answers are saved. Return from your missions to carry on.
+						{answer.trim() && " An answer you have not checked is not saved yet."}
+					</p>
+				)}
 
 				{step !== null && <FlightPlan current={step} />}
 
@@ -149,6 +170,9 @@ function LessonPage() {
 								data-testid="objective-title"
 							>
 								{session.objective.title}
+							</p>
+							<p className="mt-3 text-sm text-soft" data-testid="phase-support">
+								{gate ? "Take a moment with your feedback. You choose when to continue." : PHASE_SUPPORT[view.phase]}
 							</p>
 						</div>
 					</div>
@@ -174,14 +198,19 @@ function LessonPage() {
 						extras={
 							<>
 								{view.phase === "guided" && (
-									<button type="button" className="link" disabled={tutor.pending} onClick={() => void tutor.run()}>
+									<button
+										type="button"
+										className="link min-h-11"
+										disabled={tutor.pending}
+										onClick={() => void tutor.run()}
+									>
 										{tutor.pending ? "Thinking…" : "Explain it another way"}
 									</button>
 								)}
 								{speaker.supported && (
 									<button
 										type="button"
-										className="link"
+										className="link min-h-11"
 										onClick={() =>
 											speaker.speak([gate.message, gate.workedSolution, tutorText].filter(Boolean).join(" "))
 										}
@@ -201,6 +230,14 @@ function LessonPage() {
 					</AnswerFeedback>
 				)}
 
+				{view.phase === "instruction" && (
+					<ConceptMotion
+						objectiveCode={session.objective.code}
+						onNarrate={session.voice && speaker.supported ? speaker.speak : undefined}
+						onPauseNarration={session.voice && speaker.supported ? speaker.stop : undefined}
+					/>
+				)}
+
 				{view.phase === "instruction" && view.explanationSteps && view.explanationSteps.length > 0 && (
 					<ExplanationStepper
 						key={`explain:${session.sessionId}`}
@@ -210,7 +247,7 @@ function LessonPage() {
 						readyPending={act.pending}
 						onHear={speaker.supported ? (text) => speaker.speak([text, tutorText ?? ""].join(" ")) : undefined}
 						extras={
-							<button type="button" className="link" disabled={tutor.pending} onClick={() => void tutor.run()}>
+							<button type="button" className="link min-h-11" disabled={tutor.pending} onClick={() => void tutor.run()}>
 								{tutor.pending ? "Thinking…" : "Explain it another way"}
 							</button>
 						}
@@ -232,11 +269,15 @@ function LessonPage() {
 						<p className="font-display text-4xl leading-tight" data-testid="prompt" data-prompt={view.item.prompt}>
 							<PromptText prompt={view.item.prompt} />
 						</p>
+						<p id="answer-format" className="text-sm text-soft" data-testid="answer-format">
+							{answerFormat(view.item)}
+						</p>
 						{view.item.choices ? (
 							<fieldset
 								ref={choicesRef}
 								className="grid min-w-0 grid-cols-2 gap-3"
 								aria-label="Answer choices"
+								aria-describedby="answer-format"
 								onKeyDown={moveChoiceFocus}
 							>
 								{view.item.choices.map((c) => (
@@ -268,6 +309,7 @@ function LessonPage() {
 										: { inputMode: "decimal" })}
 									autoComplete="off"
 									aria-label="Your answer"
+									aria-describedby="answer-format"
 									value={answer}
 									maxLength={64}
 									onChange={(e) => setAnswer(e.target.value)}
@@ -289,7 +331,7 @@ function LessonPage() {
 						{view.canHint && (
 							<button
 								type="button"
-								className="link text-sm"
+								className="link min-h-11 text-sm"
 								disabled={act.pending}
 								onClick={() => void act.run({ action: "hint" })}
 							>
@@ -303,16 +345,25 @@ function LessonPage() {
 							</div>
 						)}
 						{(view.phase === "independent" || view.phase === "review" || view.phase === "diagnostic") && (
-							<p className="meta">No hints here. Just try your best.</p>
+							<p className="meta">Your answers are saved. We will look at them after the check.</p>
 						)}
 					</section>
 				)}
 
-				{(view.phase === "instruction" || view.phase === "guided") && (
-					<TutorChat key={`chat:${session.sessionId}`} sessionId={session.sessionId} />
+				{view.phase === "guided" && !gate && !saved && (
+					<ConceptMotion
+						objectiveCode={session.objective.code}
+						compact
+						onNarrate={session.voice && speaker.supported ? speaker.speak : undefined}
+						onPauseNarration={session.voice && speaker.supported ? speaker.stop : undefined}
+					/>
 				)}
 
-				{view.phase === "complete" && extra && (
+				{(view.phase === "instruction" || view.phase === "guided") && !gate && !saved && (
+					<TutorChat key={`chat:${session.sessionId}`} sessionId={session.sessionId} question={view.item?.prompt} />
+				)}
+
+				{view.phase === "complete" && !gate && extra && (
 					<section className="space-y-6" data-testid="extra-result">
 						<div className="grid items-center gap-6 sm:grid-cols-[1fr_auto]">
 							<div className="space-y-3">
@@ -333,7 +384,7 @@ function LessonPage() {
 					</section>
 				)}
 
-				{view.phase === "complete" && !extra && session.result && (
+				{view.phase === "complete" && !gate && !extra && session.result && (
 					<section className="space-y-6" data-testid="result">
 						<Confetti />
 						<div className="grid items-center gap-6 sm:grid-cols-[1fr_auto]">
@@ -347,7 +398,9 @@ function LessonPage() {
 							<Nova state="proud" size={200} className="mx-auto" />
 						</div>
 
-						<div className="card space-y-3">
+						<LessonSummary title={session.objective.title} status={session.result.status} />
+						<details className="card space-y-3">
+							<summary className="min-h-11 cursor-pointer py-3 text-sm">Check details</summary>
 							<p className="flex flex-wrap items-center gap-2">
 								<span className="text-soft">Status now:</span> <StatusBadge status={session.result.status} />
 							</p>
@@ -359,7 +412,7 @@ function LessonPage() {
 									</li>
 								))}
 							</ul>
-						</div>
+						</details>
 
 						<RateConfidence
 							before={confidence.before}
@@ -375,7 +428,7 @@ function LessonPage() {
 								<div>
 									<p className="meta">Next review check</p>
 									<p className="mt-1 text-sm">
-										{formatDate(session.result.nextReviewAt)}. Pass it and this skill stays secure for longer.
+										{formatDate(session.result.nextReviewAt)}. A short check to see what you remember then.
 									</p>
 								</div>
 							</div>

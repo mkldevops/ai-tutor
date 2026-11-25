@@ -1,10 +1,10 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { AuthError } from "./auth/provider";
 import { resetRateLimits } from "./rate-limit";
 import { type Actor, createFamilyForUser, createStudent } from "./services/family";
 import { startSession } from "./services/learning";
 import { placeAt } from "./services/programme-fixtures";
-import type { TutorChatDeps } from "./services/tutor-chat";
+import { listTutorMessages, type TutorChatDeps } from "./services/tutor-chat";
 import { createMemoryStore } from "./store/memory-store";
 import type { DataStore } from "./store/types";
 import { handleTutorChat, MAX_BODY_BYTES } from "./tutor-chat-http";
@@ -61,12 +61,103 @@ describe("POST /api/tutor-chat", () => {
 		expect(body).toContain("What happens to the 3?");
 	});
 
+	it.each([
+		"reader",
+		"request",
+	] as const)("propagates %s cancellation into the streamer and persists only the stopped reply", async (cancelVia) => {
+		const requestController = new AbortController();
+		const request = new Request(post(JSON.stringify({ sessionId, message: "help" })), {
+			signal: requestController.signal,
+		});
+		const removed = vi.spyOn(request.signal, "removeEventListener");
+		let received: AbortSignal | undefined;
+		let cleaned = false;
+		const slow: TutorChatDeps = {
+			...deps,
+			createStreamer: () => async (_turns, _context, signal) => {
+				received = signal;
+				return (async function* () {
+					let release!: () => void;
+					const stopped = new Promise<void>((resolve) => {
+						release = resolve;
+					});
+					signal!.addEventListener("abort", release, { once: true });
+					try {
+						yield "Before stop. ";
+						await stopped;
+						// Simulate a provider delivering a final in-flight chunk after cancellation.
+						yield "Generated after stop. ";
+					} finally {
+						signal!.removeEventListener("abort", release);
+						cleaned = true;
+					}
+				})();
+			},
+		};
+		const response = await handleTutorChat(request, { requireActor: signedIn, deps: slow });
+		const reader = response.body!.getReader();
+		const decoder = new TextDecoder();
+		let shown = "";
+		while (!shown.includes("Before stop.")) {
+			const chunk = await reader.read();
+			expect(chunk.done).toBe(false);
+			shown += decoder.decode(chunk.value);
+		}
+		if (cancelVia === "reader") await reader.cancel("Child stopped");
+		else {
+			requestController.abort();
+			while (!(await reader.read()).done) {
+				/* Drain the cancelled response. */
+			}
+		}
+		expect(received?.aborted).toBe(true);
+		await vi.waitFor(async () => {
+			expect(await store.audit_logs.list({ action: "tutor.chat" })).toHaveLength(1);
+		});
+		expect(cleaned).toBe(true);
+		const history = await listTutorMessages(store, actor, sessionId);
+		expect(history.at(-1)?.text).toBe("Before stop.");
+		expect(JSON.stringify(history)).not.toContain("Generated after stop");
+		const [log] = await store.audit_logs.list({ action: "tutor.chat" });
+		expect(log?.detail).toMatchObject({ outcome: "cancelled" });
+		expect(removed).toHaveBeenCalledWith("abort", expect.any(Function));
+		removed.mockRestore();
+		reader.releaseLock();
+	});
+
 	it("requires a signed-in parent", async () => {
 		const res = await handleTutorChat(post(JSON.stringify({ sessionId, message: "hi" })), {
 			requireActor: () => Promise.reject(new AuthError("Please sign in.", "unknown")),
 			deps,
 		});
 		expect(res.status).toBe(401);
+	});
+
+	it("streams a pause acknowledgement without calling the model", async () => {
+		const model = vi.fn(async () => reply());
+		const res = await handleTutorChat(post(JSON.stringify({ sessionId, message: "Please stop" })), {
+			requireActor: signedIn,
+			deps: { ...deps, createStreamer: () => model },
+		});
+		expect(res.status).toBe(200);
+		expect(await res.text()).toContain("we can stop here");
+		expect(model).not.toHaveBeenCalled();
+	});
+
+	it("does not let pause bypass authentication, family isolation or phase checks", async () => {
+		const request = () => post(JSON.stringify({ sessionId, message: "stop" }));
+		expect(
+			(
+				await handleTutorChat(request(), {
+					requireActor: () => Promise.reject(new AuthError("Sign in", "unknown")),
+					deps,
+				})
+			).status,
+		).toBe(401);
+		const other = await createFamilyForUser(store, "another-parent", "Other family");
+		expect((await handleTutorChat(request(), { requireActor: async () => ({ actor: other }), deps })).status).toBe(404);
+		await setPhase("independent");
+		expect((await handleTutorChat(request(), { requireActor: signedIn, deps })).status).toBe(403);
 	});
 
 	it("rejects oversized, unsized and non-JSON bodies", async () => {

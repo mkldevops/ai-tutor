@@ -1,4 +1,4 @@
-import { type ReactNode, useState } from "react";
+import { type ReactNode, useEffect, useRef, useState } from "react";
 import type { ExplanationStep } from "#/learning-engine/lesson";
 import { splitStep } from "./explanation-step";
 
@@ -14,7 +14,11 @@ type Props = {
 
 export function ExplanationStepper({ steps, onStep, onReady, onHear, readyPending, extras, children }: Props) {
 	const [index, setIndex] = useState(0);
+	const heading = useRef<HTMLHeadingElement>(null);
 	const step = steps[index];
+	useEffect(() => {
+		if (step) heading.current?.focus({ preventScroll: true });
+	}, [step]);
 	if (!step) return null;
 	const last = index === steps.length - 1;
 	const { lead, figures } = splitStep(step.text);
@@ -26,9 +30,9 @@ export function ExplanationStepper({ steps, onStep, onReady, onHear, readyPendin
 
 	return (
 		<section className="card space-y-5 p-5 sm:p-6" data-testid="explanation" aria-live="polite">
-			<p className="meta" data-testid="explanation-step">
+			<h2 ref={heading} tabIndex={-1} className="meta" data-testid="explanation-step">
 				{step.reminder ? "Quick reminder · " : ""}Step {index + 1} of {steps.length}
-			</p>
+			</h2>
 			<div className="min-h-40 space-y-4 sm:min-h-44">
 				{figures.length > 0 && (
 					<div className="space-y-1">
@@ -48,15 +52,14 @@ export function ExplanationStepper({ steps, onStep, onReady, onHear, readyPendin
 						Back
 					</button>
 				)}
-				{last ? (
-					<button type="button" className="btn" disabled={readyPending} onClick={onReady}>
-						I'm ready to practise
-					</button>
-				) : (
-					<button type="button" className="btn" onClick={() => go(index + 1)}>
+				{!last && (
+					<button type="button" className="btn-secondary min-h-11" onClick={() => go(index + 1)}>
 						Next
 					</button>
 				)}
+				<button type="button" className="btn min-h-11" disabled={readyPending} onClick={onReady}>
+					I'm ready to practise
+				</button>
 				<ol className="ml-auto flex gap-1.5" aria-hidden="true">
 					{steps.map((s, i) => (
 						<li key={s.text} className="explain-dot" data-on={i <= index || undefined} />
@@ -66,7 +69,7 @@ export function ExplanationStepper({ steps, onStep, onReady, onHear, readyPendin
 			<div className="flex flex-wrap gap-x-4 gap-y-1 border-t pt-3 text-sm explain-extras">
 				{extras}
 				{onHear && (
-					<button type="button" className="link" data-testid="hear-again" onClick={() => onHear(step.text)}>
+					<button type="button" className="link min-h-11" data-testid="hear-again" onClick={() => onHear(step.text)}>
 						Hear it again
 					</button>
 				)}

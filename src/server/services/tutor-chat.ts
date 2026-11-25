@@ -16,7 +16,11 @@ export const TUTOR_CHAT_LIMITS = {
 export const TUTORING_PHASES = new Set(["instruction", "guided"]);
 
 export type ChatTurn = { role: "user" | "assistant"; content: string };
-export type TutorStreamer = (turns: ChatTurn[], context: string) => Promise<AsyncIterable<string>>;
+export type TutorStreamer = (
+	turns: ChatTurn[],
+	context: string,
+	abortSignal?: AbortSignal,
+) => Promise<AsyncIterable<string>>;
 export type TutorChatScope = { studentId: string; objectiveCode: string };
 
 export type TutorChatDeps = {
@@ -30,6 +34,31 @@ export type TutorChatDeps = {
 export type TutorChatEvent = GuardEvent | { type: "failed"; text: string };
 
 export const UNAVAILABLE_TEXT = "The AI tutor is not switched on for this family.";
+export const PAUSE_TEXT = "Okay, we can stop here. You can take a break or continue on your own.";
+export const HIDE_HISTORY_TEXT =
+	"You can use Hide Nova to close this chat. Saved messages will still be here when you open Nova again; hiding does not delete them.";
+
+const HIDE_HISTORY_REQUEST = /^(?:(?:please|nova) )?delete (?:the )?chat(?: please)?$/;
+
+function normaliseControlRequest(message: string): string {
+	return message
+		.toLowerCase()
+		.replace(/[’]/g, "'")
+		.replace(/[.!?,]/g, "")
+		.trim();
+}
+
+// Match complete, unambiguous requests only: e.g. not ‘stop the digits moving’.
+export function isPauseRequest(message: string): boolean {
+	const text = normaliseControlRequest(message);
+	return (
+		HIDE_HISTORY_REQUEST.test(text) ||
+		/^(?:(?:please|nova) )?(?:stop|pause|stop please|stop nova|stop explaining|stop asking questions|stop talking(?: and more working)?|let stop chat|lets stop|let's stop|i (?:want|need) (?:to stop|a break)|can (?:we|i) (?:stop|take a break)|(?:i want to )?continue (?:alone|on my own)|no more questions)(?: please)?$/.test(
+			text,
+		)
+	);
+}
+
 export const CUT_TEXT = "Oops, I lost my words there. Can you ask me again?";
 export const FAILED_TEXT = "Sorry, I can't answer right now. Please try again in a moment.";
 
@@ -61,6 +90,7 @@ export function textAnswerForms(answer: string, prompt: string): string[] {
 export function lessonContext(session: LearningSessionRecord): string {
 	const objective = getObjective(session.objectiveCode);
 	const lines = [
+		"This is the current lesson context for this turn. Earlier chat may refer to previous questions or examples; do not treat them as the current question.",
 		`Subject: ${objective?.subject === "english" ? "English (spelling, grammar and punctuation)" : "Maths"}`,
 		`Objective: ${objective?.statement ?? session.objectiveCode}`,
 	];
@@ -101,6 +131,7 @@ export async function startTutorChat(
 	deps: TutorChatDeps,
 	actor: Actor,
 	input: { sessionId: string; message: string },
+	abortSignal?: AbortSignal,
 ): Promise<AsyncIterable<TutorChatEvent>> {
 	const { store } = deps;
 	const now = deps.now?.() ?? new Date();
@@ -118,6 +149,7 @@ export async function startTutorChat(
 	if (!streamer) throw new AppError("forbidden", UNAVAILABLE_TEXT);
 	await rateLimit(`tutor-chat:${actor.userId}`, TUTOR_CHAT_LIMITS.perMinute, 60_000, now.getTime());
 	await rateLimit(`ai:${actor.familyId}`, deps.dailyCallsPerFamily, 24 * 60 * 60_000, now.getTime());
+	abortSignal?.throwIfAborted();
 
 	await pruneExpired(store, session.studentId, now);
 	const history = await listTutorMessages(store, actor, session.id, now);
@@ -131,21 +163,32 @@ export async function startTutorChat(
 	];
 	const forbidden = forbiddenAnswers(session);
 	const started = Date.now();
+	const controller = new AbortController();
+	const signal = abortSignal ? AbortSignal.any([abortSignal, controller.signal]) : controller.signal;
 
-	return (async function* () {
+	const events = (async function* (): AsyncGenerator<TutorChatEvent, void> {
 		let reply = "";
 		let outcome = "ok";
 		try {
-			const source = await streamer(turns, lessonContext(session));
+			signal.throwIfAborted();
+			const paused = isPauseRequest(message);
+			if (paused) outcome = "paused";
+			const source = paused
+				? (async function* () {
+						yield HIDE_HISTORY_REQUEST.test(normaliseControlRequest(message)) ? HIDE_HISTORY_TEXT : PAUSE_TEXT;
+					})()
+				: await streamer(turns, lessonContext(session), signal);
 			for await (const event of guardReply(source, {
 				forbiddenAnswers: forbidden,
 				maxChars: TUTOR_CHAT_LIMITS.replyChars,
 			})) {
+				if (signal.aborted) break;
 				reply += event.text;
 				if (event.type === "stopped") outcome = event.reason;
 				yield event;
 			}
 		} catch (e) {
+			if (signal.aborted) return;
 			const cut = e instanceof ReplyCutError;
 			outcome = cut ? "cut" : "error";
 			console.error("[ai-tutor] tutor chat failed", e instanceof Error ? e.message : e);
@@ -154,6 +197,9 @@ export async function startTutorChat(
 			reply += text;
 			yield { type: "failed", text };
 		} finally {
+			if (signal.aborted) outcome = "cancelled";
+			// Also release model work when a guard or the iterator consumer ends the reply early.
+			controller.abort();
 			const text = reply.trim().slice(0, 2000);
 			if (text) await store.session_messages.create({ ...owner, role: "tutor", text });
 			await audit(store, actor, "tutor.chat", target, {
@@ -165,4 +211,15 @@ export async function startTutorChat(
 			});
 		}
 	})();
+	return {
+		[Symbol.asyncIterator]() {
+			return {
+				next: () => events.next(),
+				return: () => {
+					controller.abort();
+					return events.return();
+				},
+			};
+		},
+	};
 }

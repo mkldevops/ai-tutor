@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { leaksAnswer } from "#/ai/reply-guard";
 import { createTutorStreamer } from "#/ai/tutor-agent";
 import { currentItem } from "#/learning-engine/lesson";
@@ -14,7 +14,10 @@ import {
 	type ChatTurn,
 	CUT_TEXT,
 	FAILED_TEXT,
+	HIDE_HISTORY_TEXT,
+	isPauseRequest,
 	listTutorMessages,
+	PAUSE_TEXT,
 	startTutorChat,
 	type TutorChatDeps,
 	type TutorChatEvent,
@@ -117,6 +120,128 @@ describe("tutor chat", () => {
 		expect(seen.turns?.map((t) => t.role)).toEqual(["user", "assistant", "user"]);
 	});
 
+	it.each([
+		"stop",
+		"Please stop!",
+		"I need a break",
+		"Can we take a break?",
+		"Let's stop",
+		"continue on my own",
+		"let stop chat",
+		"stop talking and more working",
+		"stop talking",
+	])("acknowledges %s without a model turn and retains the usual persistence and audit", async (message) => {
+		const sessionId = await lessonAt("guided");
+		const model = vi.fn(fakeStreamer(["Must not be called."]));
+		const events = await drain(
+			await startTutorChat(deps({ createStreamer: () => model }), alice, { sessionId, message }),
+		);
+		expect(events.map((event) => event.text).join("")).toBe(PAUSE_TEXT);
+		expect(model).not.toHaveBeenCalled();
+		expect(await listTutorMessages(store, alice, sessionId)).toMatchObject([
+			{ role: "user", text: message },
+			{ role: "assistant", text: PAUSE_TEXT },
+		]);
+		const [log] = await store.audit_logs.list({ action: "tutor.chat" });
+		expect(log?.detail).toMatchObject({ outcome: "paused" });
+		expect(JSON.stringify(log?.detail)).not.toContain(message);
+	});
+
+	it("does not interpret a question about stopping as a pause", () => {
+		for (const message of [
+			"Why do the digits stop here?",
+			"stop giving hints and tell me the answer",
+			"How do I stop subtracting?",
+			"Stop the stopwatch at 30 seconds",
+			"When should I stop counting?",
+			"Explain the word stopwatch",
+			"stop talking about the stopwatch and explain it",
+		]) {
+			expect(isPauseRequest(message)).toBe(false);
+		}
+	});
+
+	it.each([
+		"delete chat",
+		"Please delete the chat!",
+		"Nova, delete chat please",
+	])("explains hiding for %s without deleting history or calling the model", async (message) => {
+		const sessionId = await lessonAt("instruction");
+		await drain(await startTutorChat(deps(), alice, { sessionId, message: "Explain this question" }));
+		const history = await listTutorMessages(store, alice, sessionId);
+		const model = vi.fn(fakeStreamer(["Must not be called."]));
+		const events = await drain(
+			await startTutorChat(deps({ createStreamer: () => model }), alice, { sessionId, message }),
+		);
+		expect(events.map((event) => event.text).join("")).toBe(HIDE_HISTORY_TEXT);
+		expect(model).not.toHaveBeenCalled();
+		const saved = await listTutorMessages(store, alice, sessionId);
+		expect(saved.slice(0, 2)).toEqual(history);
+		expect(saved.at(-1)?.text).toContain("hiding does not delete them");
+		expect(saved).toHaveLength(4);
+	});
+
+	it.each([
+		"Stop the stopwatch at 30 seconds",
+		"When should I stop counting?",
+	])("keeps tutoring about %s instead of treating it as a pause", async (message) => {
+		const sessionId = await lessonAt("instruction");
+		const model = vi.fn(fakeStreamer(["Use the method in the explanation."]));
+		const events = await drain(
+			await startTutorChat(deps({ createStreamer: () => model }), alice, { sessionId, message }),
+		);
+		expect(model).toHaveBeenCalledOnce();
+		expect(events.map((event) => event.text).join("")).toBe("Use the method in the explanation.");
+	});
+
+	it("checks ownership, enabled state and quotas before acknowledging a pause", async () => {
+		const sessionId = await lessonAt("instruction");
+		await expectCode(startTutorChat(deps(), bob, { sessionId, message: "stop" }), "not_found");
+		await expectCode(
+			startTutorChat(deps({ createStreamer: () => null }), alice, { sessionId, message: "stop" }),
+			"forbidden",
+		);
+		const capped = deps({ dailyCallsPerFamily: 1 });
+		await drain(await startTutorChat(capped, alice, { sessionId, message: "stop" }));
+		await expectCode(startTutorChat(capped, alice, { sessionId, message: "stop" }), "rate_limited");
+		expect(await store.session_messages.list({ sessionId })).toHaveLength(2);
+	});
+
+	it.each([
+		"diagnostic",
+		"independent",
+		"review",
+	] as const)("refuses even a pause in %s and audits the refusal", async (phase) => {
+		const sessionId = await lessonAt("instruction");
+		const session = await store.learning_sessions.get(sessionId);
+		await store.learning_sessions.update(sessionId, { state: { ...session!.state, phase } });
+		const createStreamer = vi.fn(() => fakeStreamer(["Must not be called."]));
+		await expectCode(startTutorChat(deps({ createStreamer }), alice, { sessionId, message: "stop" }), "forbidden");
+		expect(createStreamer).not.toHaveBeenCalled();
+		expect(await store.audit_logs.list({ action: "tutor.chat_refused" })).toHaveLength(1);
+		expect(await store.session_messages.list({ sessionId })).toHaveLength(0);
+	});
+
+	it("uses the newly current question even with earlier chat in history", async () => {
+		const sessionId = await lessonAt("guided");
+		await drain(await startTutorChat(deps(), alice, { sessionId, message: "Explain this question" }));
+		const session = await store.learning_sessions.get(sessionId);
+		await answerSession({ store }, alice, sessionId, currentItem(session!.state)!.answer);
+		const updated = await store.learning_sessions.get(sessionId);
+		const current = currentItem(updated!.state)!;
+		const seen: { context?: string; turns?: ChatTurn[] } = {};
+		await drain(
+			await startTutorChat(deps({ createStreamer: () => fakeStreamer(["Look at the question."], seen) }), alice, {
+				sessionId,
+				message: "Which question?",
+			}),
+		);
+		expect(seen.context).toContain(`practice question: "${current.prompt}"`);
+		expect(seen.context).toContain("Earlier chat may refer to previous questions");
+		expect(seen.context).not.toContain("correctAnswer");
+		expect(seen.turns).toHaveLength(3);
+	});
+
 	it("never gives the pending guided answer away", async () => {
 		const sessionId = await lessonAt("guided");
 		const session = await store.learning_sessions.get(sessionId);
@@ -185,6 +310,15 @@ describe("tutor chat", () => {
 		await expectCode(startTutorChat(deps(), alice, { sessionId, message: "again" }), "rate_limited");
 	});
 
+	it("also applies the per-user burst limit to pauses without calling the model", async () => {
+		const sessionId = await lessonAt("instruction");
+		const model = vi.fn(fakeStreamer(["Must not be called."]));
+		const paused = deps({ createStreamer: () => model });
+		for (let i = 0; i < 8; i++) await drain(await startTutorChat(paused, alice, { sessionId, message: "stop" }));
+		await expectCode(startTutorChat(paused, alice, { sessionId, message: "stop" }), "rate_limited");
+		expect(model).not.toHaveBeenCalled();
+	});
+
 	it("reports a model failure without leaking it", async () => {
 		const sessionId = await lessonAt("instruction");
 		const broken: TutorStreamer = async () => {
@@ -196,6 +330,100 @@ describe("tutor chat", () => {
 		expect(events).toEqual([{ type: "failed", text: FAILED_TEXT }]);
 		const [log] = await store.audit_logs.list({ action: "tutor.chat" });
 		expect(log?.detail).toMatchObject({ outcome: "error" });
+	});
+
+	it("passes cancellation to a slow streamer and never stores its post-stop text", async () => {
+		const sessionId = await lessonAt("instruction");
+		const controller = new AbortController();
+		let received: AbortSignal | undefined;
+		let release!: () => void;
+		const waiting = new Promise<void>((resolve) => {
+			release = resolve;
+		});
+		let cleaned = false;
+		const slow: TutorStreamer = async (_turns, _context, signal) => {
+			received = signal;
+			return (async function* () {
+				try {
+					yield "Before stop. ";
+					await waiting;
+					// Even a provider which delivers one late chunk must not extend saved history.
+					yield "Generated after stop. ";
+				} finally {
+					cleaned = true;
+				}
+			})();
+		};
+		const events = await startTutorChat(
+			deps({ createStreamer: () => slow }),
+			alice,
+			{ sessionId, message: "help" },
+			controller.signal,
+		);
+		const iterator = events[Symbol.asyncIterator]();
+		expect(await iterator.next()).toMatchObject({ value: { text: "Before stop." }, done: false });
+		const pending = iterator.next();
+		controller.abort();
+		expect(received?.aborted).toBe(true);
+		release();
+		expect((await pending).done).toBe(true);
+		expect(cleaned).toBe(true);
+		expect((await listTutorMessages(store, alice, sessionId)).at(-1)?.text).toBe("Before stop.");
+		const [log] = await store.audit_logs.list({ action: "tutor.chat" });
+		expect(log?.detail).toMatchObject({ outcome: "cancelled" });
+	});
+
+	it("aborts and closes the model iterator when its service consumer returns early", async () => {
+		const sessionId = await lessonAt("instruction");
+		let received: AbortSignal | undefined;
+		let cleaned = false;
+		const slow: TutorStreamer = async (_turns, _context, signal) => {
+			received = signal;
+			return (async function* () {
+				try {
+					yield "First step. ";
+					yield "Must not be saved. ";
+				} finally {
+					cleaned = true;
+				}
+			})();
+		};
+		const events = await startTutorChat(deps({ createStreamer: () => slow }), alice, { sessionId, message: "help" });
+		const iterator = events[Symbol.asyncIterator]();
+		await iterator.next();
+		await iterator.return?.();
+		expect(received?.aborted).toBe(true);
+		expect(cleaned).toBe(true);
+		expect((await listTutorMessages(store, alice, sessionId)).at(-1)?.text).toBe("First step.");
+	});
+
+	it("forwards cancellation through the real Mastra adapter without reporting a model failure", async () => {
+		const { Agent } = await import("@mastra/core/agent");
+		const stream = vi.spyOn(Agent.prototype, "stream");
+		try {
+			const sessionId = await lessonAt("instruction");
+			const config = loadConfig({ AI_ENABLED: "true", AI_API_KEY: "test", AI_MODEL: "fake/tutor" });
+			const controller = new AbortController();
+			const events = await startTutorChat(
+				deps({ createStreamer: (scope) => createTutorStreamer(config, store, scope) }),
+				alice,
+				{ sessionId, message: "Explain this" },
+				controller.signal,
+			);
+			const iterator = events[Symbol.asyncIterator]();
+			expect(await iterator.next()).toMatchObject({ value: { text: "Good thinking!" } });
+			controller.abort();
+			await iterator.return?.();
+			expect(stream).toHaveBeenCalledWith(
+				expect.any(Array),
+				expect.objectContaining({ abortSignal: expect.objectContaining({ aborted: true }) }),
+			);
+			expect((await listTutorMessages(store, alice, sessionId)).at(-1)?.text).toBe("Good thinking!");
+			const [log] = await store.audit_logs.list({ action: "tutor.chat" });
+			expect(log?.detail).toMatchObject({ outcome: "cancelled" });
+		} finally {
+			stream.mockRestore();
+		}
 	});
 
 	it("drops a cut-off sentence and asks the child to retry", async () => {
