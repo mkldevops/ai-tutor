@@ -149,14 +149,19 @@ test("Nova chats during tutoring and stays silent during the check", async ({ pa
 	const currentPrompt = await page.getByTestId("prompt").getAttribute("data-prompt");
 	await expect(chat.getByTestId("tutor-current-question")).toHaveText(`Current question: ${currentPrompt}`);
 	await chat.getByRole("button", { name: "Explain the question", exact: true }).click();
-	await expect(chat.getByTestId("chat-nova").last()).toContainText("A smaller example.");
+	await expect(chat.getByTestId("chat-nova")).toHaveCount(1);
+	await expect(chat.getByTestId("chat-nova")).toContainText("A smaller example.");
 	await answerCorrectly(page);
 	await expect(page.locator("html")).toHaveAttribute("data-nova-stopped", "3");
 	const nextPrompt = await page.getByTestId("prompt").getAttribute("data-prompt");
 	await expect(chat.getByTestId("tutor-current-question")).toHaveText(`Current question: ${nextPrompt}`);
 	await expect(chat.getByRole("button", { name: "Stop generating", exact: true })).toHaveCount(0);
 	await expect(chat.getByRole("button", { name: "Explain the question", exact: true })).toBeEnabled();
+	await expect(chat.getByTestId("chat-nova")).toHaveCount(0);
+	await chat.getByRole("button", { name: "Hide Nova · Continue alone" }).click();
 	await page.reload();
+	await expect(chat.getByRole("button", { name: "Open Nova" })).toHaveAttribute("aria-expanded", "false");
+	await expect(chat.getByTestId("chat-nova")).toHaveCount(0);
 
 	await advanceTo(page, "independent");
 	await expect(page.getByTestId("tutor-chat")).toHaveCount(0);
