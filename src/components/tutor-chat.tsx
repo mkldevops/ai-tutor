@@ -5,8 +5,11 @@ import { getTutorChatFn } from "#/server/functions";
 import { ErrorBox, errorMessage } from "./form";
 
 const MAX_CHARS = 500;
+const HELPS = ["Explain the question", "Use a smaller example", "Explain another way"];
 
 type StoredMessage = { id: string; role: "user" | "assistant"; text: string };
+
+type Scope = { question?: string; afterId: string | null; open: boolean };
 
 const toUIMessage = (m: StoredMessage): UIMessage => ({
 	id: m.id,
@@ -20,10 +23,37 @@ const textOf = (m: UIMessage) =>
 		.map((p) => p.text)
 		.join("");
 
+const scopeKey = (sessionId: string) => `nova:${sessionId}`;
+
+function readScope(sessionId: string): Partial<Scope> | null {
+	try {
+		const raw = window.sessionStorage.getItem(scopeKey(sessionId));
+		return raw ? (JSON.parse(raw) as Partial<Scope>) : null;
+	} catch {
+		return null;
+	}
+}
+
+function writeScope(sessionId: string, scope: Scope) {
+	try {
+		window.sessionStorage.setItem(scopeKey(sessionId), JSON.stringify(scope));
+	} catch {
+		// Storage can be blocked; Nova still works for this page view.
+	}
+}
+
+export function latestExchange(messages: UIMessage[], afterId: string | null) {
+	const start = afterId === null ? 0 : messages.findIndex((m) => m.id === afterId) + 1 || messages.length;
+	const current = messages.slice(start);
+	const asked = current.map((m) => m.role).lastIndexOf("user");
+	return asked < 0 ? current.slice(-1) : current.slice(asked, asked + 2);
+}
+
 export function TutorChat({ sessionId, question }: { sessionId: string; question?: string }) {
 	const panelId = useId();
 	const draftInput = useRef<HTMLInputElement>(null);
 	const [expanded, setExpanded] = useState(true);
+	const [scope, setScope] = useState<Scope | null>(null);
 	const [state, setState] = useState<"loading" | "off" | "ready">("loading");
 	const [loadError, setLoadError] = useState<string | null>(null);
 	const [draft, setDraft] = useState("");
@@ -46,12 +76,23 @@ export function TutorChat({ sessionId, question }: { sessionId: string; question
 		transport,
 	});
 
+	const firstQuestion = useRef(question);
 	useEffect(() => {
+		const stored = readScope(sessionId);
+		if (stored?.open === false) setExpanded(false);
 		let cancelled = false;
 		getTutorChatFn({ data: { sessionId } })
 			.then((res) => {
 				if (cancelled) return;
-				setMessages(res.messages.map(toUIMessage));
+				const loaded = res.messages.map(toUIMessage);
+				const question = firstQuestion.current;
+				const sameQuestion = stored?.question === question && stored?.afterId !== undefined;
+				setMessages(loaded);
+				setScope({
+					question,
+					afterId: sameQuestion ? (stored?.afterId ?? null) : (loaded.at(-1)?.id ?? null),
+					open: stored?.open ?? true,
+				});
 				setState(res.enabled ? "ready" : "off");
 			})
 			.catch((e: unknown) => {
@@ -63,6 +104,19 @@ export function TutorChat({ sessionId, question }: { sessionId: string; question
 			cancelled = true;
 		};
 	}, [sessionId, setMessages]);
+
+	const lastId = messages.at(-1)?.id ?? null;
+	const lastIdRef = useRef(lastId);
+	lastIdRef.current = lastId;
+	useEffect(() => {
+		setScope((current) =>
+			current && current.question !== question ? { ...current, question, afterId: lastIdRef.current } : current,
+		);
+	}, [question]);
+
+	useEffect(() => {
+		if (scope) writeScope(sessionId, { ...scope, open: expanded });
+	}, [sessionId, scope, expanded]);
 
 	const previousQuestion = useRef(question);
 	useEffect(() => {
@@ -77,6 +131,9 @@ export function TutorChat({ sessionId, question }: { sessionId: string; question
 	);
 
 	const busy = status === "submitted" || status === "streaming";
+	const exchange = scope ? latestExchange(messages, scope.afterId) : [];
+	const asked = exchange.find((m) => m.role === "user");
+	const reply = exchange.find((m) => m.role === "assistant");
 
 	const send = (help?: string) => {
 		const text = (help ?? draft).replace(/\s+/g, " ").trim();
@@ -87,11 +144,13 @@ export function TutorChat({ sessionId, question }: { sessionId: string; question
 	};
 
 	return (
-		<section className="card space-y-3" data-testid="tutor-chat" aria-label="Chat with Nova">
-			<div className="flex flex-wrap items-start justify-between gap-2">
+		<section className="card space-y-4" data-testid="tutor-chat" aria-label="Chat with Nova">
+			<div className="flex flex-wrap items-center justify-between gap-2">
 				<div>
 					<p className="meta">Ask Nova</p>
-					<p className="text-sm text-soft">Stuck on an idea? Choose how Nova can help, or continue on your own.</p>
+					<p className="text-sm text-soft">
+						{expanded ? "Stuck? Pick how Nova can help." : "Nova is here if you get stuck."}
+					</p>
 				</div>
 				<button
 					type="button"
@@ -106,9 +165,9 @@ export function TutorChat({ sessionId, question }: { sessionId: string; question
 					{expanded ? "Hide Nova · Continue alone" : "Open Nova"}
 				</button>
 			</div>
-			<div id={panelId} hidden={!expanded} className="space-y-3">
+			<div id={panelId} hidden={!expanded} className="space-y-4">
 				{question && (
-					<p className="text-sm text-soft" data-testid="tutor-current-question">
+					<p className="sr-only" data-testid="tutor-current-question">
 						Current question: {question}
 					</p>
 				)}
@@ -119,25 +178,26 @@ export function TutorChat({ sessionId, question }: { sessionId: string; question
 				)}
 				{state === "ready" && (
 					<>
-						{messages.length > 0 && (
-							<ol
-								className="max-h-64 space-y-2 overflow-y-auto overscroll-contain"
-								// biome-ignore lint/a11y/noNoninteractiveTabindex: Scrollable history must support keyboard scrolling.
-								tabIndex={0}
-								aria-label="Conversation with Nova"
-								aria-live="polite"
-								data-testid="tutor-chat-log"
-							>
-								{messages.map((m) => (
-									<li
-										key={m.id}
-										className={m.role === "user" ? "ml-8 text-right text-sm" : "bubble mr-8 text-sm"}
-										data-testid={m.role === "user" ? "chat-child" : "chat-nova"}
-									>
-										{textOf(m)}
-									</li>
-								))}
-							</ol>
+						<fieldset className="flex flex-wrap gap-2" aria-label="Ways Nova can help">
+							{HELPS.map((help) => (
+								<button key={help} type="button" className="btn-secondary" disabled={busy} onClick={() => send(help)}>
+									{help}
+								</button>
+							))}
+						</fieldset>
+						{exchange.length > 0 && (
+							<div className="space-y-2" aria-live="polite" data-testid="tutor-chat-log">
+								{asked && (
+									<p className="meta" data-testid="chat-child">
+										{textOf(asked)}
+									</p>
+								)}
+								{reply && (
+									<p className="bubble text-base leading-relaxed" data-testid="chat-nova">
+										{textOf(reply)}
+									</p>
+								)}
+							</div>
 						)}
 						{status === "submitted" && <p className="meta">Nova is thinking…</p>}
 						{busy && (
@@ -151,13 +211,6 @@ export function TutorChat({ sessionId, question }: { sessionId: string; question
 								Stop generating
 							</button>
 						)}
-						<fieldset className="flex flex-wrap gap-2" aria-label="Ways Nova can help">
-							{["Explain the question", "Use a smaller example", "Explain another way"].map((help) => (
-								<button key={help} type="button" className="btn-secondary" disabled={busy} onClick={() => send(help)}>
-									{help}
-								</button>
-							))}
-						</fieldset>
 						<ErrorBox error={error ? error.message || "Nova could not answer just now." : null} />
 						<form
 							className="flex gap-2"
@@ -170,6 +223,7 @@ export function TutorChat({ sessionId, question }: { sessionId: string; question
 								ref={draftInput}
 								className="input"
 								aria-label="Message to Nova"
+								placeholder="Or ask your own question"
 								autoComplete="off"
 								maxLength={MAX_CHARS}
 								value={draft}
