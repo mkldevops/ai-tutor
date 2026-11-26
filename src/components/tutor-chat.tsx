@@ -76,7 +76,8 @@ export function TutorChat({ sessionId, question }: { sessionId: string; question
 		transport,
 	});
 
-	const firstQuestion = useRef(question);
+	const currentQuestion = useRef(question);
+	currentQuestion.current = question;
 	useEffect(() => {
 		const stored = readScope(sessionId);
 		if (stored?.open === false) setExpanded(false);
@@ -85,7 +86,7 @@ export function TutorChat({ sessionId, question }: { sessionId: string; question
 			.then((res) => {
 				if (cancelled) return;
 				const loaded = res.messages.map(toUIMessage);
-				const question = firstQuestion.current;
+				const question = currentQuestion.current;
 				const sameQuestion = stored?.question === question && stored?.afterId !== undefined;
 				setMessages(loaded);
 				setScope({
